@@ -114,7 +114,7 @@ make validate-strict
 ```
 
 `make validate` is tolerant of missing local prerequisites and reports readiness gaps as warnings. `make validate-strict` upgrades those same gaps to failures and is the preferred pre-handoff or pre-release check.
-GitHub Actions now runs the same `make validate-strict` gate on pull requests, on `main`, and via manual workflow dispatch. The live pilot overlay smokes in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) remain manual checks outside hosted CI.
+GitHub Actions now runs the same `make validate-strict` gate on pull requests, on `main`, and via manual workflow dispatch. A separate hosted smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) reuses the base proxy and header pilot smokes on manual dispatch and a weekly schedule. The broader failure-path smoke matrix in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) remains a manual validation path.
 
 ### Demo Imports
 
@@ -180,6 +180,8 @@ make pilot-header-demo-adapter-audit-visibility-smoke
 ```
 
 These smoke paths now exercise real import endpoints plus persisted import-run audit checks, including same-site visibility checks for successful runs, non-site failed runs, and denial checks for structured site-scope rejection runs. The full overlay and smoke matrix lives in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+For hosted smoke automation, GitHub Actions now reuses `make pilot-proxy-demo-smoke` and `make pilot-header-demo-smoke` through [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml). That workflow is intentionally narrower than the full local smoke matrix and is meant to complement, not replace, the broader manual overlay checks.
 
 ## Documentation Map
 

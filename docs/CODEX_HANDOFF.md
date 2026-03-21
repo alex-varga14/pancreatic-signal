@@ -2,7 +2,7 @@
 
 Updated: 2026-03-21
 
-This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, and the best next work is now Phase 6 hardening around hosted pilot-smoke automation and release hygiene on top of the now-comprehensive import smoke coverage.
+This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, and the best next work is now Phase 6 hardening around expanding hosted pilot-smoke coverage and release hygiene on top of the now-comprehensive import smoke coverage.
 
 ## Current State
 
@@ -10,7 +10,7 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 - Reviewer workflow is implemented end to end with worklist filters, case detail, review actions, feedback capture, hybrid prioritization, and trial matching.
 - Phase 6 pilot work is materially in place: observability, readiness probes, trusted-proxy auth, site scoping, pilot Docker overlays, checked-in env bundles, de-identified research views, FHIR ingestion, HL7 ORU ingestion, structured import metadata persistence, persisted import-run audit records, env-driven field-preference overrides for upstream variability, a dedicated web import workspace with recent-run audit visibility, and live report/FHIR/HL7 success, successful shared-visibility, report-path failed shared-visibility for `validation_error`, structured failed shared-visibility for FHIR `unsupported_payload` plus HL7 `parse_error`, report-path and structured-adapter site-scope rejection, report-path parse/validation, adapter-specific malformed-import, and generic plus structured cross-actor audit denial smoke coverage in both the header-auth and trusted-proxy pilot paths.
 - Top-level repo docs now reflect the implemented platform instead of the earlier scaffold framing, and the repository includes checked-in contributor, security, and code-of-conduct docs appropriate for a near-1.0 open-source handoff.
-- The repo now also includes a top-level changelog, a release-readiness checklist, and a checked-in GitHub Actions validation workflow so the next agent can preserve release-facing narrative quality while continuing implementation.
+- The repo now also includes a top-level changelog, a release-readiness checklist, and checked-in GitHub Actions workflows for strict validation plus base pilot smoke coverage so the next agent can preserve release-facing narrative quality while continuing implementation.
 - The highest-value remaining work is not bootstrapping. It is improving interoperability depth and pilot operability without breaking explainability.
 
 ## Fresh Validation Status
@@ -41,20 +41,21 @@ Confirmed on 2026-03-21:
 - The proxy demo overlay now defaults to an import-capable navigator identity so the built `/imports` workspace and the live proxy smoke path exercise the same capability class
 - The latest strict validation pass was rerun after adding the GitHub Actions validation workflow plus the web lint check and remains green
 - GitHub Actions now runs `make validate-strict` on pull requests, on `main`, and through manual workflow dispatch using a checked-in workflow under `.github/workflows/validate.yml`
+- A checked-in workflow under `.github/workflows/pilot-smoke.yml` now reuses `make pilot-proxy-demo-smoke` and `make pilot-header-demo-smoke` on manual dispatch plus a weekly Monday schedule; its first GitHub-hosted run is still pending
 - Release-facing documentation now includes `CHANGELOG.md` and `docs/RELEASE_READINESS.md`
 
 Last known good live deployment check:
 
 - The header-demo Docker stack was booted with the pilot overlay
-- `make pilot-header-demo-smoke` passed on 2026-03-20
-- The smoke path verified API readiness, web readiness, `/imports`, `/api/v1/auth/me`, report import via `/api/v1/imports/reports`, persisted import-run audit detail, visible cases, and a persisted reviewer-action round-trip
+- `make pilot-header-demo-smoke` passed on 2026-03-21
+- The smoke path verified API readiness, web readiness, `/imports`, `/api/v1/auth/me`, report import via `/api/v1/imports/reports`, persisted import-run audit detail for run `41`, visible cases, and a persisted reviewer-action round-trip
 - `make pilot-header-demo-fhir-smoke` passed on 2026-03-20
 - The smoke path verified API readiness, web readiness, `/imports`, `/api/v1/auth/me`, FHIR import via `/api/v1/imports/fhir/diagnostic-reports`, persisted import-run audit detail, visible cases, and a persisted reviewer-action round-trip
 - `make pilot-header-demo-hl7-smoke` passed on 2026-03-20
 - The smoke path verified API readiness, web readiness, `/imports`, `/api/v1/auth/me`, HL7 import via `/api/v1/imports/hl7/oru`, persisted import-run audit detail, visible cases, and a persisted reviewer-action round-trip
 - The proxy-demo Docker stack was booted with the pilot overlay
-- `make pilot-proxy-demo-smoke` passed on 2026-03-20
-- The smoke path verified API readiness, web readiness, `/imports`, `/api/v1/auth/me`, report import via `/api/v1/imports/reports`, persisted import-run audit detail, visible cases, and a persisted reviewer-action round-trip
+- `make pilot-proxy-demo-smoke` passed on 2026-03-21
+- The smoke path verified API readiness, web readiness, `/imports`, `/api/v1/auth/me`, report import via `/api/v1/imports/reports`, persisted import-run audit detail for run `40`, visible cases, and a persisted reviewer-action round-trip
 - `make pilot-proxy-demo-fhir-smoke` passed on 2026-03-20
 - The smoke path verified API readiness, web readiness, `/imports`, `/api/v1/auth/me`, FHIR import via `/api/v1/imports/fhir/diagnostic-reports`, persisted import-run audit detail, visible cases, and a persisted reviewer-action round-trip
 - `make pilot-proxy-demo-hl7-smoke` passed on 2026-03-20
@@ -133,6 +134,9 @@ Additional note from this slice:
 - Unsandboxed runs of `make pilot-proxy-demo-adapter-site-rejection-smoke` and `make pilot-header-demo-adapter-site-rejection-smoke` both passed end to end on 2026-03-20 local time, producing persisted run IDs `31`, `32`, `33`, and `34` with UTC timestamps `2026-03-21T04:49:33Z`, `2026-03-21T04:49:33Z`, `2026-03-21T04:50:48Z`, and `2026-03-21T04:50:48Z`
 - A new structured audit-visibility smoke mode now verifies owner access plus alternate-actor denial for persisted FHIR and HL7 `site_scope_rejection` runs across both import-run audit endpoints
 - Unsandboxed runs of `make pilot-proxy-demo-adapter-audit-visibility-smoke` and `make pilot-header-demo-adapter-audit-visibility-smoke` both passed end to end on 2026-03-20 local time, producing persisted run IDs `36`, `37`, `38`, and `39` with UTC timestamps `2026-03-21T05:19:26Z`, `2026-03-21T05:19:26Z`, `2026-03-21T05:21:57Z`, and `2026-03-21T05:21:57Z`
+- A new hosted pilot smoke workflow now reuses the existing base proxy and header Make targets on manual dispatch and a weekly schedule
+- Unsandboxed reruns of `make pilot-proxy-demo-smoke` and `make pilot-header-demo-smoke` both passed end to end on 2026-03-20 local time, producing persisted run IDs `40` and `41` with UTC timestamps `2026-03-21T05:46:27Z` and `2026-03-21T05:47:33Z`
+- The checked-in hosted workflow under `.github/workflows/pilot-smoke.yml` installs API dependencies and then runs those same overlay targets in GitHub Actions, but its first GitHub-hosted execution is still pending
 
 ## What Is Implemented By Phase
 
@@ -194,6 +198,7 @@ Additional note from this slice:
 - The proxy-demo pilot path now also has a live structured failed-run shared-visibility smoke target that verifies owner visibility plus alternate-actor allow behavior for persisted FHIR `unsupported_payload` and HL7 `parse_error` runs
 - The proxy-demo pilot path now also has a live structured shared-visibility smoke target that verifies owner visibility plus alternate-actor allow behavior for successful FHIR and HL7 imports
 - The proxy-demo pilot path now also has a live audit-visibility smoke target that verifies owner visibility plus alternate-actor denial for a persisted `site_scope_rejection` run
+- GitHub Actions now also has a hosted pilot smoke workflow for the base proxy and header success-path overlays
 
 ## Important Guardrails
 
@@ -270,34 +275,33 @@ Additional note from this slice:
 
 ## Recommended Next Slice
 
-Proceed with a hosted pilot-smoke workflow that can be run manually or on a schedule.
+Proceed with a hosted failure-path pilot smoke expansion, starting with site-scope rejection.
 
 ### Why this is next
 
-- The strict validation gate is now automatic on pull requests and `main`, so the remaining gap in CI coverage is the pilot overlay smoke matrix.
-- The live smoke matrix already exists and is well documented, but it still depends on a maintainer remembering which overlay to boot and which target to run.
-- A hosted smoke workflow would extend the new CI/CD posture into the highest-value manual deployment checks without changing product behavior.
+- The base proxy and header success-path pilot smokes are now wired into a checked-in hosted workflow, so the highest-value remaining CI gap is failure-path coverage for auth, scoping, and audit behavior.
+- The existing site-rejection smoke targets are already live, deterministic, and comparatively cheap because they avoid reviewer round-trips and visible-case assertions stay at zero.
+- Promoting one high-value failure path into hosted automation would strengthen release confidence without changing product behavior or inventing a second smoke harness.
 
 ### Target outcome
 
-Add a live smoke flow that:
-Add hosted smoke automation that:
-- runs at least one current pilot overlay smoke target in GitHub Actions
-- is scoped honestly, ideally via `workflow_dispatch` and optionally a schedule rather than every PR if runtime cost is high
-- keeps the existing local smoke commands as the source-of-truth operational path
-- documents which hosted smoke coverage exists and which overlay checks still remain manual
+Add hosted failure-path smoke automation that:
+- runs at least one existing pilot `site_scope_rejection` smoke target in GitHub Actions
+- keeps the current base hosted smoke workflow intact and the existing local Make targets as the source-of-truth operational path
+- stays scoped honestly so the docs still distinguish hosted base or failure coverage from the broader manual smoke matrix
+- documents which higher-cost failure or visibility checks still remain manual after the new hosted expansion
 
 ### Suggested implementation shape
 
-1. Add a separate GitHub Actions smoke workflow rather than folding Docker overlay execution into the fast PR validation job.
+1. Extend the existing hosted smoke workflow or add a tightly scoped sibling workflow rather than folding Docker overlay execution into the fast PR validation job.
 
-2. Reuse the existing pilot Make targets as the workflow entrypoints so local and hosted smoke behavior stay aligned.
+2. Reuse the existing `make pilot-*-site-rejection-smoke` targets as the workflow entrypoints so local and hosted smoke behavior stay aligned.
 
 3. Keep the workflow readable:
    - boot one overlay at a time
-   - run the relevant smoke target against `localhost`
+   - run the relevant failure-path smoke target against `localhost`
    - tear the overlay down even on failure
-   - start with one or two high-value smoke paths rather than the entire matrix
+   - start with one high-value failure path rather than the entire matrix
 
 4. Keep the smoke assertions operational:
    - the existing manual smoke targets remain usable locally
@@ -308,10 +312,11 @@ Add hosted smoke automation that:
 
 ### Acceptance criteria
 
-- At least one hosted pilot smoke workflow runs successfully through GitHub Actions.
-- The workflow configuration is checked in and documented honestly.
-- Release-facing docs explain what hosted smoke covers and what still requires manual live validation.
+- At least one hosted failure-path pilot smoke target is wired into GitHub Actions.
+- The hosted workflow configuration is checked in and documented honestly.
+- Release-facing docs explain what hosted smoke now covers and what still requires manual live validation.
 - `make validate-strict` passes.
+- Local live validation is rerun for any newly hosted failure-path target, and if GitHub-hosted execution is not run yet that gap is called out explicitly.
 - If workflow scope changes validation posture materially, update the release-facing docs in the same change set.
 
 ## Good First Commands For The Next Agent
@@ -321,6 +326,7 @@ make validate-strict
 sed -n '1,260p' docs/PHASES.md
 sed -n '1,260p' docs/API_SPEC.md
 sed -n '1,260p' docs/DEPLOYMENT.md
+sed -n '1,220p' .github/workflows/pilot-smoke.yml
 sed -n '1,260p' scripts/smoke_proxy_auth.py
 sed -n '1,260p' apps/api/app/services/fhir_imports.py
 sed -n '1,260p' apps/api/app/services/hl7_imports.py
@@ -360,4 +366,4 @@ make pilot-proxy-demo-audit-visibility-smoke
 
 ## Handoff Summary
 
-This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, and live generic plus structured success, failed shared-visibility, site-scope rejection, parse or validation failure, adapter failure, and audit-visibility denial smoke coverage in both pilot auth modes are complete, so the next agent should focus on hosted pilot-smoke automation and release hygiene rather than missing product fundamentals.
+This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base pilot smoke automation, and live generic plus structured success, failed shared-visibility, site-scope rejection, parse or validation failure, adapter failure, and audit-visibility denial smoke coverage in both pilot auth modes are complete, so the next agent should focus on promoting one high-value failure path into hosted smoke coverage and tightening release hygiene rather than missing product fundamentals.

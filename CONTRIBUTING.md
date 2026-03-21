@@ -56,7 +56,7 @@ make validate
 make validate-strict
 ```
 
-Pull requests and `main` now run the same strict gate in GitHub Actions through [`.github/workflows/validate.yml`](.github/workflows/validate.yml). Live pilot overlay smoke checks still need to be run manually when auth, import, or packaging changes warrant them.
+Pull requests and `main` now run the same strict gate in GitHub Actions through [`.github/workflows/validate.yml`](.github/workflows/validate.yml). A separate hosted smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) reuses the base proxy and header overlay smokes on manual dispatch and a weekly schedule. The broader failure-path and visibility-specific smoke matrix still needs manual runs when auth, import, or packaging changes warrant them.
 
 If you touch import, auth, or pilot wiring, also consider the relevant smoke target from [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
