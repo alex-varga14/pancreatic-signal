@@ -1,0 +1,125 @@
+{
+  "version": "0.1.0",
+  "trials": [
+    {
+      "trial_id": "PDAC-DIAG-001",
+      "title": "Rapid Diagnostic Navigation Registry for Suspicious Pancreatic Imaging",
+      "source": "Demo PDAC Trial Registry",
+      "summary": "Registry-style screening for cases with imaging suspicious for pancreatic malignancy that still need coordinated diagnostic follow-up.",
+      "inclusion_all": [
+        {
+          "id": "high_risk_signal",
+          "label": "High-risk pancreatic signal present",
+          "fields": ["high_risk_pancreatic_signal"]
+        }
+      ],
+      "inclusion_any": [
+        {
+          "id": "suspicious_or_mass",
+          "label": "Suspicious malignancy or pancreatic mass language present",
+          "fields": ["suspected_pdac", "pancreatic_mass", "secondary_signs_present"]
+        }
+      ],
+      "preferred": [
+        {
+          "id": "tissue_pathway",
+          "label": "Biopsy or EUS pathway identified",
+          "fields": ["needs_tissue_confirmation"]
+        },
+        {
+          "id": "localized_pattern",
+          "label": "Localized pattern without metastatic language",
+          "fields": ["localized_disease_suspected"]
+        }
+      ],
+      "exclude_any": [
+        {
+          "id": "metastatic_language",
+          "label": "Metastatic disease language present",
+          "fields": ["metastatic_language_present"]
+        }
+      ]
+    },
+    {
+      "trial_id": "PDAC-HEAD-002",
+      "title": "Pancreatic Head Lesion Neoadjuvant Screening Cohort",
+      "source": "Demo PDAC Trial Registry",
+      "summary": "Pre-screening cohort for suspected localized pancreatic head adenocarcinoma cases headed toward tissue confirmation and oncology review.",
+      "inclusion_all": [
+        {
+          "id": "suspected_pdac",
+          "label": "Suspicious pancreatic malignancy language present",
+          "fields": ["suspected_pdac"]
+        },
+        {
+          "id": "head_focus",
+          "label": "Pancreatic head focus present",
+          "fields": ["pancreatic_head_focus"]
+        }
+      ],
+      "preferred": [
+        {
+          "id": "mass_present",
+          "label": "Pancreatic mass or lesion language present",
+          "fields": ["pancreatic_mass"]
+        },
+        {
+          "id": "tissue_pathway",
+          "label": "Biopsy or EUS recommendation present",
+          "fields": ["needs_tissue_confirmation"]
+        },
+        {
+          "id": "localized_pattern",
+          "label": "No metastatic language detected",
+          "fields": ["localized_disease_suspected"]
+        }
+      ],
+      "exclude_any": [
+        {
+          "id": "metastatic_language",
+          "label": "Metastatic disease language present",
+          "fields": ["metastatic_language_present"]
+        }
+      ]
+    },
+    {
+      "trial_id": "PDAC-SIGN-003",
+      "title": "Secondary Sign Enrichment Study for Occult Pancreatic Cancer",
+      "source": "Demo PDAC Trial Registry",
+      "summary": "Observational study capturing cases with pancreatic secondary signs that may warrant expedited pancreatic oncology review despite subtle or occult primary lesions.",
+      "inclusion_all": [
+        {
+          "id": "secondary_signs",
+          "label": "Relevant pancreatic secondary signs present",
+          "fields": ["secondary_signs_present"]
+        }
+      ],
+      "inclusion_any": [
+        {
+          "id": "duct_pattern",
+          "label": "Abrupt duct cutoff or double duct pattern present",
+          "fields": ["duct_cutoff", "double_duct_sign"]
+        }
+      ],
+      "preferred": [
+        {
+          "id": "followup_recommended",
+          "label": "Follow-up recommendation present",
+          "fields": ["followup_recommended"]
+        },
+        {
+          "id": "localized_pattern",
+          "label": "No metastatic language detected",
+          "fields": ["localized_disease_suspected"]
+        }
+      ],
+      "exclude_any": [
+        {
+          "id": "metastatic_language",
+          "label": "Metastatic disease language present",
+          "fields": ["metastatic_language_present"]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+report_id,case_id,report_datetime,modality,site,report_text
+R-001,C-001,2026-03-10T12:15:00Z,CT,Demo Hospital,"Findings: There is abrupt cutoff of the pancreatic duct in the head with upstream dilation. Ill-defined hypoattenuating pancreatic head lesion is present. Impression: Findings are suspicious for pancreatic neoplasm. Recommend endoscopic ultrasound with tissue sampling."
+R-002,C-002,2026-03-11T09:30:00Z,CT,Demo Hospital,"Findings: Mild peripancreatic inflammatory change compatible with pancreatitis. No discrete pancreatic mass is identified. Impression: Acute pancreatitis."
+R-003,C-003,2026-03-12T15:00:00Z,MRI,Demo Hospital,"Findings: Double duct sign is present with focal pancreatic atrophy. No definite measurable mass, however occult pancreatic malignancy cannot be excluded. Impression: Recommend EUS for further evaluation."
+R-004,C-004,2026-03-13T08:45:00Z,CT,Demo Hospital,"Findings: Pancreas is unremarkable. No pancreatic duct dilation. Impression: No acute abnormality."
+R-005,C-005,2026-03-14T17:20:00Z,CT,Demo Hospital,"Findings: Cystic lesion in the pancreatic tail measuring 1.2 cm without suspicious enhancement. Impression: Likely side-branch IPMN; recommend routine imaging follow-up."

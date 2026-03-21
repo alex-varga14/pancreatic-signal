@@ -1,0 +1,65 @@
+# Release Readiness
+
+This checklist is for a research-first open-source release, not a clinical deployment claim.
+
+## Release Intent
+
+Before tagging a `1.0`, confirm the release is being framed as:
+
+- research-use workflow software
+- explainable and benchmarkable
+- human-review dependent
+- non-clinical and non-regulatory in its claims
+
+Do not tag a release that blurs those boundaries.
+
+## Product Readiness
+
+- deterministic triage remains the primary explainability path
+- reviewer workflow works end to end
+- imports work across generic report, FHIR, and HL7 paths
+- import-run audit summaries and detail views are available
+- de-identified research surfaces still behave as documented
+- current handoff docs match the actual implementation state
+
+## Validation Readiness
+
+- `make validate-strict` passes in the release environment
+- latest API, web, and evaluation results are captured in the release notes or handoff
+- relevant pilot smoke targets have been rerun recently enough to be credible for the release
+- successful and failed import-run shared-visibility expectations remain covered by the current smoke matrix
+- any skipped smoke paths are explicitly documented
+
+## Documentation Readiness
+
+- [README.md](../README.md) accurately describes current capabilities and limits
+- [CHANGELOG.md](../CHANGELOG.md) includes the release summary
+- [docs/DEPLOYMENT.md](./DEPLOYMENT.md) matches the current overlay and smoke matrix
+- [docs/API_SPEC.md](./API_SPEC.md) matches the current import, auth, and audit behavior
+- [docs/SAFETY_AND_COMPLIANCE.md](./SAFETY_AND_COMPLIANCE.md) remains aligned with release messaging
+- [docs/CODEX_HANDOFF.md](./CODEX_HANDOFF.md) is current enough for the next implementation phase
+
+## Open-Source Readiness
+
+- [CONTRIBUTING.md](../CONTRIBUTING.md) reflects current contribution expectations
+- [SECURITY.md](../SECURITY.md) provides a responsible reporting path
+- [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) is present and discoverable
+- sample data remains synthetic or otherwise safe for publication
+- no secrets, PHI, or environment-specific credentials are present in tracked files
+
+## Release Notes Checklist
+
+Include:
+
+- what the release enables for researchers and pilot collaborators
+- what is still explicitly out of scope
+- the exact validation date and headline results
+- the most important setup path for first-time users
+- the highest-priority next implementation slice after release
+
+## Recommended Final Gate
+
+Treat the release as ready only if the maintainers can answer "yes" to both questions:
+
+1. Would a new outside collaborator understand what this project is, what it is not, and how to run it?
+2. Would a careful reviewer see evidence of transparency, safety boundaries, and reproducible validation rather than hype?

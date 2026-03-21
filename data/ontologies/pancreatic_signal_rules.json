@@ -1,0 +1,101 @@
+{
+  "version": "0.1.0",
+  "families": [
+    {
+      "code": "PDAC_EXPLICIT_SUSPICION",
+      "label": "Explicit pancreatic malignancy suspicion",
+      "weight": 0.55,
+      "patterns": [
+        "pancreatic adenocarcinoma",
+        "pancreatic carcinoma",
+        "concerning for pancreatic malignancy",
+        "suspicious for pancreatic neoplasm",
+        "pancreatic mass suspicious for malignancy"
+      ]
+    },
+    {
+      "code": "PANCREATIC_MASS",
+      "label": "Pancreatic mass or lesion",
+      "weight": 0.40,
+      "patterns": [
+        "pancreatic mass",
+        "hypoattenuating pancreatic lesion",
+        "pancreatic head lesion",
+        "ill-defined lesion in the pancreas",
+        "pancreatic tail mass"
+      ]
+    },
+    {
+      "code": "DUCT_DILATION",
+      "label": "Pancreatic duct dilation",
+      "weight": 0.20,
+      "patterns": [
+        "dilated pancreatic duct",
+        "pancreatic duct dilatation",
+        "main pancreatic duct dilation",
+        "prominent pancreatic duct"
+      ]
+    },
+    {
+      "code": "DUCT_CUTOFF",
+      "label": "Abrupt pancreatic duct cutoff or interruption",
+      "weight": 0.35,
+      "patterns": [
+        "abrupt cutoff of the pancreatic duct",
+        "abrupt duct cutoff",
+        "ductal interruption",
+        "abrupt termination of the pancreatic duct"
+      ]
+    },
+    {
+      "code": "DOUBLE_DUCT_SIGN",
+      "label": "Double duct sign",
+      "weight": 0.35,
+      "patterns": [
+        "double duct sign",
+        "dilation of the common bile duct and pancreatic duct"
+      ]
+    },
+    {
+      "code": "FOCAL_ATROPHY",
+      "label": "Focal pancreatic atrophy",
+      "weight": 0.18,
+      "patterns": [
+        "focal pancreatic atrophy",
+        "distal pancreatic atrophy",
+        "parenchymal atrophy adjacent to the lesion"
+      ]
+    },
+    {
+      "code": "FOLLOWUP_RECOMMENDED",
+      "label": "Follow-up or biopsy recommended",
+      "weight": 0.14,
+      "patterns": [
+        "recommend endoscopic ultrasound",
+        "recommend tissue sampling",
+        "recommend biopsy",
+        "recommend close follow-up",
+        "consider EUS"
+      ]
+    }
+  ],
+  "negations": [
+    "no evidence of",
+    "without evidence of",
+    "no pancreatic mass",
+    "pancreas is unremarkable",
+    "not suspicious for"
+  ],
+  "uncertainty": [
+    "possibly",
+    "may represent",
+    "indeterminate",
+    "cannot exclude",
+    "suspicious for"
+  ],
+  "thresholds": {
+    "medium": 0.30,
+    "high": 0.55,
+    "critical": 0.80
+  }
+}
