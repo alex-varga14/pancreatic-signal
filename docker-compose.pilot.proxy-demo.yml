@@ -1,0 +1,8 @@
+services:
+  api:
+    env_file:
+      - ./deploy/examples/pilot-proxy-demo/api.env
+
+  web:
+    env_file:
+      - ./deploy/examples/pilot-proxy-demo/web.env

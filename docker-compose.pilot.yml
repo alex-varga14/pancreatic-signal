@@ -1,0 +1,10 @@
+services:
+  api:
+    environment:
+      APP_ENV: pilot
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+
+  web:
+    command: sh -lc "npm run build && npm run start -- --hostname 0.0.0.0 --port 3000"
+    restart: unless-stopped
