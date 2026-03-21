@@ -53,6 +53,7 @@ def main() -> None:
         check_demo_eval_compare(),
         check_demo_eval_sweep(),
         check_pytest(strict=args.strict),
+        check_web_lint(strict=args.strict),
         check_web_build(strict=args.strict),
     ]
 
@@ -225,6 +226,27 @@ def check_web_build(*, strict: bool) -> CheckResult:
         detail = output[-1] if output else "Web build passed."
         return CheckResult("web-build", PASS, detail)
     return CheckResult("web-build", FAIL, summarize_process(process))
+
+
+def check_web_lint(*, strict: bool) -> CheckResult:
+    node = shutil.which("node")
+    npm = shutil.which("npm")
+    if not node or not npm:
+        status = FAIL if strict else WARN
+        return CheckResult("web-lint", status, "Node.js and npm are required to validate the web lint step.")
+
+    if not (WEB_ROOT / "node_modules").exists():
+        status = FAIL if strict else WARN
+        return CheckResult("web-lint", status, "`apps/web/node_modules` is missing; run `npm install` in `apps/web`.")
+
+    process = run_command(["npm", "run", "lint"], cwd=WEB_ROOT)
+    if process.returncode == 0:
+        output = [line.strip() for line in process.stdout.splitlines() if line.strip()]
+        detail = "Web lint passed."
+        if output and not output[-1].startswith("> "):
+            detail = output[-1]
+        return CheckResult("web-lint", PASS, detail)
+    return CheckResult("web-lint", FAIL, summarize_process(process))
 
 
 def get_minimum_python_version() -> tuple[int, int]:

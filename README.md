@@ -114,6 +114,7 @@ make validate-strict
 ```
 
 `make validate` is tolerant of missing local prerequisites and reports readiness gaps as warnings. `make validate-strict` upgrades those same gaps to failures and is the preferred pre-handoff or pre-release check.
+GitHub Actions now runs the same `make validate-strict` gate on pull requests, on `main`, and via manual workflow dispatch. The live pilot overlay smokes in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) remain manual checks outside hosted CI.
 
 ### Demo Imports
 

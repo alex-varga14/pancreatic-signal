@@ -2,7 +2,7 @@
 
 Updated: 2026-03-21
 
-This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, and the best next work is now Phase 6 hardening around CI-backed validation and release hygiene on top of the now-comprehensive import smoke coverage.
+This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, and the best next work is now Phase 6 hardening around hosted pilot-smoke automation and release hygiene on top of the now-comprehensive import smoke coverage.
 
 ## Current State
 
@@ -10,7 +10,7 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 - Reviewer workflow is implemented end to end with worklist filters, case detail, review actions, feedback capture, hybrid prioritization, and trial matching.
 - Phase 6 pilot work is materially in place: observability, readiness probes, trusted-proxy auth, site scoping, pilot Docker overlays, checked-in env bundles, de-identified research views, FHIR ingestion, HL7 ORU ingestion, structured import metadata persistence, persisted import-run audit records, env-driven field-preference overrides for upstream variability, a dedicated web import workspace with recent-run audit visibility, and live report/FHIR/HL7 success, successful shared-visibility, report-path failed shared-visibility for `validation_error`, structured failed shared-visibility for FHIR `unsupported_payload` plus HL7 `parse_error`, report-path and structured-adapter site-scope rejection, report-path parse/validation, adapter-specific malformed-import, and generic plus structured cross-actor audit denial smoke coverage in both the header-auth and trusted-proxy pilot paths.
 - Top-level repo docs now reflect the implemented platform instead of the earlier scaffold framing, and the repository includes checked-in contributor, security, and code-of-conduct docs appropriate for a near-1.0 open-source handoff.
-- The repo now also includes a top-level changelog and a release-readiness checklist so the next agent can preserve release-facing narrative quality while continuing implementation.
+- The repo now also includes a top-level changelog, a release-readiness checklist, and a checked-in GitHub Actions validation workflow so the next agent can preserve release-facing narrative quality while continuing implementation.
 - The highest-value remaining work is not bootstrapping. It is improving interoperability depth and pilot operability without breaking explainability.
 
 ## Fresh Validation Status
@@ -18,9 +18,9 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 Confirmed on 2026-03-21:
 
 - `make validate-strict` passes
-- Summary: `8 pass, 0 warn, 0 fail`
+- Summary: `9 pass, 0 warn, 0 fail`
 - API tests: `101 passed`
-- Web checks: `npm run lint` and `npm run build` pass through `make validate-strict`
+- Web checks: `npm run lint` and `npm run build` now both pass through `make validate-strict`
 - Demo evaluation compare and sweep both run through the validation script
 - Targeted import / de-identification / export coverage also passes for the new import metadata surface
 - Import-run audit coverage now passes for success, update counts, validation failures, unsupported payloads, site-scope rejection, and audit-route access control
@@ -39,7 +39,8 @@ Confirmed on 2026-03-21:
 - The smoke helper now also supports live failed-run shared-visibility verification by reusing a persisted `/api/v1/imports/reports` `validation_error` run, proving a second same-site actor can inspect the failed detail and recent-run entry even when `imported_sites` is empty
 - The smoke helper now also supports live structured failed-run shared-visibility verification by reusing persisted FHIR `unsupported_payload` and HL7 `parse_error` runs, proving a second same-site actor can inspect both failed details and recent-run entries even when `imported_sites` is empty
 - The proxy demo overlay now defaults to an import-capable navigator identity so the built `/imports` workspace and the live proxy smoke path exercise the same capability class
-- The latest strict validation pass was rerun after the structured adapter audit-visibility change set and remains green
+- The latest strict validation pass was rerun after adding the GitHub Actions validation workflow plus the web lint check and remains green
+- GitHub Actions now runs `make validate-strict` on pull requests, on `main`, and through manual workflow dispatch using a checked-in workflow under `.github/workflows/validate.yml`
 - Release-facing documentation now includes `CHANGELOG.md` and `docs/RELEASE_READINESS.md`
 
 Last known good live deployment check:
@@ -105,7 +106,8 @@ Additional note from this slice:
 - The sandboxed `make pilot-header-demo-fhir-smoke` and `make pilot-header-demo-hl7-smoke` would have had the same localhost restriction as the existing smoke targets
 - Unsandboxed runs of both `make pilot-header-demo-fhir-smoke` and `make pilot-header-demo-hl7-smoke` passed end to end
 - `make pilot-header-demo-down` completed successfully after the live verification run
-- `make validate-strict` passed after adding live structured adapter audit-visibility smoke coverage, shared helper assertions, and new overlay targets
+- `make validate-strict` passed after adding the GitHub Actions validation workflow and the web lint check to the strict gate
+- The checked-in workflow at `.github/workflows/validate.yml` now runs `make validate-strict` on pull requests, on `main`, and through manual workflow dispatch
 - `docker compose -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml config` passed
 - `docker compose -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml config` passed
 - `make pilot-proxy-demo-up` required host-level Docker access and completed successfully
@@ -268,46 +270,47 @@ Additional note from this slice:
 
 ## Recommended Next Slice
 
-Proceed with CI-backed validation automation for pull requests.
+Proceed with a hosted pilot-smoke workflow that can be run manually or on a schedule.
 
 ### Why this is next
 
-- The live smoke matrix now covers generic and structured success, failed-run visibility, site-scope rejection, and audit-denial behavior across both pilot auth modes.
-- The highest-leverage next step is making the repo's validation story automatic for branch and PR work instead of depending on maintainers to remember local commands.
-- A CI workflow that runs the existing strict validation gate would align with the new branch-and-PR development process without changing runtime behavior.
+- The strict validation gate is now automatic on pull requests and `main`, so the remaining gap in CI coverage is the pilot overlay smoke matrix.
+- The live smoke matrix already exists and is well documented, but it still depends on a maintainer remembering which overlay to boot and which target to run.
+- A hosted smoke workflow would extend the new CI/CD posture into the highest-value manual deployment checks without changing product behavior.
 
 ### Target outcome
 
 Add a live smoke flow that:
-Add CI validation that:
-- runs `make validate-strict` automatically on pull requests and the default branch
-- keeps the workflow transparent about what is and is not covered in hosted CI
-- preserves the current manual live-smoke posture for overlay checks that require localhost Docker orchestration
-- documents the branch-to-PR validation story for maintainers and contributors
+Add hosted smoke automation that:
+- runs at least one current pilot overlay smoke target in GitHub Actions
+- is scoped honestly, ideally via `workflow_dispatch` and optionally a schedule rather than every PR if runtime cost is high
+- keeps the existing local smoke commands as the source-of-truth operational path
+- documents which hosted smoke coverage exists and which overlay checks still remain manual
 
 ### Suggested implementation shape
 
-1. Add a GitHub Actions workflow rather than inventing a new validation script.
+1. Add a separate GitHub Actions smoke workflow rather than folding Docker overlay execution into the fast PR validation job.
 
-2. Reuse `make validate-strict` as the CI entrypoint so local and hosted validation stay aligned.
+2. Reuse the existing pilot Make targets as the workflow entrypoints so local and hosted smoke behavior stay aligned.
 
 3. Keep the workflow readable:
-   - install Python and Node dependencies
-   - run the existing strict gate
-   - avoid live Docker overlay smokes unless the CI environment is intentionally prepared for them
+   - boot one overlay at a time
+   - run the relevant smoke target against `localhost`
+   - tear the overlay down even on failure
+   - start with one or two high-value smoke paths rather than the entire matrix
 
 4. Keep the smoke assertions operational:
-   - local `make validate-strict` remains the source of truth
-   - hosted CI reports the same pass or fail outcome contributors expect locally
-   - docs explain any intentionally manual validation that remains outside CI
+   - the existing manual smoke targets remain usable locally
+   - hosted smoke output makes it obvious which overlay and target ran
+   - docs explain any intentionally manual validation that remains outside hosted smoke coverage
 
 5. Prefer additive workflow and docs updates over new runtime abstractions.
 
 ### Acceptance criteria
 
-- A pull request workflow runs `make validate-strict` automatically.
+- At least one hosted pilot smoke workflow runs successfully through GitHub Actions.
 - The workflow configuration is checked in and documented honestly.
-- Release-facing docs explain what CI covers and what still requires manual live smoke validation.
+- Release-facing docs explain what hosted smoke covers and what still requires manual live validation.
 - `make validate-strict` passes.
 - If workflow scope changes validation posture materially, update the release-facing docs in the same change set.
 
@@ -357,4 +360,4 @@ make pilot-proxy-demo-audit-visibility-smoke
 
 ## Handoff Summary
 
-This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, and live generic plus structured success, failed shared-visibility, site-scope rejection, parse or validation failure, adapter failure, and audit-visibility denial smoke coverage in both pilot auth modes are complete, so the next agent should focus on CI-backed validation automation and release hygiene rather than missing product fundamentals.
+This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, and live generic plus structured success, failed shared-visibility, site-scope rejection, parse or validation failure, adapter failure, and audit-visibility denial smoke coverage in both pilot auth modes are complete, so the next agent should focus on hosted pilot-smoke automation and release hygiene rather than missing product fundamentals.
