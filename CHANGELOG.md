@@ -14,6 +14,7 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - Live failed-run shared-visibility smoke coverage for a persisted non-site `validation_error` import run in the proxy and header pilot overlays
 - Live structured adapter failed-run shared-visibility smoke coverage for persisted non-site FHIR `unsupported_payload` and HL7 `parse_error` runs in the proxy and header pilot overlays
 - Live structured adapter site-scope rejection smoke coverage for persisted FHIR and HL7 `site_scope_rejection` runs in the proxy and header pilot overlays
+- Live structured adapter audit-visibility smoke coverage for persisted FHIR and HL7 `site_scope_rejection` runs in the proxy and header pilot overlays
 
 ### Changed
 
@@ -23,8 +24,8 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 ### Validated
 
 - `make validate-strict` passed on 2026-03-21 with `8 pass, 0 warn, 0 fail`
-- API validation reported `98 passed`
-- Live structured adapter site-scope rejection smoke runs passed for both trusted-proxy and header-auth overlays and are recorded in [docs/CODEX_HANDOFF.md](docs/CODEX_HANDOFF.md)
+- API validation reported `101 passed`
+- Live structured adapter site-scope rejection and audit-visibility smoke runs passed for both trusted-proxy and header-auth overlays and are recorded in [docs/CODEX_HANDOFF.md](docs/CODEX_HANDOFF.md)
 
 ## 0.9.0-preview - 2026-03-20
 
