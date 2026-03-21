@@ -332,6 +332,28 @@ def test_assert_import_run_visible_responses_accepts_failed_visible_detail_and_r
     )
 
 
+def test_assert_import_run_visible_responses_accepts_failed_adapter_visible_detail_and_recent_run() -> None:
+    smoke = _load_smoke_module()
+
+    smoke._assert_import_run_visible_responses(
+        run_id=24,
+        detail_status_code=200,
+        detail_body={
+            "run_id": 24,
+            "actor_user_id": "pilot-navigator",
+            "status": "failed",
+            "source_format": "fhir-diagnostic-report",
+            "failure_counts": {"unsupported_payload": 1},
+        },
+        list_status_code=200,
+        list_body=[{"run_id": 25}, {"run_id": 24}],
+        label="Alternate actor failed FHIR shared visibility",
+        expected_actor_user_id="pilot-navigator",
+        expected_status="failed",
+        expected_source_format="fhir-diagnostic-report",
+    )
+
+
 def test_build_fhir_demo_payload_uses_run_id_and_site_scope() -> None:
     smoke = _load_smoke_module()
 

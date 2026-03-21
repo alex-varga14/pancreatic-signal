@@ -66,6 +66,7 @@ smoke-proxy-auth:
 		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_DEMO_SITE_REJECTION)),--import-demo-site-rejection,) \
 		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_AUDIT_VISIBILITY)),--import-audit-visibility,) \
 		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_FAILED_SHARED_VISIBILITY)),--import-failed-shared-visibility,) \
+		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_ADAPTER_FAILED_SHARED_VISIBILITY)),--import-adapter-failed-shared-visibility,) \
 		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_DEMO_PARSE_VALIDATION_FAILURE)),--import-demo-parse-validation-failure,) \
 		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_ADAPTER_FAILURES)),--import-adapter-failures,) \
 		$(if $(SMOKE_DEMO_FILE),--demo-file "$(SMOKE_DEMO_FILE)",) \
@@ -323,6 +324,32 @@ pilot-proxy-demo-failed-shared-visibility-smoke:
 		$(if $(SMOKE_REVIEW_NOTE),--review-note "$(SMOKE_REVIEW_NOTE)",) \
 		$(if $(SMOKE_WAIT_SECONDS),--wait-seconds "$(SMOKE_WAIT_SECONDS)",)
 
+pilot-proxy-demo-adapter-failed-shared-visibility-smoke:
+	$(PYTHON) scripts/smoke_proxy_auth.py \
+		--base-url "$(or $(SMOKE_BASE_URL),http://localhost:8000)" \
+		--web-url "$(or $(SMOKE_WEB_URL),http://localhost:3000)" \
+		--provider-preset keycloak \
+		--header-name "$(or $(SMOKE_HEADER_NAME),X-Trusted-Identity)" \
+		--user-id "$(or $(SMOKE_USER_ID),pilot-navigator)" \
+		--display-name "$(or $(SMOKE_DISPLAY_NAME),Pilot Navigator)" \
+		--role-value "$(or $(SMOKE_ROLE_VALUE),pdac-navigator)" \
+		--sites "$(or $(SMOKE_SITES),Demo Hospital)" \
+		$(if $(SMOKE_GROUPS),--groups "$(SMOKE_GROUPS)",) \
+		$(if $(SMOKE_AUDIT_ALT_USER_ID),--audit-alt-user-id "$(SMOKE_AUDIT_ALT_USER_ID)",) \
+		$(if $(SMOKE_AUDIT_ALT_DISPLAY_NAME),--audit-alt-display-name "$(SMOKE_AUDIT_ALT_DISPLAY_NAME)",) \
+		$(if $(SMOKE_AUDIT_ALT_ROLE_VALUE),--audit-alt-role-value "$(SMOKE_AUDIT_ALT_ROLE_VALUE)",) \
+		$(if $(SMOKE_AUDIT_ALT_SITES),--audit-alt-sites "$(SMOKE_AUDIT_ALT_SITES)",) \
+		$(if $(SMOKE_AUDIT_ALT_GROUPS),--audit-alt-groups "$(SMOKE_AUDIT_ALT_GROUPS)",) \
+		--base64 \
+		--check-web \
+		--check-imports-page \
+		--check-cases \
+		--import-adapter-failed-shared-visibility \
+		--skip-review \
+		$(if $(SMOKE_RUN_ID),--run-id "$(SMOKE_RUN_ID)",) \
+		$(if $(SMOKE_REVIEW_NOTE),--review-note "$(SMOKE_REVIEW_NOTE)",) \
+		$(if $(SMOKE_WAIT_SECONDS),--wait-seconds "$(SMOKE_WAIT_SECONDS)",)
+
 pilot-proxy-demo-down:
 	$(PILOT_PROXY_COMPOSE) down
 
@@ -571,6 +598,33 @@ pilot-header-demo-failed-shared-visibility-smoke:
 		--check-imports-page \
 		--check-cases \
 		--import-failed-shared-visibility \
+		--skip-review \
+		$(if $(SMOKE_RUN_ID),--run-id "$(SMOKE_RUN_ID)",) \
+		$(if $(SMOKE_REVIEW_NOTE),--review-note "$(SMOKE_REVIEW_NOTE)",) \
+		$(if $(SMOKE_WAIT_SECONDS),--wait-seconds "$(SMOKE_WAIT_SECONDS)",)
+
+pilot-header-demo-adapter-failed-shared-visibility-smoke:
+	$(PYTHON) scripts/smoke_proxy_auth.py \
+		--base-url "$(or $(SMOKE_BASE_URL),http://localhost:8000)" \
+		--web-url "$(or $(SMOKE_WEB_URL),http://localhost:3000)" \
+		--auth-mode header \
+		--user-id-header-name "$(or $(SMOKE_USER_ID_HEADER_NAME),X-User-ID)" \
+		--display-name-header-name "$(or $(SMOKE_DISPLAY_NAME_HEADER_NAME),X-User-Name)" \
+		--role-header-name "$(or $(SMOKE_ROLE_HEADER_NAME),X-User-Role)" \
+		--sites-header-name "$(or $(SMOKE_SITES_HEADER_NAME),X-User-Sites)" \
+		--user-id "$(or $(SMOKE_USER_ID),pilot-navigator)" \
+		--display-name "$(or $(SMOKE_DISPLAY_NAME),Pilot Navigator)" \
+		--role-value "$(or $(SMOKE_ROLE_VALUE),navigator)" \
+		--sites "$(or $(SMOKE_SITES),Demo Hospital)" \
+		$(if $(SMOKE_AUDIT_ALT_USER_ID),--audit-alt-user-id "$(SMOKE_AUDIT_ALT_USER_ID)",) \
+		$(if $(SMOKE_AUDIT_ALT_DISPLAY_NAME),--audit-alt-display-name "$(SMOKE_AUDIT_ALT_DISPLAY_NAME)",) \
+		$(if $(SMOKE_AUDIT_ALT_ROLE_VALUE),--audit-alt-role-value "$(SMOKE_AUDIT_ALT_ROLE_VALUE)",) \
+		$(if $(SMOKE_AUDIT_ALT_SITES),--audit-alt-sites "$(SMOKE_AUDIT_ALT_SITES)",) \
+		$(if $(SMOKE_AUDIT_ALT_GROUPS),--audit-alt-groups "$(SMOKE_AUDIT_ALT_GROUPS)",) \
+		--check-web \
+		--check-imports-page \
+		--check-cases \
+		--import-adapter-failed-shared-visibility \
 		--skip-review \
 		$(if $(SMOKE_RUN_ID),--run-id "$(SMOKE_RUN_ID)",) \
 		$(if $(SMOKE_REVIEW_NOTE),--review-note "$(SMOKE_REVIEW_NOTE)",) \

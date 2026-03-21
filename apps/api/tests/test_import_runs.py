@@ -301,6 +301,73 @@ def test_import_run_records_unsupported_payload_failures() -> None:
     assert run["failure_counts"]["unsupported_payload"] == 1
 
 
+def test_fhir_failed_import_run_is_visible_to_other_scoped_actor() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    owner_headers = _auth_headers("fhir-failure-owner", sites="Demo Hospital")
+
+    response = client.post(
+        "/api/v1/imports/fhir/diagnostic-reports",
+        json={"resourceType": "Observation", "id": "obs-shared-failure"},
+        headers=owner_headers,
+    )
+    assert response.status_code == 400
+    assert response.headers["x-import-run-id"]
+    run_id = int(response.headers["x-import-run-id"])
+
+    peer_headers = _auth_headers("fhir-failure-peer", sites="Demo Hospital")
+    peer_detail_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=peer_headers)
+    assert peer_detail_response.status_code == 200
+    peer_detail = peer_detail_response.json()
+    assert peer_detail["run_id"] == run_id
+    assert peer_detail["actor_user_id"] == "fhir-failure-owner"
+    assert peer_detail["status"] == "failed"
+    assert peer_detail["source_format"] == "fhir-diagnostic-report"
+    assert peer_detail["failure_counts"]["unsupported_payload"] == 1
+    assert peer_detail["items"] == []
+
+    peer_runs_response = client.get("/api/v1/imports/runs", headers=peer_headers)
+    assert peer_runs_response.status_code == 200
+    peer_runs = peer_runs_response.json()
+    assert any(run["run_id"] == run_id for run in peer_runs)
+
+
+def test_hl7_failed_import_run_is_visible_to_other_scoped_actor() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    owner_headers = _auth_headers("hl7-failure-owner", sites="Demo Hospital")
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content="\r".join(
+            [
+                "MSH|^~\\&|RADSYS|Demo Hospital|PS|PS|20260319130000||ORU^R01|MSG-PARSE-SHARED|P|2.5",
+                "PID|1||PAT-PARSE-SHARED^^^MRN||Doe^Jamie",
+            ]
+        ),
+        headers={"Content-Type": "text/plain", **owner_headers},
+    )
+    assert response.status_code == 400
+    assert response.headers["x-import-run-id"]
+    run_id = int(response.headers["x-import-run-id"])
+
+    peer_headers = _auth_headers("hl7-failure-peer", sites="Demo Hospital")
+    peer_detail_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=peer_headers)
+    assert peer_detail_response.status_code == 200
+    peer_detail = peer_detail_response.json()
+    assert peer_detail["run_id"] == run_id
+    assert peer_detail["actor_user_id"] == "hl7-failure-owner"
+    assert peer_detail["status"] == "failed"
+    assert peer_detail["source_format"] == "hl7-oru"
+    assert peer_detail["failure_counts"]["parse_error"] == 1
+    assert peer_detail["items"] == []
+
+    peer_runs_response = client.get("/api/v1/imports/runs", headers=peer_headers)
+    assert peer_runs_response.status_code == 200
+    peer_runs = peer_runs_response.json()
+    assert any(run["run_id"] == run_id for run in peer_runs)
+
+
 def test_import_run_records_site_scope_rejection_and_visibility() -> None:
     CASE_STORE.reset()
     client = TestClient(app)
