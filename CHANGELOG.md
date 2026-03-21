@@ -12,6 +12,7 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - A clearer public project narrative in [README.md](README.md) and [docs/OPEN_SOURCE_STRATEGY.md](docs/OPEN_SOURCE_STRATEGY.md)
 - A release-readiness checklist in [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md)
 - GitHub Actions pull request and `main` validation via [`.github/workflows/validate.yml`](.github/workflows/validate.yml) using `make validate-strict`
+- A hosted pilot smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) that reuses the base proxy and header overlay smoke targets on manual dispatch and a weekly schedule
 - Live failed-run shared-visibility smoke coverage for a persisted non-site `validation_error` import run in the proxy and header pilot overlays
 - Live structured adapter failed-run shared-visibility smoke coverage for persisted non-site FHIR `unsupported_payload` and HL7 `parse_error` runs in the proxy and header pilot overlays
 - Live structured adapter site-scope rejection smoke coverage for persisted FHIR and HL7 `site_scope_rejection` runs in the proxy and header pilot overlays
@@ -22,11 +23,13 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - Top-level documentation now describes the implemented research platform instead of the earlier scaffold-era state
 - Deployment and API docs now call out cross-actor visibility for non-site failed import runs with empty `imported_sites`
 - `make validate-strict` now includes web lint alongside Python checks, API tests, evaluation checks, and the web build so local and hosted validation stay aligned
+- The validation and deployment docs now distinguish between hosted base-smoke automation and the broader manual overlay smoke matrix
 
 ### Validated
 
 - `make validate-strict` passed on 2026-03-21 with `9 pass, 0 warn, 0 fail`
 - API validation reported `101 passed`
+- Local reruns of `make pilot-proxy-demo-smoke` and `make pilot-header-demo-smoke` passed on 2026-03-20 local time with persisted run IDs `40` and `41`, matching the checked-in hosted workflow targets
 - Live structured adapter site-scope rejection and audit-visibility smoke runs passed for both trusted-proxy and header-auth overlays and are recorded in [docs/CODEX_HANDOFF.md](docs/CODEX_HANDOFF.md)
 
 ## 0.9.0-preview - 2026-03-20
