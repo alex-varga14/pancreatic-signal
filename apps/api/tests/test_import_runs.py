@@ -368,6 +368,75 @@ def test_hl7_failed_import_run_is_visible_to_other_scoped_actor() -> None:
     assert any(run["run_id"] == run_id for run in peer_runs)
 
 
+def test_fhir_import_run_records_site_scope_rejection() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    north_headers = _auth_headers("fhir-north-analyst", sites="North Clinic")
+
+    response = client.post(
+        "/api/v1/imports/fhir/diagnostic-reports",
+        json={
+            "resourceType": "DiagnosticReport",
+            "id": "dr-fhir-site-reject",
+            "effectiveDateTime": "2026-03-19T10:00:00Z",
+            "category": [{"text": "CT abdomen"}],
+            "performer": [{"display": "Demo Hospital"}],
+            "conclusion": "Suspicious for pancreatic neoplasm. Recommend biopsy.",
+        },
+        headers=north_headers,
+    )
+    assert response.status_code == 403
+    assert response.headers["x-import-run-id"]
+    run_id = int(response.headers["x-import-run-id"])
+
+    own_run_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=north_headers)
+    assert own_run_response.status_code == 200
+    own_run = own_run_response.json()
+    assert own_run["source_format"] == "fhir-diagnostic-report"
+    assert own_run["failure_counts"]["site_scope_rejection"] == 1
+    assert own_run["items"][0]["error_bucket"] == "site_scope_rejection"
+    assert own_run["items"][0]["site"] == "Demo Hospital"
+
+    cases_response = client.get("/api/v1/cases", headers=north_headers)
+    assert cases_response.status_code == 200
+    assert cases_response.json() == []
+
+
+def test_hl7_import_run_records_site_scope_rejection() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    north_headers = _auth_headers("hl7-north-analyst", sites="North Clinic")
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content="\r".join(
+            [
+                "MSH|^~\\&|RADSYS|Demo Hospital|PS|PS|20260319100000||ORU^R01|MSG-SITE-REJECT|P|2.5",
+                "PID|1||PAT-SITE-REJECT^^^MRN||Doe^Jamie",
+                "PV1|1|O|RAD^^^Demo Hospital",
+                "OBR|1|PLAC-SITE-REJECT|R-HL7-SITE-REJECT|CT ABDOMEN^CT Abdomen|||20260319100000",
+                "OBX|1|TX|IMPRESSION^Impression||Suspicious for pancreatic neoplasm. Recommend biopsy.|",
+            ]
+        ),
+        headers={"Content-Type": "text/plain", **north_headers},
+    )
+    assert response.status_code == 403
+    assert response.headers["x-import-run-id"]
+    run_id = int(response.headers["x-import-run-id"])
+
+    own_run_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=north_headers)
+    assert own_run_response.status_code == 200
+    own_run = own_run_response.json()
+    assert own_run["source_format"] == "hl7-oru"
+    assert own_run["failure_counts"]["site_scope_rejection"] == 1
+    assert own_run["items"][0]["error_bucket"] == "site_scope_rejection"
+    assert own_run["items"][0]["site"] == "Demo Hospital"
+
+    cases_response = client.get("/api/v1/cases", headers=north_headers)
+    assert cases_response.status_code == 200
+    assert cases_response.json() == []
+
+
 def test_import_run_records_site_scope_rejection_and_visibility() -> None:
     CASE_STORE.reset()
     client = TestClient(app)

@@ -148,6 +148,11 @@ def main() -> int:
         help="Import the bundled demo reports with an out-of-scope site and verify the persisted site-scope rejection audit trail.",
     )
     seed_group.add_argument(
+        "--import-adapter-site-rejection",
+        action="store_true",
+        help="Import built-in FHIR and HL7 demo payloads with an out-of-scope site and verify persisted structured site-scope rejection audit trails.",
+    )
+    seed_group.add_argument(
         "--import-audit-visibility",
         action="store_true",
         help="Import the bundled demo reports with an out-of-scope site, verify the owner can inspect the failed run, and confirm an alternate actor cannot access it.",
@@ -180,7 +185,7 @@ def main() -> int:
     parser.add_argument(
         "--rejection-site",
         default="Out of Scope Site",
-        help="Site value to apply when exercising --import-demo-site-rejection or --import-audit-visibility.",
+        help="Site value to apply when exercising site-rejection smoke modes.",
     )
     parser.add_argument(
         "--audit-alt-user-id",
@@ -243,6 +248,7 @@ def main() -> int:
         if (
             args.skip_review
             or args.import_demo_site_rejection
+            or args.import_adapter_site_rejection
             or args.import_audit_visibility
             or args.import_failed_shared_visibility
             or args.import_adapter_failed_shared_visibility
@@ -290,6 +296,7 @@ def main() -> int:
             args.import_fhir_demo,
             args.import_hl7_demo,
             args.import_demo_site_rejection,
+            args.import_adapter_site_rejection,
             args.import_audit_visibility,
             args.import_failed_shared_visibility,
             args.import_adapter_failed_shared_visibility,
@@ -528,6 +535,70 @@ def main() -> int:
             print(
                 f"Verified alternate actor {alternate_identity['user_id']} cannot access failed import run #{import_run_id}."
             )
+
+    if args.import_adapter_site_rejection:
+        if not auth_me["capabilities"]["can_import_reports"]:
+            print("Resolved actor cannot import reports; choose an analyst, navigator, or admin identity.", file=sys.stderr)
+            return 1
+
+        rejection_site_scope = [args.rejection_site]
+
+        fhir_payload, fhir_case_ids, fhir_report_ids = build_fhir_demo_payload(
+            run_id=smoke_run_id,
+            site_scope=rejection_site_scope,
+        )
+        fhir_summary, fhir_detail = import_fhir_payload_expect_failure(
+            base_url=base_url,
+            auth_headers=auth_headers,
+            payload=fhir_payload,
+            expected_status_code=403,
+            label="FHIR site-scope rejection run",
+        )
+        fhir_run_id = _assert_failed_import_run(
+            failure_summary=fhir_summary,
+            import_detail=fhir_detail,
+            expected_status_code=403,
+            expected_source_format="fhir-diagnostic-report",
+            expected_failure_bucket="site_scope_rejection",
+            expected_failed=1,
+            expected_imported_sites=[args.rejection_site],
+            expected_item_count=1,
+            expected_case_ids=fhir_case_ids,
+            expected_report_ids=fhir_report_ids,
+            expected_site=args.rejection_site,
+        )
+
+        hl7_payload, hl7_case_ids, hl7_report_ids = build_hl7_demo_payload(
+            run_id=smoke_run_id,
+            site_scope=rejection_site_scope,
+        )
+        hl7_summary, hl7_detail = import_hl7_payload_expect_failure(
+            base_url=base_url,
+            auth_headers=auth_headers,
+            payload=hl7_payload,
+            expected_status_code=403,
+            label="HL7 site-scope rejection run",
+        )
+        hl7_run_id = _assert_failed_import_run(
+            failure_summary=hl7_summary,
+            import_detail=hl7_detail,
+            expected_status_code=403,
+            expected_source_format="hl7-oru",
+            expected_failure_bucket="site_scope_rejection",
+            expected_failed=1,
+            expected_imported_sites=[args.rejection_site],
+            expected_item_count=1,
+            expected_case_ids=hl7_case_ids,
+            expected_report_ids=hl7_report_ids,
+            expected_site=args.rejection_site,
+        )
+
+        expect_no_visible_cases = True
+        print()
+        print(
+            f"Verified persisted structured site-scope rejection runs #{fhir_run_id} "
+            f"(FHIR) and #{hl7_run_id} (HL7)."
+        )
 
     if args.import_demo_parse_validation_failure:
         if not auth_me["capabilities"]["can_import_reports"]:

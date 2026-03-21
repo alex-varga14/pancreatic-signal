@@ -12,3 +12,7 @@ node_modules/
 dist/
 coverage/
 artifacts/
+docs/CODEX_HANDOFF.md
+docs/DEPLOYMENT.md
+docs/NEXT_AGENT_PROMPT.md
+docs/RELEASE_READINESS.md

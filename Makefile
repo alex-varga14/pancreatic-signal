@@ -64,6 +64,7 @@ smoke-proxy-auth:
 		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_FHIR_DEMO)),--import-fhir-demo,) \
 		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_HL7_DEMO)),--import-hl7-demo,) \
 		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_DEMO_SITE_REJECTION)),--import-demo-site-rejection,) \
+		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_ADAPTER_SITE_REJECTION)),--import-adapter-site-rejection,) \
 		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_AUDIT_VISIBILITY)),--import-audit-visibility,) \
 		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_FAILED_SHARED_VISIBILITY)),--import-failed-shared-visibility,) \
 		$(if $(filter 1 true TRUE yes YES,$(SMOKE_IMPORT_ADAPTER_FAILED_SHARED_VISIBILITY)),--import-adapter-failed-shared-visibility,) \
@@ -197,6 +198,28 @@ pilot-proxy-demo-site-rejection-smoke:
 		--rejection-site "$(or $(SMOKE_REJECTION_SITE),Out of Scope Site)" \
 		--skip-review \
 		$(if $(SMOKE_DEMO_FILE),--demo-file "$(SMOKE_DEMO_FILE)",) \
+		$(if $(SMOKE_RUN_ID),--run-id "$(SMOKE_RUN_ID)",) \
+		$(if $(SMOKE_REVIEW_NOTE),--review-note "$(SMOKE_REVIEW_NOTE)",) \
+		$(if $(SMOKE_WAIT_SECONDS),--wait-seconds "$(SMOKE_WAIT_SECONDS)",)
+
+pilot-proxy-demo-adapter-site-rejection-smoke:
+	$(PYTHON) scripts/smoke_proxy_auth.py \
+		--base-url "$(or $(SMOKE_BASE_URL),http://localhost:8000)" \
+		--web-url "$(or $(SMOKE_WEB_URL),http://localhost:3000)" \
+		--provider-preset keycloak \
+		--header-name "$(or $(SMOKE_HEADER_NAME),X-Trusted-Identity)" \
+		--user-id "$(or $(SMOKE_USER_ID),pilot-navigator)" \
+		--display-name "$(or $(SMOKE_DISPLAY_NAME),Pilot Navigator)" \
+		--role-value "$(or $(SMOKE_ROLE_VALUE),pdac-navigator)" \
+		--sites "$(or $(SMOKE_SITES),Demo Hospital)" \
+		$(if $(SMOKE_GROUPS),--groups "$(SMOKE_GROUPS)",) \
+		--base64 \
+		--check-web \
+		--check-imports-page \
+		--check-cases \
+		--import-adapter-site-rejection \
+		--rejection-site "$(or $(SMOKE_REJECTION_SITE),Out of Scope Site)" \
+		--skip-review \
 		$(if $(SMOKE_RUN_ID),--run-id "$(SMOKE_RUN_ID)",) \
 		$(if $(SMOKE_REVIEW_NOTE),--review-note "$(SMOKE_REVIEW_NOTE)",) \
 		$(if $(SMOKE_WAIT_SECONDS),--wait-seconds "$(SMOKE_WAIT_SECONDS)",)
@@ -471,6 +494,29 @@ pilot-header-demo-site-rejection-smoke:
 		--rejection-site "$(or $(SMOKE_REJECTION_SITE),Out of Scope Site)" \
 		--skip-review \
 		$(if $(SMOKE_DEMO_FILE),--demo-file "$(SMOKE_DEMO_FILE)",) \
+		$(if $(SMOKE_RUN_ID),--run-id "$(SMOKE_RUN_ID)",) \
+		$(if $(SMOKE_REVIEW_NOTE),--review-note "$(SMOKE_REVIEW_NOTE)",) \
+		$(if $(SMOKE_WAIT_SECONDS),--wait-seconds "$(SMOKE_WAIT_SECONDS)",)
+
+pilot-header-demo-adapter-site-rejection-smoke:
+	$(PYTHON) scripts/smoke_proxy_auth.py \
+		--base-url "$(or $(SMOKE_BASE_URL),http://localhost:8000)" \
+		--web-url "$(or $(SMOKE_WEB_URL),http://localhost:3000)" \
+		--auth-mode header \
+		--user-id-header-name "$(or $(SMOKE_USER_ID_HEADER_NAME),X-User-ID)" \
+		--display-name-header-name "$(or $(SMOKE_DISPLAY_NAME_HEADER_NAME),X-User-Name)" \
+		--role-header-name "$(or $(SMOKE_ROLE_HEADER_NAME),X-User-Role)" \
+		--sites-header-name "$(or $(SMOKE_SITES_HEADER_NAME),X-User-Sites)" \
+		--user-id "$(or $(SMOKE_USER_ID),pilot-navigator)" \
+		--display-name "$(or $(SMOKE_DISPLAY_NAME),Pilot Navigator)" \
+		--role-value "$(or $(SMOKE_ROLE_VALUE),navigator)" \
+		--sites "$(or $(SMOKE_SITES),Demo Hospital)" \
+		--check-web \
+		--check-imports-page \
+		--check-cases \
+		--import-adapter-site-rejection \
+		--rejection-site "$(or $(SMOKE_REJECTION_SITE),Out of Scope Site)" \
+		--skip-review \
 		$(if $(SMOKE_RUN_ID),--run-id "$(SMOKE_RUN_ID)",) \
 		$(if $(SMOKE_REVIEW_NOTE),--review-note "$(SMOKE_REVIEW_NOTE)",) \
 		$(if $(SMOKE_WAIT_SECONDS),--wait-seconds "$(SMOKE_WAIT_SECONDS)",)
