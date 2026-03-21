@@ -437,6 +437,77 @@ def test_hl7_import_run_records_site_scope_rejection() -> None:
     assert cases_response.json() == []
 
 
+def test_fhir_site_scope_rejection_run_is_hidden_from_other_scoped_actor() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    north_headers = _auth_headers("fhir-site-owner", sites="North Clinic")
+
+    response = client.post(
+        "/api/v1/imports/fhir/diagnostic-reports",
+        json={
+            "resourceType": "DiagnosticReport",
+            "id": "dr-fhir-site-hidden",
+            "effectiveDateTime": "2026-03-19T10:00:00Z",
+            "category": [{"text": "CT abdomen"}],
+            "performer": [{"display": "Demo Hospital"}],
+            "conclusion": "Suspicious for pancreatic neoplasm. Recommend biopsy.",
+        },
+        headers=north_headers,
+    )
+    assert response.status_code == 403
+    assert response.headers["x-import-run-id"]
+    run_id = int(response.headers["x-import-run-id"])
+
+    own_run_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=north_headers)
+    assert own_run_response.status_code == 200
+    assert own_run_response.json()["failure_counts"]["site_scope_rejection"] == 1
+
+    peer_headers = _auth_headers("fhir-site-peer", sites="North Clinic")
+    peer_detail_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=peer_headers)
+    assert peer_detail_response.status_code == 404
+
+    peer_runs_response = client.get("/api/v1/imports/runs", headers=peer_headers)
+    assert peer_runs_response.status_code == 200
+    peer_runs = peer_runs_response.json()
+    assert all(run["run_id"] != run_id for run in peer_runs)
+
+
+def test_hl7_site_scope_rejection_run_is_hidden_from_other_scoped_actor() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    north_headers = _auth_headers("hl7-site-owner", sites="North Clinic")
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content="\r".join(
+            [
+                "MSH|^~\\&|RADSYS|Demo Hospital|PS|PS|20260319100000||ORU^R01|MSG-SITE-HIDDEN|P|2.5",
+                "PID|1||PAT-SITE-HIDDEN^^^MRN||Doe^Jamie",
+                "PV1|1|O|RAD^^^Demo Hospital",
+                "OBR|1|PLAC-SITE-HIDDEN|R-HL7-SITE-HIDDEN|CT ABDOMEN^CT Abdomen|||20260319100000",
+                "OBX|1|TX|IMPRESSION^Impression||Suspicious for pancreatic neoplasm. Recommend biopsy.|",
+            ]
+        ),
+        headers={"Content-Type": "text/plain", **north_headers},
+    )
+    assert response.status_code == 403
+    assert response.headers["x-import-run-id"]
+    run_id = int(response.headers["x-import-run-id"])
+
+    own_run_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=north_headers)
+    assert own_run_response.status_code == 200
+    assert own_run_response.json()["failure_counts"]["site_scope_rejection"] == 1
+
+    peer_headers = _auth_headers("hl7-site-peer", sites="North Clinic")
+    peer_detail_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=peer_headers)
+    assert peer_detail_response.status_code == 404
+
+    peer_runs_response = client.get("/api/v1/imports/runs", headers=peer_headers)
+    assert peer_runs_response.status_code == 200
+    peer_runs = peer_runs_response.json()
+    assert all(run["run_id"] != run_id for run in peer_runs)
+
+
 def test_import_run_records_site_scope_rejection_and_visibility() -> None:
     CASE_STORE.reset()
     client = TestClient(app)

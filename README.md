@@ -170,13 +170,15 @@ make pilot-proxy-demo-hl7-smoke
 make pilot-proxy-demo-failed-shared-visibility-smoke
 make pilot-proxy-demo-adapter-failed-shared-visibility-smoke
 make pilot-proxy-demo-adapter-site-rejection-smoke
+make pilot-proxy-demo-adapter-audit-visibility-smoke
 make pilot-header-demo-smoke
 make pilot-header-demo-failed-shared-visibility-smoke
 make pilot-header-demo-adapter-failed-shared-visibility-smoke
 make pilot-header-demo-adapter-site-rejection-smoke
+make pilot-header-demo-adapter-audit-visibility-smoke
 ```
 
-These smoke paths now exercise real import endpoints plus persisted import-run audit checks, including same-site visibility checks for successful runs and non-site failed runs. The full overlay and smoke matrix lives in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+These smoke paths now exercise real import endpoints plus persisted import-run audit checks, including same-site visibility checks for successful runs, non-site failed runs, and denial checks for structured site-scope rejection runs. The full overlay and smoke matrix lives in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Documentation Map
 

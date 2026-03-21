@@ -153,6 +153,11 @@ def main() -> int:
         help="Import built-in FHIR and HL7 demo payloads with an out-of-scope site and verify persisted structured site-scope rejection audit trails.",
     )
     seed_group.add_argument(
+        "--import-adapter-audit-visibility",
+        action="store_true",
+        help="Import built-in FHIR and HL7 demo payloads with an out-of-scope site, verify the owner can inspect both failed runs, and confirm an alternate actor cannot access them.",
+    )
+    seed_group.add_argument(
         "--import-audit-visibility",
         action="store_true",
         help="Import the bundled demo reports with an out-of-scope site, verify the owner can inspect the failed run, and confirm an alternate actor cannot access it.",
@@ -249,6 +254,7 @@ def main() -> int:
             args.skip_review
             or args.import_demo_site_rejection
             or args.import_adapter_site_rejection
+            or args.import_adapter_audit_visibility
             or args.import_audit_visibility
             or args.import_failed_shared_visibility
             or args.import_adapter_failed_shared_visibility
@@ -297,6 +303,7 @@ def main() -> int:
             args.import_hl7_demo,
             args.import_demo_site_rejection,
             args.import_adapter_site_rejection,
+            args.import_adapter_audit_visibility,
             args.import_audit_visibility,
             args.import_failed_shared_visibility,
             args.import_adapter_failed_shared_visibility,
@@ -536,10 +543,18 @@ def main() -> int:
                 f"Verified alternate actor {alternate_identity['user_id']} cannot access failed import run #{import_run_id}."
             )
 
-    if args.import_adapter_site_rejection:
+    if args.import_adapter_site_rejection or args.import_adapter_audit_visibility:
         if not auth_me["capabilities"]["can_import_reports"]:
             print("Resolved actor cannot import reports; choose an analyst, navigator, or admin identity.", file=sys.stderr)
             return 1
+
+        alternate_identity: dict[str, str] | None = None
+        alternate_headers: dict[str, str] | None = None
+        if args.import_adapter_audit_visibility:
+            alternate_identity, alternate_headers, _ = resolve_alternate_actor(
+                args=args,
+                base_url=base_url,
+            )
 
         rejection_site_scope = [args.rejection_site]
 
@@ -595,10 +610,28 @@ def main() -> int:
 
         expect_no_visible_cases = True
         print()
-        print(
-            f"Verified persisted structured site-scope rejection runs #{fhir_run_id} "
-            f"(FHIR) and #{hl7_run_id} (HL7)."
-        )
+        if alternate_identity is not None and alternate_headers is not None:
+            _assert_import_run_hidden_from_actor(
+                base_url=base_url,
+                auth_headers=alternate_headers,
+                run_id=fhir_run_id,
+                label="Alternate actor FHIR adapter audit visibility",
+            )
+            _assert_import_run_hidden_from_actor(
+                base_url=base_url,
+                auth_headers=alternate_headers,
+                run_id=hl7_run_id,
+                label="Alternate actor HL7 adapter audit visibility",
+            )
+            print(
+                f"Verified alternate actor {alternate_identity['user_id']} cannot access "
+                f"structured site-scope rejection runs #{fhir_run_id} (FHIR) and #{hl7_run_id} (HL7)."
+            )
+        else:
+            print(
+                f"Verified persisted structured site-scope rejection runs #{fhir_run_id} "
+                f"(FHIR) and #{hl7_run_id} (HL7)."
+            )
 
     if args.import_demo_parse_validation_failure:
         if not auth_me["capabilities"]["can_import_reports"]:

@@ -124,6 +124,7 @@ make pilot-proxy-demo-failed-shared-visibility-smoke
 make pilot-proxy-demo-adapter-failed-shared-visibility-smoke
 make pilot-proxy-demo-site-rejection-smoke
 make pilot-proxy-demo-adapter-site-rejection-smoke
+make pilot-proxy-demo-adapter-audit-visibility-smoke
 make pilot-proxy-demo-parse-validation-smoke
 make pilot-proxy-demo-adapter-failure-smoke
 make pilot-proxy-demo-audit-visibility-smoke
@@ -171,6 +172,12 @@ The adapter site-rejection target drives valid structured adapter payloads throu
 - an HL7 ORU payload with an out-of-scope derived site persists a failed `site_scope_rejection` run
 - both failed responses return `X-Import-Run-ID`
 - both runs remain visible to the creating actor through the audit routes
+- no run-specific cases become visible, so the smoke intentionally skips the reviewer round-trip
+
+The adapter audit-visibility target reuses those persisted structured site-scope rejection runs and then checks the audit endpoints across two actors. It verifies:
+- the creating scoped actor can inspect both failed runs through `GET /api/v1/imports/runs/{run_id}` and sees them in `GET /api/v1/imports/runs`
+- a second import-capable actor with the same in-scope site but a different user ID receives `404` on both failed run details
+- that same second actor does not see either failed run in the recent-run list
 - no run-specific cases become visible, so the smoke intentionally skips the reviewer round-trip
 
 The malformed-report target exercises two non-site failure buckets on `/api/v1/imports/reports`. It verifies:
@@ -229,6 +236,7 @@ make pilot-header-demo-failed-shared-visibility-smoke
 make pilot-header-demo-adapter-failed-shared-visibility-smoke
 make pilot-header-demo-site-rejection-smoke
 make pilot-header-demo-adapter-site-rejection-smoke
+make pilot-header-demo-adapter-audit-visibility-smoke
 make pilot-header-demo-parse-validation-smoke
 make pilot-header-demo-adapter-failure-smoke
 make pilot-header-demo-audit-visibility-smoke
@@ -247,6 +255,7 @@ The header-auth adapter failed-run shared-visibility target exercises persisted 
 
 The header-auth failure-path target exercises the same out-of-scope report import and verifies the persisted `site_scope_rejection` audit record without expecting any visible imported cases.
 The header-auth adapter site-rejection target exercises out-of-scope FHIR and HL7 payloads and verifies persisted structured `site_scope_rejection` audit records without expecting any visible imported cases.
+The header-auth adapter audit-visibility target exercises those same structured `site_scope_rejection` runs and then confirms the owning actor can inspect them while a second scoped actor cannot access the same audit details or recent-run listings.
 The header-auth malformed-report target exercises the same persisted `validation_error` and `parse_error` audit checks without expecting any visible imported cases.
 The header-auth adapter-failure target exercises the same persisted FHIR `unsupported_payload` and HL7 `parse_error` audit checks without expecting any visible imported cases.
 The header-auth audit-visibility target exercises the same persisted site-scope rejection run and then confirms the owning actor can inspect it while a second scoped actor cannot access the same audit detail or recent-run listing.
@@ -333,6 +342,23 @@ make smoke-proxy-auth \
   SMOKE_CHECK_WEB=1 \
   SMOKE_CHECK_IMPORTS_PAGE=1 \
   SMOKE_IMPORT_ADAPTER_SITE_REJECTION=1 \
+  SMOKE_REJECTION_SITE="Out of Scope Site" \
+  SMOKE_SKIP_REVIEW=1
+```
+
+For live structured adapter audit-visibility verification in trusted-proxy mode:
+
+```bash
+make smoke-proxy-auth \
+  SMOKE_AUTH_MODE=proxy \
+  SMOKE_PROVIDER_PRESET=keycloak \
+  SMOKE_USER_ID=pilot-navigator \
+  SMOKE_DISPLAY_NAME="Pilot Navigator" \
+  SMOKE_ROLE_VALUE=pdac-navigator \
+  SMOKE_BASE64=1 \
+  SMOKE_CHECK_WEB=1 \
+  SMOKE_CHECK_IMPORTS_PAGE=1 \
+  SMOKE_IMPORT_ADAPTER_AUDIT_VISIBILITY=1 \
   SMOKE_REJECTION_SITE="Out of Scope Site" \
   SMOKE_SKIP_REVIEW=1
 ```
