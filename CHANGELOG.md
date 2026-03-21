@@ -13,11 +13,18 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - A release-readiness checklist in [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md)
 - Live failed-run shared-visibility smoke coverage for a persisted non-site `validation_error` import run in the proxy and header pilot overlays
 - Live structured adapter failed-run shared-visibility smoke coverage for persisted non-site FHIR `unsupported_payload` and HL7 `parse_error` runs in the proxy and header pilot overlays
+- Live structured adapter site-scope rejection smoke coverage for persisted FHIR and HL7 `site_scope_rejection` runs in the proxy and header pilot overlays
 
 ### Changed
 
 - Top-level documentation now describes the implemented research platform instead of the earlier scaffold-era state
 - Deployment and API docs now call out cross-actor visibility for non-site failed import runs with empty `imported_sites`
+
+### Validated
+
+- `make validate-strict` passed on 2026-03-21 with `8 pass, 0 warn, 0 fail`
+- API validation reported `98 passed`
+- Live structured adapter site-scope rejection smoke runs passed for both trusted-proxy and header-auth overlays and are recorded in [docs/CODEX_HANDOFF.md](docs/CODEX_HANDOFF.md)
 
 ## 0.9.0-preview - 2026-03-20
 
