@@ -287,6 +287,47 @@ def test_assert_failed_import_run_accepts_matching_fhir_site_scope_rejection_det
     assert run_id == 12
 
 
+def test_assert_failed_import_run_accepts_matching_hl7_site_scope_rejection_detail() -> None:
+    smoke = _load_smoke_module()
+
+    run_id = smoke._assert_failed_import_run(
+        failure_summary={
+            "run_id": 14,
+            "status_code": 403,
+            "detail": "Actor 'pilot-navigator' cannot import reports for site(s): Out of Scope Site.",
+        },
+        import_detail={
+            "run_id": 14,
+            "status": "failed",
+            "processed": 0,
+            "failed": 1,
+            "source_format": "hl7-oru",
+            "imported_sites": ["Out of Scope Site"],
+            "failure_counts": {"site_scope_rejection": 1},
+            "items": [
+                {
+                    "status": "failed",
+                    "error_bucket": "site_scope_rejection",
+                    "site": "Out of Scope Site",
+                    "case_id": "R-HL7-smoke",
+                    "report_id": "R-HL7-smoke",
+                }
+            ],
+        },
+        expected_status_code=403,
+        expected_source_format="hl7-oru",
+        expected_failure_bucket="site_scope_rejection",
+        expected_failed=1,
+        expected_imported_sites=["Out of Scope Site"],
+        expected_item_count=1,
+        expected_case_ids=["R-HL7-smoke"],
+        expected_report_ids=["R-HL7-smoke"],
+        expected_site="Out of Scope Site",
+    )
+
+    assert run_id == 14
+
+
 def test_assert_failed_import_run_accepts_summary_only_failure_detail_without_items() -> None:
     smoke = _load_smoke_module()
 
