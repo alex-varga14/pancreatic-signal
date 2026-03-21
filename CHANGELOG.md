@@ -11,6 +11,7 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - Repo-level contributor, security, and community docs in [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - A clearer public project narrative in [README.md](README.md) and [docs/OPEN_SOURCE_STRATEGY.md](docs/OPEN_SOURCE_STRATEGY.md)
 - A release-readiness checklist in [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md)
+- GitHub Actions pull request and `main` validation via [`.github/workflows/validate.yml`](.github/workflows/validate.yml) using `make validate-strict`
 - Live failed-run shared-visibility smoke coverage for a persisted non-site `validation_error` import run in the proxy and header pilot overlays
 - Live structured adapter failed-run shared-visibility smoke coverage for persisted non-site FHIR `unsupported_payload` and HL7 `parse_error` runs in the proxy and header pilot overlays
 - Live structured adapter site-scope rejection smoke coverage for persisted FHIR and HL7 `site_scope_rejection` runs in the proxy and header pilot overlays
@@ -20,10 +21,11 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 
 - Top-level documentation now describes the implemented research platform instead of the earlier scaffold-era state
 - Deployment and API docs now call out cross-actor visibility for non-site failed import runs with empty `imported_sites`
+- `make validate-strict` now includes web lint alongside Python checks, API tests, evaluation checks, and the web build so local and hosted validation stay aligned
 
 ### Validated
 
-- `make validate-strict` passed on 2026-03-21 with `8 pass, 0 warn, 0 fail`
+- `make validate-strict` passed on 2026-03-21 with `9 pass, 0 warn, 0 fail`
 - API validation reported `101 passed`
 - Live structured adapter site-scope rejection and audit-visibility smoke runs passed for both trusted-proxy and header-auth overlays and are recorded in [docs/CODEX_HANDOFF.md](docs/CODEX_HANDOFF.md)
 

@@ -56,7 +56,15 @@ make validate
 make validate-strict
 ```
 
+Pull requests and `main` now run the same strict gate in GitHub Actions through [`.github/workflows/validate.yml`](.github/workflows/validate.yml). Live pilot overlay smoke checks still need to be run manually when auth, import, or packaging changes warrant them.
+
 If you touch import, auth, or pilot wiring, also consider the relevant smoke target from [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+## Branch And Commit Hygiene
+
+- Prefer short-lived branches scoped to a single change set.
+- Use clear human-readable commit subjects with conventional prefixes such as `feat:`, `fix:`, and `chore:`.
+- Keep PR descriptions explicit about validation, docs updates, and remaining follow-up work.
 
 ## Documentation Expectations
 
