@@ -28,6 +28,7 @@ Do not tag a release that blurs those boundaries.
 - GitHub Actions PR validation is green for the release branch or merge commit when applicable
 - Hosted GitHub Actions pilot smoke is green for the release branch or release candidate when applicable
 - if a hosted smoke workflow was only added recently, its first GitHub-hosted run is either green or explicitly called out as pending
+- the handoff and deployment docs accurately distinguish hosted base plus report-path site-rejection smoke coverage from the broader manual structured-failure and visibility matrix
 - latest API, web, and evaluation results are captured in the release notes or handoff
 - relevant pilot smoke targets have been rerun recently enough to be credible for the release
 - successful and failed import-run shared-visibility expectations, structured adapter site-scope rejection paths, and structured adapter audit-visibility denial paths remain covered by the current smoke matrix
