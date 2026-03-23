@@ -57,11 +57,18 @@ Current repo helpers for the demo dataset:
 - `python scripts/run_demo_eval.py --sweep --json`
 - `python scripts/write_demo_benchmark.py`
 - `make refresh-demo-proof`
+- `make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission-template.json`
 - `python scripts/validate_repo.py --strict`
 
 Published demo proof files:
 - `docs/examples/demo-benchmark-current.json`
 - `docs/examples/demo-benchmark-current.md`
+
+Public benchmark pack:
+- `docs/LABELING_GUIDE.md`
+- `docs/BENCHMARK_SUBMISSIONS.md`
+- `docs/examples/benchmark-label-template.jsonl`
+- `docs/examples/benchmark-submission-template.json`
 
 Recommended reproducibility loop:
 1. Run `python scripts/validate_repo.py --strict` in a fully prepared local environment.

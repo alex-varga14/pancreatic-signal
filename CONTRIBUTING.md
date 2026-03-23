@@ -16,6 +16,7 @@ High-value contributions include:
 
 - triage-rule quality, explainability, and evidence-span accuracy
 - retrospective evaluation quality and benchmark reproducibility
+- benchmark-pack improvements such as labeling guidance, submission templates, and comparable result artifacts
 - import interoperability across report, FHIR, and HL7 inputs
 - reviewer workflow polish that does not reduce auditability
 - pilot deployment ergonomics, smoke coverage, and documentation
@@ -90,6 +91,7 @@ Aim for PRs that clearly answer:
 
 For rule changes, include tests and evidence-aware reasoning.
 For deployment changes, include the exact command paths you validated.
+For benchmark-oriented changes, include the updated artifacts or schema paths you validated.
 
 ## Questions And Collaboration
 

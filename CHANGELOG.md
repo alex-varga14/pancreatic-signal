@@ -12,6 +12,7 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - A clearer public project narrative in [README.md](README.md) and [docs/OPEN_SOURCE_STRATEGY.md](docs/OPEN_SOURCE_STRATEGY.md)
 - A release-readiness checklist in [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md)
 - An adoption-facing quickstart in [docs/QUICKSTART.md](docs/QUICKSTART.md) plus a checked-in published benchmark snapshot in [`docs/examples/demo-benchmark-current.md`](docs/examples/demo-benchmark-current.md)
+- A public benchmark pack with [docs/LABELING_GUIDE.md](docs/LABELING_GUIDE.md), [docs/BENCHMARK_SUBMISSIONS.md](docs/BENCHMARK_SUBMISSIONS.md), validated submission templates, and a benchmark submission validator
 - GitHub Actions pull request and `main` validation via [`.github/workflows/validate.yml`](.github/workflows/validate.yml) using `make validate-strict`
 - A hosted pilot smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) that reuses the base proxy and header overlay smoke targets plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule
 - Live failed-run shared-visibility smoke coverage for a persisted non-site `validation_error` import run in the proxy and header pilot overlays
@@ -22,6 +23,7 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 ### Changed
 
 - The Next.js home and about surfaces now present Pancreatic Signal as a benchmarkable product entrypoint instead of a bare scaffold shell, and the web app now exposes a dedicated `/proof` page backed by the checked-in benchmark snapshot
+- Benchmark-oriented contribution paths now have a documented label schema, stable error-bucket rubric, and a machine-validated submission format for outside collaborators
 - Top-level documentation now describes the implemented research platform instead of the earlier scaffold-era state
 - Deployment and API docs now call out cross-actor visibility for non-site failed import runs with empty `imported_sites`
 - `make validate-strict` now includes web lint alongside Python checks, API tests, evaluation checks, and the web build so local and hosted validation stay aligned

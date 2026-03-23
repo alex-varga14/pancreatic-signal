@@ -1,0 +1,49 @@
+{
+  "submission_version": "1.0",
+  "submission_name": "external-pancreatic-benchmark-baseline",
+  "project_name": "Pancreatic Signal",
+  "repository_url": "https://github.com/example/pancreatic-signal-fork",
+  "commit_sha": "abc1234def5678",
+  "dataset_name": "deidentified-pancreatic-retrospective-v1",
+  "dataset_split": "test",
+  "report_count": 250,
+  "deidentified": true,
+  "label_schema_version": "pancreatic-signal-eval-v1",
+  "score_mode": "external",
+  "threshold": 0.2,
+  "top_k": 25,
+  "evaluation_command": "python scripts/run_external_eval.py --reports data/test_reports.jsonl --labels data/test_labels.jsonl --threshold 0.20 --top-k 25",
+  "artifact_paths": [
+    "artifacts/benchmarks/external-test-run.json",
+    "artifacts/benchmarks/external-threshold-sweep.md"
+  ],
+  "metrics": {
+    "processed": 250,
+    "positives": 40,
+    "flagged": 52,
+    "true_positives": 34,
+    "false_positives": 18,
+    "true_negatives": 192,
+    "false_negatives": 6,
+    "precision": 0.6538,
+    "recall": 0.85,
+    "f1": 0.7391,
+    "precision_at_top_k": 0.84,
+    "sensitivity_at_top_k": 0.525,
+    "reviewer_yield_at_top_k": 0.84,
+    "false_negative_buckets": {
+      "secondary_signs_missed": 3,
+      "recommendation_language_missed": 2,
+      "uncommon_wording": 1
+    }
+  },
+  "notable_strengths": [
+    "Strong follow-up recommendation capture at the chosen operating threshold.",
+    "Top-k queue concentrated true positives early enough for navigator review."
+  ],
+  "known_limitations": [
+    "Most remaining misses depended on secondary signs rather than explicit mass language.",
+    "False positives were concentrated in pancreatitis and cyst follow-up wording."
+  ],
+  "notes": "Template values are illustrative. Replace them with de-identified, reproducible benchmark evidence from your own environment."
+}
