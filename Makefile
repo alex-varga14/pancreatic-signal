@@ -38,6 +38,9 @@ validate-strict:
 benchmark-demo:
 	$(PYTHON) scripts/write_demo_benchmark.py
 
+refresh-demo-proof:
+	$(PYTHON) scripts/write_demo_benchmark.py --out-dir docs/examples --basename demo-benchmark-current
+
 smoke-proxy-auth:
 	$(PYTHON) scripts/smoke_proxy_auth.py \
 		--base-url "$(or $(SMOKE_BASE_URL),http://localhost:8000)" \

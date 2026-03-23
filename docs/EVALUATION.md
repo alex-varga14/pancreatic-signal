@@ -56,7 +56,12 @@ Current repo helpers for the demo dataset:
 - `python scripts/run_demo_eval.py --compare --json`
 - `python scripts/run_demo_eval.py --sweep --json`
 - `python scripts/write_demo_benchmark.py`
+- `make refresh-demo-proof`
 - `python scripts/validate_repo.py --strict`
+
+Published demo proof files:
+- `docs/examples/demo-benchmark-current.json`
+- `docs/examples/demo-benchmark-current.md`
 
 Recommended reproducibility loop:
 1. Run `python scripts/validate_repo.py --strict` in a fully prepared local environment.

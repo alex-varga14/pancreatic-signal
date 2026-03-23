@@ -1,0 +1,301 @@
+{
+  "generated_at": "2026-03-23T05:42:57.019090Z",
+  "dataset": {
+    "reports_path": "data/examples/reports.jsonl",
+    "labels_path": "data/examples/report_labels.jsonl"
+  },
+  "comparison": {
+    "threshold": 0.3,
+    "top_k": 3,
+    "rules": {
+      "score_mode": "rules",
+      "threshold": 0.3,
+      "top_k": 3,
+      "processed": 5,
+      "positives": 3,
+      "flagged": 2,
+      "true_positives": 2,
+      "false_positives": 0,
+      "true_negatives": 2,
+      "false_negatives": 1,
+      "precision": 1.0,
+      "recall": 0.6667,
+      "f1": 0.8,
+      "precision_at_top_k": 0.6667,
+      "sensitivity_at_top_k": 0.6667,
+      "reviewer_yield_at_top_k": 0.6667,
+      "false_negative_buckets": {
+        "NO_MATCHED_RATIONALE": 1
+      },
+      "cases": [
+        {
+          "report_id": "R-001",
+          "case_id": "C-001",
+          "score": 1.0,
+          "base_score": 1.0,
+          "hybrid_score": 1.0,
+          "urgency": "critical",
+          "flagged": true,
+          "expected_positive": true,
+          "expected_escalation": true,
+          "rationale_codes": [
+            "PDAC_EXPLICIT_SUSPICION",
+            "PANCREATIC_MASS",
+            "DUCT_CUTOFF",
+            "FOLLOWUP_RECOMMENDED"
+          ],
+          "label_notes": "Explicit lesion, duct cutoff, and EUS/tissue sampling recommendation."
+        },
+        {
+          "report_id": "R-003",
+          "case_id": "C-003",
+          "score": 0.53,
+          "base_score": 0.53,
+          "hybrid_score": 0.901,
+          "urgency": "medium",
+          "flagged": true,
+          "expected_positive": true,
+          "expected_escalation": true,
+          "rationale_codes": [
+            "DOUBLE_DUCT_SIGN",
+            "FOCAL_ATROPHY"
+          ],
+          "label_notes": "Double duct sign, focal atrophy, and EUS recommendation."
+        },
+        {
+          "report_id": "R-002",
+          "case_id": "C-002",
+          "score": 0.0,
+          "base_score": 0.0,
+          "hybrid_score": 0.0,
+          "urgency": "low",
+          "flagged": false,
+          "expected_positive": false,
+          "expected_escalation": false,
+          "rationale_codes": [],
+          "label_notes": "Pancreatitis without a discrete mass."
+        },
+        {
+          "report_id": "R-004",
+          "case_id": "C-004",
+          "score": 0.0,
+          "base_score": 0.0,
+          "hybrid_score": 0.0,
+          "urgency": "low",
+          "flagged": false,
+          "expected_positive": false,
+          "expected_escalation": false,
+          "rationale_codes": [],
+          "label_notes": "Normal pancreas and no acute abnormality."
+        },
+        {
+          "report_id": "R-005",
+          "case_id": "C-005",
+          "score": 0.0,
+          "base_score": 0.0,
+          "hybrid_score": 0.44,
+          "urgency": "low",
+          "flagged": false,
+          "expected_positive": true,
+          "expected_escalation": false,
+          "rationale_codes": [],
+          "label_notes": "Side-branch IPMN follow-up recommendation should still be reviewable."
+        }
+      ]
+    },
+    "hybrid": {
+      "score_mode": "hybrid",
+      "threshold": 0.3,
+      "top_k": 3,
+      "processed": 5,
+      "positives": 3,
+      "flagged": 3,
+      "true_positives": 3,
+      "false_positives": 0,
+      "true_negatives": 2,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "precision_at_top_k": 1.0,
+      "sensitivity_at_top_k": 1.0,
+      "reviewer_yield_at_top_k": 1.0,
+      "false_negative_buckets": {},
+      "cases": [
+        {
+          "report_id": "R-001",
+          "case_id": "C-001",
+          "score": 1.0,
+          "base_score": 1.0,
+          "hybrid_score": 1.0,
+          "urgency": "critical",
+          "flagged": true,
+          "expected_positive": true,
+          "expected_escalation": true,
+          "rationale_codes": [
+            "PDAC_EXPLICIT_SUSPICION",
+            "PANCREATIC_MASS",
+            "DUCT_CUTOFF",
+            "FOLLOWUP_RECOMMENDED"
+          ],
+          "label_notes": "Explicit lesion, duct cutoff, and EUS/tissue sampling recommendation."
+        },
+        {
+          "report_id": "R-003",
+          "case_id": "C-003",
+          "score": 0.901,
+          "base_score": 0.53,
+          "hybrid_score": 0.901,
+          "urgency": "medium",
+          "flagged": true,
+          "expected_positive": true,
+          "expected_escalation": true,
+          "rationale_codes": [
+            "DOUBLE_DUCT_SIGN",
+            "FOCAL_ATROPHY"
+          ],
+          "label_notes": "Double duct sign, focal atrophy, and EUS recommendation."
+        },
+        {
+          "report_id": "R-005",
+          "case_id": "C-005",
+          "score": 0.44,
+          "base_score": 0.0,
+          "hybrid_score": 0.44,
+          "urgency": "low",
+          "flagged": true,
+          "expected_positive": true,
+          "expected_escalation": false,
+          "rationale_codes": [],
+          "label_notes": "Side-branch IPMN follow-up recommendation should still be reviewable."
+        },
+        {
+          "report_id": "R-002",
+          "case_id": "C-002",
+          "score": 0.0,
+          "base_score": 0.0,
+          "hybrid_score": 0.0,
+          "urgency": "low",
+          "flagged": false,
+          "expected_positive": false,
+          "expected_escalation": false,
+          "rationale_codes": [],
+          "label_notes": "Pancreatitis without a discrete mass."
+        },
+        {
+          "report_id": "R-004",
+          "case_id": "C-004",
+          "score": 0.0,
+          "base_score": 0.0,
+          "hybrid_score": 0.0,
+          "urgency": "low",
+          "flagged": false,
+          "expected_positive": false,
+          "expected_escalation": false,
+          "rationale_codes": [],
+          "label_notes": "Normal pancreas and no acute abnormality."
+        }
+      ]
+    },
+    "flagged_delta": 1,
+    "precision_delta": 0.0,
+    "recall_delta": 0.3333,
+    "f1_delta": 0.2,
+    "precision_at_top_k_delta": 0.3333,
+    "sensitivity_at_top_k_delta": 0.3333,
+    "newly_flagged_cases": [
+      "C-005"
+    ],
+    "resolved_false_negatives": [
+      "C-005"
+    ]
+  },
+  "sweep": {
+    "top_k": 3,
+    "thresholds": [
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6
+    ],
+    "points": [
+      {
+        "threshold": 0.2,
+        "rules_f1": 0.8,
+        "hybrid_f1": 1.0,
+        "rules_recall": 0.6667,
+        "hybrid_recall": 1.0,
+        "rules_flagged": 2,
+        "hybrid_flagged": 3,
+        "f1_delta": 0.2,
+        "recall_delta": 0.3333,
+        "flagged_delta": 1
+      },
+      {
+        "threshold": 0.3,
+        "rules_f1": 0.8,
+        "hybrid_f1": 1.0,
+        "rules_recall": 0.6667,
+        "hybrid_recall": 1.0,
+        "rules_flagged": 2,
+        "hybrid_flagged": 3,
+        "f1_delta": 0.2,
+        "recall_delta": 0.3333,
+        "flagged_delta": 1
+      },
+      {
+        "threshold": 0.4,
+        "rules_f1": 0.8,
+        "hybrid_f1": 1.0,
+        "rules_recall": 0.6667,
+        "hybrid_recall": 1.0,
+        "rules_flagged": 2,
+        "hybrid_flagged": 3,
+        "f1_delta": 0.2,
+        "recall_delta": 0.3333,
+        "flagged_delta": 1
+      },
+      {
+        "threshold": 0.5,
+        "rules_f1": 0.8,
+        "hybrid_f1": 0.8,
+        "rules_recall": 0.6667,
+        "hybrid_recall": 0.6667,
+        "rules_flagged": 2,
+        "hybrid_flagged": 2,
+        "f1_delta": 0.0,
+        "recall_delta": 0.0,
+        "flagged_delta": 0
+      },
+      {
+        "threshold": 0.6,
+        "rules_f1": 0.5,
+        "hybrid_f1": 0.8,
+        "rules_recall": 0.3333,
+        "hybrid_recall": 0.6667,
+        "rules_flagged": 1,
+        "hybrid_flagged": 2,
+        "f1_delta": 0.3,
+        "recall_delta": 0.3334,
+        "flagged_delta": 1
+      }
+    ],
+    "rules_recommendation": {
+      "score_mode": "rules",
+      "recommended_threshold": 0.2,
+      "rationale": "Selected threshold 0.20 because it maximizes F1 (0.80) while preserving recall 0.67 with 2 flagged case(s).",
+      "f1": 0.8,
+      "recall": 0.6667,
+      "flagged": 2
+    },
+    "hybrid_recommendation": {
+      "score_mode": "hybrid",
+      "recommended_threshold": 0.2,
+      "rationale": "Selected threshold 0.20 because it maximizes F1 (1.00) while preserving recall 1.00 with 3 flagged case(s).",
+      "f1": 1.0,
+      "recall": 1.0,
+      "flagged": 3
+    }
+  }
+}
