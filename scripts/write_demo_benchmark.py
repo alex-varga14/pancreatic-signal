@@ -63,7 +63,7 @@ def main() -> None:
         "sweep": sweep.model_dump(mode="json"),
     }
 
-    out_dir = args.out_dir
+    out_dir = args.out_dir if args.out_dir.is_absolute() else (ROOT / args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     json_path = out_dir / f"{args.basename}.json"
     markdown_path = out_dir / f"{args.basename}.md"

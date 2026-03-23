@@ -1,28 +1,223 @@
 import Link from "next/link";
+import { getDemoBenchmarkSnapshot, PUBLISHED_DEMO_PROOF_PATH } from "../lib/demo-proof";
+import styles from "./marketing.module.css";
 
-export default function HomePage() {
+function formatPercent(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatDelta(value: number): string {
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${Math.round(value * 100)} pts`;
+}
+
+function formatGeneratedAt(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleString("en-CA", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+export default async function HomePage() {
+  const demoProof = await getDemoBenchmarkSnapshot();
+  const comparison = demoProof?.comparison ?? null;
+  const sweep = demoProof?.sweep ?? null;
+
   return (
-    <main style={{ padding: 32, maxWidth: 1000, margin: "0 auto" }}>
-      <div style={{ marginBottom: 24 }}>
-        <p style={{ margin: 0, fontSize: 12, letterSpacing: 1, textTransform: "uppercase", color: "#6b7280" }}>
-          Research-only
-        </p>
-        <h1 style={{ margin: "8px 0 12px", fontSize: 36 }}>Pancreatic Signal</h1>
-        <p style={{ maxWidth: 700, lineHeight: 1.6 }}>
-          Open-source workflow stack for identifying radiology reports suspicious for pancreatic malignancy or other high-risk
-          pancreatic findings and routing them into a human-reviewed queue.
-        </p>
-      </div>
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <section className={styles.hero}>
+          <p className={styles.eyebrow}>Research-use workflow software</p>
+          <h1 className={styles.title}>Catch pancreatic red flags before they disappear in free text.</h1>
+          <p className={styles.subtitle}>
+            Pancreatic Signal is an open-source triage stack for suspicious pancreatic radiology reports. It ingests report
+            text, shows exact evidence spans and rationale codes, and routes flagged cases into a human-reviewed queue
+            instead of pretending to be an autonomous diagnosis engine.
+          </p>
 
-      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
-        <Link href="/cases" style={{ background: "white", padding: 20, borderRadius: 12, border: "1px solid #e5e7eb" }}>
-          <h2 style={{ marginTop: 0 }}>Worklist</h2>
-          <p>View flagged cases, urgency bands, and top rationale codes.</p>
-        </Link>
-        <Link href="/about" style={{ background: "white", padding: 20, borderRadius: 12, border: "1px solid #e5e7eb" }}>
-          <h2 style={{ marginTop: 0 }}>About</h2>
-          <p>Read product intent, boundaries, and implementation phases.</p>
-        </Link>
+          <div className={styles.chipRow}>
+            <span className={styles.chip}>Explain every flag</span>
+            <span className={styles.chip}>Benchmark before you brag</span>
+            <span className={styles.chip}>CSV, JSONL, FHIR, and HL7</span>
+            <span className={styles.chip}>Navigator-ready worklist</span>
+          </div>
+
+          <div className={styles.ctaRow}>
+            <Link href="/proof" className={styles.primaryLink}>
+              Open Benchmark Proof
+            </Link>
+            <Link href="/cases" className={styles.secondaryLink}>
+              Open Worklist
+            </Link>
+            <Link href="/imports" className={styles.secondaryLink}>
+              Open Import Workspace
+            </Link>
+            <Link href="/about" className={styles.ghostLink}>
+              Read The Boundaries
+            </Link>
+          </div>
+
+          {comparison && sweep ? (
+            <div className={styles.heroProof}>
+              <p className={styles.heroProofLabel}>Current Demo Snapshot</p>
+              <p className={styles.heroProofMetric}>
+                Rules recall <strong>{formatPercent(comparison.rules.recall)}</strong>, hybrid recall{" "}
+                <strong>{formatPercent(comparison.hybrid.recall)}</strong>, with a hybrid recall lift of{" "}
+                <strong>{formatDelta(comparison.recall_delta)}</strong>.
+              </p>
+              <p className={styles.heroProofMetric}>
+                Recommended top-{sweep.top_k} thresholds: rules <strong>{sweep.rules_recommendation.recommended_threshold.toFixed(2)}</strong>{" "}
+                and hybrid <strong>{sweep.hybrid_recommendation.recommended_threshold.toFixed(2)}</strong>.
+              </p>
+              <p className={styles.heroProofMetric}>Published snapshot: <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span></p>
+            </div>
+          ) : null}
+        </section>
+
+        {comparison && sweep ? (
+          <section className={`${styles.section} ${styles.grid} ${styles.gridFour}`}>
+            <article className={styles.card}>
+              <p className={styles.statLabel}>Rules Recall</p>
+              <p className={styles.statValue}>{formatPercent(comparison.rules.recall)}</p>
+              <p className={styles.statNote}>Deterministic baseline on the current synthetic demo dataset.</p>
+            </article>
+            <article className={styles.card}>
+              <p className={styles.statLabel}>Hybrid Recall</p>
+              <p className={styles.statValue}>{formatPercent(comparison.hybrid.recall)}</p>
+              <p className={styles.statNote}>Explainable uplift without removing rationale codes or evidence spans.</p>
+            </article>
+            <article className={styles.card}>
+              <p className={styles.statLabel}>Hybrid F1 Delta</p>
+              <p className={styles.statValue}>{formatDelta(comparison.f1_delta)}</p>
+              <p className={styles.statNote}>
+                Newly surfaced cases: {comparison.newly_flagged_cases.join(", ") || "none"}.
+              </p>
+            </article>
+            <article className={styles.card}>
+              <p className={styles.statLabel}>Published Snapshot</p>
+              <p className={styles.statValue}>{formatGeneratedAt(demoProof!.generated_at)}</p>
+              <p className={styles.statNote}>Refresh with <span className={styles.inlineCode}>make refresh-demo-proof</span>.</p>
+            </article>
+          </section>
+        ) : null}
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <p className={styles.eyebrow}>Why It Sticks</p>
+              <h2 className={styles.sectionTitle}>Useful to engineers, researchers, and navigators on day one.</h2>
+              <p className={styles.sectionText}>
+                The adoption wedge here is not “AI for medicine.” It is an explainable, benchmarkable workflow layer that
+                teams can inspect, critique, adapt, and pilot without private tribal knowledge.
+              </p>
+            </div>
+          </div>
+
+          <div className={`${styles.grid} ${styles.gridThree}`}>
+            <article className={styles.card}>
+              <h3 className={styles.cardTitle}>Transparent by default</h3>
+              <p className={styles.cardText}>
+                Every flagged case keeps evidence spans, rationale codes, reviewer actions, and audit visibility instead of
+                collapsing into a black-box score.
+              </p>
+            </article>
+            <article className={styles.card}>
+              <h3 className={styles.cardTitle}>Built around real workflow friction</h3>
+              <p className={styles.cardText}>
+                The product focuses on the gap between report wording and timely follow-up, which is where many pancreatic
+                misses become operational problems.
+              </p>
+            </article>
+            <article className={styles.card}>
+              <h3 className={styles.cardTitle}>Ready for benchmark debate</h3>
+              <p className={styles.cardText}>
+                The repo includes reproducible demo evaluation, threshold sweeps, published benchmark snapshots, and a place
+                to improve edge cases in the open.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.codePanel}>
+            <p className={styles.codeLabel}>Fastest First Win</p>
+            <h2 className={styles.codeTitle}>Prove the repo works before you touch a line of code.</h2>
+            <p className={styles.codeText}>
+              Outside collaborators should be able to validate the stack, generate benchmark artifacts, and inspect the live
+              reviewer surfaces without a private walkthrough.
+            </p>
+            <pre className={styles.codeBlock}>
+{`make validate-strict
+make benchmark-demo
+docker compose up --build`}
+            </pre>
+            <p className={styles.codeText}>
+              The ad hoc benchmark snapshot lands in <span className={styles.inlineCode}>artifacts/benchmarks</span>. The
+              published snapshot used by this site lives at <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span>.
+            </p>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <p className={styles.eyebrow}>Explore</p>
+              <h2 className={styles.sectionTitle}>Start with the surface that matches your role.</h2>
+            </div>
+          </div>
+
+          <div className={`${styles.grid} ${styles.gridThree}`}>
+            <Link href="/proof" className={styles.card}>
+              <h3 className={styles.routeCardTitle}>
+                Benchmark proof
+                <span className={styles.inlineCode}>/proof</span>
+              </h3>
+              <p className={styles.cardText}>
+                Review the current snapshot, threshold recommendations, and the exact commands used to reproduce the demo
+                benchmark story.
+              </p>
+              <p className={styles.routeMeta}>Best first stop for outside collaborators</p>
+            </Link>
+            <Link href="/cases" className={styles.card}>
+              <h3 className={styles.routeCardTitle}>
+                Reviewer worklist
+                <span className={styles.inlineCode}>/cases</span>
+              </h3>
+              <p className={styles.cardText}>
+                Inspect priority sorting, rationale codes, hybrid review signals, and the case detail workflow the product is
+                built around.
+              </p>
+              <p className={styles.routeMeta}>Best for product and workflow review</p>
+            </Link>
+            <Link href="/imports" className={styles.card}>
+              <h3 className={styles.routeCardTitle}>
+                Import workspace
+                <span className={styles.inlineCode}>/imports</span>
+              </h3>
+              <p className={styles.cardText}>
+                Exercise CSV, JSONL, FHIR DiagnosticReport, and HL7 ORU paths with persisted audit records and stable failure
+                buckets.
+              </p>
+              <p className={styles.routeMeta}>Best for interoperability review</p>
+            </Link>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.warningCard}>
+            <h3 className={styles.warningTitle}>Guardrails that should stay visible</h3>
+            <p className={styles.warningText}>
+              Pancreatic Signal is research-use workflow software. It should stay human-review dependent, explicit about
+              uncertainty, honest about limitations, and resistant to “autonomous diagnosis” framing even when the benchmark
+              story gets stronger.
+            </p>
+          </div>
+        </section>
       </div>
     </main>
   );
