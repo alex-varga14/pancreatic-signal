@@ -26,9 +26,19 @@ jobs:
             smoke: make pilot-proxy-demo-smoke
             down: make pilot-proxy-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
+          - name: Proxy Demo Site Rejection Smoke
+            up: make pilot-proxy-demo-up
+            smoke: make pilot-proxy-demo-site-rejection-smoke
+            down: make pilot-proxy-demo-down
+            compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
           - name: Header Demo Smoke
             up: make pilot-header-demo-up
             smoke: make pilot-header-demo-smoke
+            down: make pilot-header-demo-down
+            compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
+          - name: Header Demo Site Rejection Smoke
+            up: make pilot-header-demo-up
+            smoke: make pilot-header-demo-site-rejection-smoke
             down: make pilot-header-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
 

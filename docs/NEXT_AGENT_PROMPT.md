@@ -5,17 +5,17 @@ Use this as the starting prompt for the next coding agent:
 ```text
 Analyze the repo, then read /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/CODEX_HANDOFF.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/PHASES.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/API_SPEC.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/DEPLOYMENT.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/README.md, and /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/RELEASE_READINESS.md.
 
-Proceed with the next recommended slice from the handoff: hosted failure-path pilot smoke expansion, starting with site-scope rejection.
+Proceed with the next recommended slice from the handoff: hosted structured adapter site-rejection smoke expansion.
 
 Constraints:
 - Preserve deterministic explainability and the existing backend plus web import flow.
-- Do not regress auth, site scoping, research-safe de-identification, reviewer workflow behavior, the import metadata preservation path, the import-run audit surfaces, the `/imports` workspace, the checked-in hosted base smoke workflow, the generic `/imports/reports` smoke path, the generic failed-shared-visibility smoke path, the structured failed-shared-visibility smoke path, the structured adapter site-rejection smoke path, the structured adapter audit-visibility smoke path, the header-demo shared-visibility, adapter-shared-visibility, FHIR/HL7, site-rejection, parse-validation, adapter-failure, and audit-visibility smoke paths, the proxy-demo shared-visibility, adapter-shared-visibility, FHIR/HL7, site-rejection, parse-validation, adapter-failure, and audit-visibility smoke paths, or the proxy/header pilot packaging.
+- Do not regress auth, site scoping, research-safe de-identification, reviewer workflow behavior, the import metadata preservation path, the import-run audit surfaces, the `/imports` workspace, the checked-in hosted base plus report-path site-rejection smoke workflow, the generic `/imports/reports` smoke path, the generic failed-shared-visibility smoke path, the structured failed-shared-visibility smoke path, the structured adapter site-rejection smoke path, the structured adapter audit-visibility smoke path, the header-demo shared-visibility, adapter-shared-visibility, FHIR/HL7, site-rejection, parse-validation, adapter-failure, and audit-visibility smoke paths, the proxy-demo shared-visibility, adapter-shared-visibility, FHIR/HL7, site-rejection, parse-validation, adapter-failure, and audit-visibility smoke paths, or the proxy/header pilot packaging.
 - Keep capability gating aligned with `/api/v1/auth/me`.
 - Prefer additive smoke coverage and docs work over new runtime abstractions.
 - Keep the repo's release-facing narrative honest: if behavior or validation state changes, update the handoff and any affected release-facing docs in the same change set.
 
 Target outcome:
-- Add hosted GitHub Actions coverage for at least one existing pilot `site_scope_rejection` smoke target.
+- Add hosted GitHub Actions coverage for at least one existing structured adapter `site_scope_rejection` smoke target.
 - Keep the repo's local and hosted smoke story aligned and clearly documented.
 - Document what still requires manual live overlay validation outside the expanded hosted smoke workflow.
 
