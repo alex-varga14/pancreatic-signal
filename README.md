@@ -51,6 +51,8 @@ It is not:
 │   ├── PRD.md
 │   ├── MVP_PLAN.md
 │   ├── QUICKSTART.md
+│   ├── LABELING_GUIDE.md
+│   ├── BENCHMARK_SUBMISSIONS.md
 │   ├── ARCHITECTURE.md
 │   ├── PHASES.md
 │   ├── API_SPEC.md
@@ -99,6 +101,7 @@ make benchmark-demo
 ```
 
 This validates the repo and writes benchmark artifacts to `artifacts/benchmarks/`. The checked-in published snapshot that powers the web proof page lives in [docs/examples/demo-benchmark-current.md](docs/examples/demo-benchmark-current.md) and can be refreshed with `make refresh-demo-proof`.
+If you want to package a comparable external benchmark, start with [docs/LABELING_GUIDE.md](docs/LABELING_GUIDE.md) and [docs/BENCHMARK_SUBMISSIONS.md](docs/BENCHMARK_SUBMISSIONS.md).
 
 ### API
 
@@ -199,6 +202,7 @@ For hosted smoke automation, GitHub Actions now reuses `make pilot-proxy-demo-sm
 ## Documentation Map
 
 - Quickstart and published proof: [docs/QUICKSTART.md](docs/QUICKSTART.md), [docs/examples/demo-benchmark-current.md](docs/examples/demo-benchmark-current.md)
+- Public benchmark pack: [docs/LABELING_GUIDE.md](docs/LABELING_GUIDE.md), [docs/BENCHMARK_SUBMISSIONS.md](docs/BENCHMARK_SUBMISSIONS.md), [docs/examples/benchmark-submission-template.json](docs/examples/benchmark-submission-template.json)
 - Architecture and roadmap: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/PHASES.md](docs/PHASES.md)
 - API and data model: [docs/API_SPEC.md](docs/API_SPEC.md), [docs/DATA_MODEL.md](docs/DATA_MODEL.md)
 - Evaluation and deployment: [docs/EVALUATION.md](docs/EVALUATION.md), [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)

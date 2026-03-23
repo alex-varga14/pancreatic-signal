@@ -41,6 +41,10 @@ benchmark-demo:
 refresh-demo-proof:
 	$(PYTHON) scripts/write_demo_benchmark.py --out-dir docs/examples --basename demo-benchmark-current
 
+validate-benchmark-submission:
+	@test -n "$(SUBMISSION)" || (echo "Usage: make validate-benchmark-submission SUBMISSION=path/to/submission.json" && exit 2)
+	$(PYTHON) scripts/validate_benchmark_submission.py "$(SUBMISSION)"
+
 smoke-proxy-auth:
 	$(PYTHON) scripts/smoke_proxy_auth.py \
 		--base-url "$(or $(SMOKE_BASE_URL),http://localhost:8000)" \
