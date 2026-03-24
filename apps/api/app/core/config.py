@@ -30,10 +30,10 @@ class Settings(BaseSettings):
     auth_user_role_header_name: str = "X-User-Role"
     auth_user_sites_header_name: str = "X-User-Sites"
     research_id_salt: str = "pancreatic-signal-research"
-    fhir_reference_identifier_source_order: str = "resolved_identifier,resolved_id,reference_tail"
+    fhir_reference_identifier_source_order: str = "resolved_identifier,reference_identifier,resolved_id,reference_tail"
     fhir_source_system_source_order: str = "meta_source,performer,results_interpreter,encounter_service_provider"
     fhir_accession_source_order: str = (
-        "report_identifier_typed,based_on_identifier_typed,report_identifier,based_on_identifier"
+        "report_identifier_typed,based_on_identifier_typed,based_on_reference_identifier_typed,report_identifier,based_on_identifier,based_on_reference_identifier"
     )
     hl7_patient_identifier_field_order: str = "PID-3,PID-2"
     hl7_source_system_field_order: str = "MSH-3,MSH-4"

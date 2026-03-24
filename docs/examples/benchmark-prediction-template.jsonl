@@ -1,0 +1,2 @@
+{"report_id":"R-TEMPLATE-001","case_id":"C-TEMPLATE-001","score":0.91,"rationale_codes":["PANCREATIC_MASS","FOLLOW_UP_RECOMMENDED"],"notes":"Example positive prediction with a high external score and supporting rationale hints."}
+{"report_id":"R-TEMPLATE-002","case_id":"C-TEMPLATE-002","score":0.07,"rationale_codes":[],"notes":"Example negative prediction with a low external score."}

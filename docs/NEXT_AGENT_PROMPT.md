@@ -3,29 +3,30 @@
 Use this as the starting prompt for the next coding agent:
 
 ```text
-Analyze the repo, then read /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/CODEX_HANDOFF.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/PHASES.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/API_SPEC.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/DEPLOYMENT.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/README.md, and /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/RELEASE_READINESS.md.
+Analyze the repo, then read /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/CODEX_HANDOFF.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/PHASES.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/API_SPEC.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/DEPLOYMENT.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/OPEN_SOURCE_STRATEGY.md, /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/README.md, and /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/RELEASE_READINESS.md.
 
-Proceed with the next recommended slice from the handoff: hosted structured adapter audit-visibility smoke expansion.
+Proceed with the next recommended slice from the handoff: HL7 ORU text-extraction hardening for `OBX` edge cases.
 
 Constraints:
-- Preserve deterministic explainability and the existing backend plus web import flow.
-- Do not regress auth, site scoping, research-safe de-identification, reviewer workflow behavior, the import metadata preservation path, the import-run audit surfaces, the `/imports` workspace, the checked-in hosted base plus report-path and structured adapter site-rejection smoke workflow, the generic `/imports/reports` smoke path, the generic failed-shared-visibility smoke path, the structured failed-shared-visibility smoke path, the structured adapter site-rejection smoke path, the structured adapter audit-visibility smoke path, the header-demo shared-visibility, adapter-shared-visibility, FHIR/HL7, site-rejection, parse-validation, adapter-failure, and audit-visibility smoke paths, the proxy-demo shared-visibility, adapter-shared-visibility, FHIR/HL7, site-rejection, parse-validation, adapter-failure, and audit-visibility smoke paths, or the proxy/header pilot packaging.
-- Keep capability gating aligned with `/api/v1/auth/me`.
-- Prefer additive smoke coverage and docs work over new runtime abstractions.
+- Preserve deterministic explainability and the existing import plus reviewer workflow.
+- Do not regress auth, site scoping, research-safe de-identification, reviewer workflow behavior, the import metadata preservation path, the import-run audit surfaces, the `/imports` workspace, the checked-in hosted base plus report-path and structured adapter site-rejection smoke workflow, the current pilot smoke matrix, the `/proof` page, the checked-in demo benchmark snapshot, the public benchmark submission pack, or the external evaluation bundle writer.
+- Keep interoperability changes additive and explainable; do not introduce a new ingestion family, a second persistence path, or opaque inference.
+- Prefer parser, fixture, and docs work over new runtime abstractions.
 - Keep the repo's release-facing narrative honest: if behavior or validation state changes, update the handoff and any affected release-facing docs in the same change set.
 
 Target outcome:
-- Add hosted GitHub Actions coverage for at least one existing structured adapter audit-visibility smoke target.
-- Keep the repo's local and hosted smoke story aligned and clearly documented.
-- Document what still requires manual live overlay validation outside the expanded hosted smoke workflow.
+- Add at least one meaningful new HL7 `OBX` text edge-case coverage path such as `ED` payloads or repeated `OBX-5` values.
+- Preserve import metadata, audit visibility, and site-scope semantics across that new edge case.
+- Document any new parser expectations introduced by the change.
+- Do not add a new adapter family or change the benchmark/public-proof surfaces in this slice unless required to keep docs honest.
 
 Expected work:
-- Extend the checked-in hosted smoke workflow or add a tightly scoped sibling workflow rather than inventing a second smoke harness.
-- Reuse the existing `make pilot-*-adapter-audit-visibility-smoke` overlay targets so local and hosted smoke validation stay aligned.
-- Update the relevant docs after implementation, especially if hosted smoke changes the release or contributor narrative.
+- Reuse the existing HL7 import service and tests where possible: `apps/api/app/services/hl7_imports.py`, `apps/api/tests/test_imports.py`, `apps/api/tests/test_import_runs.py`, and the current smoke helper.
+- Keep any new adapter behavior traceable to tests and docs rather than configuration magic hidden from contributors.
+- Update the relevant docs after implementation, especially if parser tolerance changes the contributor or deployment narrative.
 - If release posture or validation evidence changes materially, update /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/CHANGELOG.md and /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/RELEASE_READINESS.md too.
 - Run `make validate-strict` at the end.
-- If you run live validation, boot the relevant overlay first and record whether the smoke passed end to end.
+- If you run live pilot validation, record exactly which overlay or smoke target ran and what passed end to end.
 
 When you finish, update /Users/alexvarga/Coding/personal/POCs/pancan/pancreatic-signal/docs/CODEX_HANDOFF.md so the next handoff reflects the new state instead of repeating this prompt.
 ```

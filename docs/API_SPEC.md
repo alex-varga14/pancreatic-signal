@@ -185,7 +185,7 @@ Behavior:
 - Derives site scope from `performer` / `resultsInterpreter` / referenced `Organization` resources.
 - Derives modality heuristically from report category / code text.
 - Preserves structured import metadata when present, including patient identifier, encounter identifier, accession number, ordering provider, source system, source format, and import source identifier.
-- Uses referenced `Patient`, `Encounter`, `ServiceRequest`, `Practitioner`, and `Organization` resources when available, with reference-ID fallbacks when they are not.
+- Uses referenced `Patient`, `Encounter`, `ServiceRequest`, `Practitioner`, and `Organization` resources when available, with `Reference.identifier` and reference-tail fallbacks when they are not.
 - Field-preference order for selected FHIR metadata can be tuned with deployment settings without changing the persistence model.
 
 Access:

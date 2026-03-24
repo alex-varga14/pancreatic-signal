@@ -17,8 +17,40 @@ The benchmark pack exists so collaborators can publish comparable results withou
 At minimum, prepare:
 
 1. A label file that follows [LABELING_GUIDE.md](./LABELING_GUIDE.md)
-2. A benchmark submission JSON that follows [`docs/examples/benchmark-submission-template.json`](./examples/benchmark-submission-template.json)
-3. Any supporting benchmark artifacts you want others to inspect, such as confusion-matrix exports or case-level outputs
+2. A prediction file that follows [`docs/examples/benchmark-prediction-template.jsonl`](./examples/benchmark-prediction-template.jsonl)
+3. A benchmark submission JSON that follows [`docs/examples/benchmark-submission-template.json`](./examples/benchmark-submission-template.json) or the generated `*-submission.json` draft from `scripts/run_external_eval.py`
+4. Any supporting benchmark artifacts you want others to inspect, such as confusion-matrix exports or case-level outputs
+
+## Prediction file format
+
+Each prediction line is one JSON object with:
+
+- `report_id`
+- `case_id`
+- `score`
+- optional `rationale_codes`
+- optional `false_negative_bucket`
+- optional `notes`
+
+Use `false_negative_bucket` only when you already reviewed a miss and want the generated submission draft to carry that bucket count forward. If you omit it, the generated bundle still remains valid.
+
+See the minimal template in [`docs/examples/benchmark-prediction-template.jsonl`](./examples/benchmark-prediction-template.jsonl).
+
+## Generate the bundle
+
+Use the built-in external evaluation helper:
+
+```bash
+make benchmark-external \
+  LABELS=docs/examples/benchmark-label-template.jsonl \
+  PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl
+```
+
+This writes:
+
+- `artifacts/benchmarks/external-benchmark.json`
+- `artifacts/benchmarks/external-benchmark.md`
+- `artifacts/benchmarks/external-benchmark-submission.json`
 
 ## Validate the submission
 
@@ -61,6 +93,7 @@ The validator enforces:
 
 For a strong public comparison, include:
 
+- the prediction JSONL you evaluated
 - the benchmark submission JSON
 - a short README with dataset framing and labeling policy
 - the exact evaluation command

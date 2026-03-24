@@ -56,6 +56,14 @@ Use this when the demo benchmark changes and you want the landing page plus docs
 
 ## 4. Where To Look Next
 
+- comparable external bundle:
+
+```bash
+make benchmark-external \
+  LABELS=docs/examples/benchmark-label-template.jsonl \
+  PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl
+```
+
 - product framing: [README.md](../README.md)
 - benchmark philosophy: [EVALUATION.md](./EVALUATION.md)
 - deployment and smoke matrix: [DEPLOYMENT.md](./DEPLOYMENT.md)

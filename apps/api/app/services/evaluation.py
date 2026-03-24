@@ -2,13 +2,19 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from pathlib import Path
 
 from app.core.paths import resolve_data_path
 from app.schemas.evaluation import (
+    DemoScoreMode,
     EvaluationCaseResult,
     EvaluationComparison,
     EvaluationLabel,
     EvaluationSummary,
+    ExternalEvaluationPrediction,
+    ExternalThresholdRecommendation,
+    ExternalThresholdSweepPoint,
+    ExternalThresholdSweepSummary,
     ScoreMode,
     ThresholdRecommendation,
     ThresholdSweepPoint,
@@ -23,14 +29,18 @@ DEFAULT_SWEEP_THRESHOLDS = (0.2, 0.3, 0.4, 0.5, 0.6)
 
 
 def load_demo_labels() -> dict[str, EvaluationLabel]:
+    return load_evaluation_labels(DEMO_LABELS_PATH)
+
+
+def load_evaluation_labels(path: Path) -> dict[str, EvaluationLabel]:
     labels: dict[str, EvaluationLabel] = {}
-    with DEMO_LABELS_PATH.open() as handle:
+    with path.open() as handle:
         for line in handle:
             line = line.strip()
             if not line:
                 continue
             label = EvaluationLabel.model_validate_json(line)
-            labels[label.report_id] = label
+            labels[_case_key(label.report_id, label.case_id)] = label
     return labels
 
 
@@ -48,7 +58,7 @@ def load_demo_reports() -> list[ReportInput]:
 def evaluate_demo_dataset(
     threshold: float = 0.3,
     top_k: int = 3,
-    score_mode: ScoreMode = "rules",
+    score_mode: DemoScoreMode = "rules",
 ) -> EvaluationSummary:
     normalized_top_k = max(1, top_k)
     labels = load_demo_labels()
@@ -56,7 +66,7 @@ def evaluate_demo_dataset(
     cases: list[EvaluationCaseResult] = []
 
     for payload in reports:
-        label = labels[payload.report_id]
+        label = labels[_case_key(payload.report_id, payload.case_id)]
         result = triage_report(payload, persist=False)
         hybrid_score = result.hybrid_analysis.calibrated_score if result.hybrid_analysis else result.score
         selected_score = result.score if score_mode == "rules" else hybrid_score
@@ -82,6 +92,73 @@ def evaluate_demo_dataset(
         top_k=normalized_top_k,
         score_mode=score_mode,
     )
+
+
+def load_external_predictions(path: Path) -> dict[str, ExternalEvaluationPrediction]:
+    predictions: dict[str, ExternalEvaluationPrediction] = {}
+    with path.open() as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            prediction = ExternalEvaluationPrediction.model_validate_json(line)
+            case_key = _case_key(prediction.report_id, prediction.case_id)
+            if case_key in predictions:
+                raise ValueError(
+                    f"Duplicate external prediction for report_id={prediction.report_id} case_id={prediction.case_id}."
+                )
+            predictions[case_key] = prediction
+    return predictions
+
+
+def evaluate_external_dataset(
+    *,
+    labels_path: Path,
+    predictions_path: Path,
+    threshold: float = 0.2,
+    top_k: int = 25,
+) -> EvaluationSummary:
+    labels = load_evaluation_labels(labels_path)
+    predictions = load_external_predictions(predictions_path)
+    cases = build_external_case_results(labels=labels, predictions=predictions, threshold=threshold)
+    return summarize_cases(
+        cases,
+        threshold=threshold,
+        top_k=max(1, top_k),
+        score_mode="external",
+    )
+
+
+def build_external_case_results(
+    *,
+    labels: dict[str, EvaluationLabel],
+    predictions: dict[str, ExternalEvaluationPrediction],
+    threshold: float,
+) -> list[EvaluationCaseResult]:
+    _validate_external_alignment(labels=labels, predictions=predictions)
+
+    cases: list[EvaluationCaseResult] = []
+    for case_key in sorted(labels):
+        label = labels[case_key]
+        prediction = predictions[case_key]
+        flagged = prediction.score >= threshold
+        cases.append(
+            EvaluationCaseResult(
+                report_id=label.report_id,
+                case_id=label.case_id,
+                score=prediction.score,
+                base_score=prediction.score,
+                hybrid_score=prediction.score,
+                urgency="external",
+                flagged=flagged,
+                expected_positive=label.should_flag,
+                expected_escalation=label.should_escalate,
+                rationale_codes=prediction.rationale_codes,
+                label_notes=label.notes,
+                false_negative_bucket=prediction.false_negative_bucket if label.should_flag and not flagged else None,
+            )
+        )
+    return cases
 
 
 def summarize_cases(
@@ -114,7 +191,12 @@ def summarize_cases(
     for case in cases:
         if case.flagged or not case.expected_positive:
             continue
-        bucket = case.rationale_codes[0] if case.rationale_codes else "NO_MATCHED_RATIONALE"
+        if case.false_negative_bucket:
+            bucket = case.false_negative_bucket
+        elif score_mode == "external":
+            continue
+        else:
+            bucket = case.rationale_codes[0] if case.rationale_codes else "NO_MATCHED_RATIONALE"
         false_negative_buckets[bucket] = false_negative_buckets.get(bucket, 0) + 1
 
     return EvaluationSummary(
@@ -217,6 +299,49 @@ def sweep_demo_thresholds(
     )
 
 
+def sweep_external_thresholds(
+    *,
+    labels_path: Path,
+    predictions_path: Path,
+    top_k: int = 25,
+    thresholds: Sequence[float] | None = None,
+) -> ExternalThresholdSweepSummary:
+    normalized_top_k = max(1, top_k)
+    normalized_thresholds = _normalize_thresholds(thresholds)
+    labels = load_evaluation_labels(labels_path)
+    predictions = load_external_predictions(predictions_path)
+
+    summaries = [
+        summarize_cases(
+            build_external_case_results(labels=labels, predictions=predictions, threshold=threshold),
+            threshold=threshold,
+            top_k=normalized_top_k,
+            score_mode="external",
+        )
+        for threshold in normalized_thresholds
+    ]
+
+    points = [
+        ExternalThresholdSweepPoint(
+            threshold=summary.threshold,
+            f1=summary.f1,
+            recall=summary.recall,
+            flagged=summary.flagged,
+            precision=summary.precision,
+            precision_at_top_k=summary.precision_at_top_k,
+            sensitivity_at_top_k=summary.sensitivity_at_top_k,
+        )
+        for summary in summaries
+    ]
+
+    return ExternalThresholdSweepSummary(
+        top_k=normalized_top_k,
+        thresholds=normalized_thresholds,
+        points=points,
+        recommendation=_pick_external_threshold_recommendation(summaries),
+    )
+
+
 def _safe_divide(numerator: int | float, denominator: int | float) -> float:
     if denominator == 0:
         return 0.0
@@ -259,3 +384,49 @@ def _pick_threshold_recommendation(
         recall=best.recall,
         flagged=best.flagged,
     )
+
+
+def _pick_external_threshold_recommendation(
+    summaries: Sequence[EvaluationSummary],
+) -> ExternalThresholdRecommendation:
+    best = max(
+        summaries,
+        key=lambda summary: (
+            summary.f1,
+            summary.recall,
+            -summary.flagged,
+            -summary.threshold,
+        ),
+    )
+    rationale = (
+        f"Selected threshold {best.threshold:.2f} because it maximizes F1 "
+        f"({best.f1:.2f}) while preserving recall {best.recall:.2f} "
+        f"with {best.flagged} flagged case(s)."
+    )
+    return ExternalThresholdRecommendation(
+        recommended_threshold=best.threshold,
+        rationale=rationale,
+        f1=best.f1,
+        recall=best.recall,
+        flagged=best.flagged,
+    )
+
+
+def _validate_external_alignment(
+    *,
+    labels: dict[str, EvaluationLabel],
+    predictions: dict[str, ExternalEvaluationPrediction],
+) -> None:
+    missing = sorted(case_key for case_key in labels if case_key not in predictions)
+    extra = sorted(case_key for case_key in predictions if case_key not in labels)
+    if missing or extra:
+        details: list[str] = []
+        if missing:
+            details.append(f"missing predictions for {', '.join(missing[:5])}")
+        if extra:
+            details.append(f"extra predictions for {', '.join(extra[:5])}")
+        raise ValueError("Prediction set must match labels exactly: " + "; ".join(details))
+
+
+def _case_key(report_id: str, case_id: str) -> str:
+    return f"{report_id}::{case_id}"
