@@ -671,6 +671,71 @@ def test_import_hl7_oru_respects_custom_msh2_delimiters() -> None:
     assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
 
 
+def test_import_hl7_oru_normalizes_default_escape_sequences() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = "\r".join(
+        [
+            "MSH|^~\\&|RADSYS|Demo Hospital|PS|PS|20260319111930||ORU^R01|MSG-ESCAPE|P|2.5",
+            "PID|1||PAT-ESCAPE^^^MRN||Doe^John",
+            "OBR|1|PLAC-ESCAPE|R-HL7-ESCAPE|CT ABDOMEN^CT Abdomen|||20260319111930|||||||||PROV-ESCAPE^O\\S\\Neil^Jamie",
+            (
+                "OBX|1|TX|FINDINGS^Findings||\\H\\Abrupt cutoff of the pancreatic duct\\N\\"
+                "\\.br\\with upstream dilation.|"
+            ),
+            "NTE|1||Recommend EUS\\.br\\Consider MRI follow-up.|",
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content=payload,
+        headers={"Content-Type": "text/plain"},
+    )
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/R-HL7-ESCAPE").json()
+    assert case_detail["score"] >= 0.3
+    assert "Abrupt cutoff of the pancreatic duct with upstream dilation." in case_detail["report_text"]
+    assert "Recommend EUS Consider MRI follow-up." in case_detail["report_text"]
+    assert case_detail["import_metadata"]["ordering_provider"] == "Jamie O^Neil"
+    assert "\\.br\\" not in case_detail["report_text"]
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
+def test_import_hl7_oru_normalizes_custom_escape_sequences() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = "\r".join(
+        [
+            "MSH|!%?@|RADSYS|Demo Hospital|PS|PS|20260319111945||ORU!R01|MSG-ESCAPE-CUSTOM|P|2.5",
+            "PID|1||PAT-ESCAPE-CUSTOM!!!MRN||Doe!John",
+            "OBR|1|PLAC-ESCAPE-CUSTOM|R-HL7-ESCAPE-CUSTOM|CT ABDOMEN!CT Abdomen|||20260319111945|||||||||PROV-ESCAPE-CUSTOM!Mc?S?Kay!Jamie",
+            (
+                "OBX|1|TX|IMPRESSION!Impression||?.br??H?Suspicious for pancreatic neoplasm.?N?"
+                " Recommend biopsy.?X0A?Urgent review.|"
+            ),
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content=payload,
+        headers={"Content-Type": "text/plain"},
+    )
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/R-HL7-ESCAPE-CUSTOM").json()
+    assert case_detail["score"] >= 0.3
+    assert "Suspicious for pancreatic neoplasm." in case_detail["report_text"]
+    assert "Recommend biopsy." in case_detail["report_text"]
+    assert "Urgent review." in case_detail["report_text"]
+    assert case_detail["import_metadata"]["ordering_provider"] == "Jamie Mc!Kay"
+    assert "?.br?" not in case_detail["report_text"]
+
+
 def test_import_hl7_oru_respects_site_scope() -> None:
     CASE_STORE.reset()
     client = TestClient(app)
