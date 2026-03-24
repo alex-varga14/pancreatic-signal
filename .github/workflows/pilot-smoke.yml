@@ -1,0 +1,85 @@
+name: Pilot Smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 15 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pilot-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pilot-smoke:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Proxy Demo Smoke
+            up: make pilot-proxy-demo-up
+            smoke: make pilot-proxy-demo-smoke
+            down: make pilot-proxy-demo-down
+            compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
+          - name: Proxy Demo Site Rejection Smoke
+            up: make pilot-proxy-demo-up
+            smoke: make pilot-proxy-demo-site-rejection-smoke
+            down: make pilot-proxy-demo-down
+            compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
+          - name: Proxy Demo Adapter Site Rejection Smoke
+            up: make pilot-proxy-demo-up
+            smoke: make pilot-proxy-demo-adapter-site-rejection-smoke
+            down: make pilot-proxy-demo-down
+            compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
+          - name: Header Demo Smoke
+            up: make pilot-header-demo-up
+            smoke: make pilot-header-demo-smoke
+            down: make pilot-header-demo-down
+            compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
+          - name: Header Demo Site Rejection Smoke
+            up: make pilot-header-demo-up
+            smoke: make pilot-header-demo-site-rejection-smoke
+            down: make pilot-header-demo-down
+            compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
+          - name: Header Demo Adapter Site Rejection Smoke
+            up: make pilot-header-demo-up
+            smoke: make pilot-header-demo-adapter-site-rejection-smoke
+            down: make pilot-header-demo-down
+            compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: apps/api/pyproject.toml
+
+      - name: Install API dependencies
+        run: make api-install
+
+      - name: Boot pilot overlay
+        run: ${{ matrix.up }}
+
+      - name: Run pilot smoke
+        run: ${{ matrix.smoke }}
+
+      - name: Show compose status on failure
+        if: failure()
+        run: docker compose ${{ matrix.compose_args }} ps
+
+      - name: Show compose logs on failure
+        if: failure()
+        run: docker compose ${{ matrix.compose_args }} logs --no-color --tail=200
+
+      - name: Tear down pilot overlay
+        if: always()
+        run: ${{ matrix.down }}

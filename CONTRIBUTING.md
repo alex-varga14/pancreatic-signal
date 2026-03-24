@@ -16,6 +16,7 @@ High-value contributions include:
 
 - triage-rule quality, explainability, and evidence-span accuracy
 - retrospective evaluation quality and benchmark reproducibility
+- benchmark-pack improvements such as labeling guidance, submission templates, and comparable result artifacts
 - import interoperability across report, FHIR, and HL7 inputs
 - reviewer workflow polish that does not reduce auditability
 - pilot deployment ergonomics, smoke coverage, and documentation
@@ -56,7 +57,7 @@ make validate
 make validate-strict
 ```
 
-Pull requests and `main` now run the same strict gate in GitHub Actions through [`.github/workflows/validate.yml`](.github/workflows/validate.yml). Live pilot overlay smoke checks still need to be run manually when auth, import, or packaging changes warrant them.
+Pull requests and `main` now run the same strict gate in GitHub Actions through [`.github/workflows/validate.yml`](.github/workflows/validate.yml). A separate hosted smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) reuses the base proxy and header overlay smokes plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule. The broader shared-visibility, audit-denial, and non-site structured failure smoke matrix still needs manual runs when auth, import, or packaging changes warrant them.
 
 If you touch import, auth, or pilot wiring, also consider the relevant smoke target from [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
@@ -90,6 +91,7 @@ Aim for PRs that clearly answer:
 
 For rule changes, include tests and evidence-aware reasoning.
 For deployment changes, include the exact command paths you validated.
+For benchmark-oriented changes, include the updated artifacts or schema paths you validated.
 
 ## Questions And Collaboration
 

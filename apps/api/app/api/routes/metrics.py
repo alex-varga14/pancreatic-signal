@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, Query
 
 from app.auth import get_current_actor
 from app.schemas.evaluation import (
+    DemoScoreMode,
     EvaluationComparison,
     EvaluationSummary,
-    ScoreMode,
     ThresholdSweepSummary,
 )
 from app.schemas.auth import AuthenticatedActor
@@ -19,7 +19,7 @@ router = APIRouter()
 def evaluation_summary(
     threshold: float = Query(default=0.3, ge=0.0, le=1.0),
     top_k: int = Query(default=3, ge=1, le=100),
-    score_mode: ScoreMode = Query(default="rules"),
+    score_mode: DemoScoreMode = Query(default="rules"),
 ) -> EvaluationSummary:
     return evaluate_demo_dataset(threshold=threshold, top_k=top_k, score_mode=score_mode)
 

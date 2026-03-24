@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import re
+from dataclasses import dataclass
 
 from app.core.config import settings
 from app.schemas.triage import ImportMetadata, ReportInput
@@ -17,6 +20,15 @@ _MODALITY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 )
 _HL7_PATIENT_IDENTIFIER_FIELD_ORDER = ("PID-3", "PID-2")
 _HL7_SOURCE_SYSTEM_FIELD_ORDER = ("MSH-3", "MSH-4")
+
+
+@dataclass(frozen=True)
+class HL7Separators:
+    field: str = "|"
+    component: str = "^"
+    repetition: str = "~"
+    escape: str = "\\"
+    subcomponent: str = "&"
 
 
 def parse_hl7_oru_messages(message_text: str) -> list[ReportInput]:
@@ -73,9 +85,11 @@ def _parse_message_segments(segments: list[str], *, message_index: int) -> list[
     field_separator = segments[0][3] if len(segments[0]) > 3 else "|"
     parsed = [_split_segment(segment, field_separator) for segment in segments]
     msh = parsed[0]
+    separators = _message_separators(msh, field_separator)
 
     message_type = _segment_field(msh, 9)
-    if not message_type.upper().startswith("ORU"):
+    primary_message_type = _component(message_type, 1, separators=separators) or message_type
+    if primary_message_type.upper() != "ORU":
         raise ImportParseError(
             f"HL7 message {message_index} is not an ORU result message (found '{message_type or 'unknown'}')."
         )
@@ -83,7 +97,7 @@ def _parse_message_segments(segments: list[str], *, message_index: int) -> list[
     message_control_id = _segment_field(msh, 10)
     message_datetime = _segment_field(msh, 7)
     sending_application = _segment_field(msh, 3)
-    sending_facility = _component(_segment_field(msh, 4), 1)
+    sending_facility = _component(_segment_field(msh, 4), 1, separators=separators)
 
     pid: list[str] | None = None
     pv1: list[str] | None = None
@@ -108,6 +122,7 @@ def _parse_message_segments(segments: list[str], *, message_index: int) -> list[
                 message_datetime=message_datetime,
                 message_control_id=message_control_id,
                 group_index=len(reports) + 1,
+                separators=separators,
             )
         )
         current_obr = None
@@ -148,10 +163,11 @@ def _build_report_input(
     message_datetime: str | None,
     message_control_id: str | None,
     group_index: int,
+    separators: HL7Separators,
 ) -> ReportInput:
     report_id = _first_non_empty(
-        _repeat_component(_segment_field(obr_segment, 3), 1),
-        _repeat_component(_segment_field(obr_segment, 2), 1),
+        _repeat_component(_segment_field(obr_segment, 3), 1, separators=separators),
+        _repeat_component(_segment_field(obr_segment, 2), 1, separators=separators),
         _with_group_suffix(message_control_id, group_index),
     )
     if not report_id:
@@ -165,11 +181,11 @@ def _build_report_input(
     if not report_datetime:
         raise ImportParseError(f"HL7 ORU report '{report_id}' is missing OBR-7, OBR-22, or MSH-7 timestamp.")
 
-    site = _first_non_empty(_pv1_site(pv1_segment), sending_facility)
+    site = _first_non_empty(_pv1_site(pv1_segment, separators=separators), sending_facility)
     modality = _infer_modality(
         _first_non_empty(_segment_field(obr_segment, 24), _segment_field(obr_segment, 4)) or ""
     )
-    report_text = _build_report_text(obx_segments, nte_segments)
+    report_text = _build_report_text(obx_segments, nte_segments, separators=separators)
     if not report_text:
         raise ImportParseError(f"HL7 ORU report '{report_id}' did not contain any OBX or NTE report text.")
 
@@ -181,6 +197,7 @@ def _build_report_input(
         sending_facility=sending_facility,
         message_control_id=message_control_id,
         group_index=group_index,
+        separators=separators,
     )
 
     return ReportInput.model_validate(
@@ -196,18 +213,23 @@ def _build_report_input(
     )
 
 
-def _build_report_text(obx_segments: list[list[str]], nte_segments: list[list[str]]) -> str:
+def _build_report_text(
+    obx_segments: list[list[str]],
+    nte_segments: list[list[str]],
+    *,
+    separators: HL7Separators,
+) -> str:
     findings: list[str] = []
     impression: list[str] = []
     other: list[str] = []
 
     for obx in obx_segments:
-        text = _obx_text(obx)
+        text = _obx_text(obx, separators=separators)
         if not text:
             continue
         observation_label = _first_non_empty(
-            _component(_segment_field(obx, 3), 2),
-            _component(_segment_field(obx, 3), 1),
+            _component(_segment_field(obx, 3), 2, separators=separators),
+            _component(_segment_field(obx, 3), 1, separators=separators),
         ) or ""
         label_l = observation_label.lower()
         text_l = text.lower()
@@ -219,7 +241,11 @@ def _build_report_text(obx_segments: list[list[str]], nte_segments: list[list[st
         else:
             other.append(text)
 
-    note_texts = [_segment_field(nte, 3) for nte in nte_segments if _segment_field(nte, 3)]
+    note_texts = [
+        _hl7_unescape(_segment_field(nte, 3), separators=separators)
+        for nte in nte_segments
+        if _segment_field(nte, 3)
+    ]
     sections: list[str] = []
 
     findings_block = " ".join(item for item in [*findings, *other] if item)
@@ -235,25 +261,73 @@ def _build_report_text(obx_segments: list[list[str]], nte_segments: list[list[st
     return normalize_text(" ".join(sections))
 
 
-def _obx_text(obx_segment: list[str]) -> str:
+def _obx_text(obx_segment: list[str], *, separators: HL7Separators) -> str:
     value_type = _segment_field(obx_segment, 2).upper()
     raw_value = _segment_field(obx_segment, 5)
     if not raw_value:
         return ""
 
     if value_type == "ED":
-        components = raw_value.split("^")
-        return components[4].strip() if len(components) >= 5 else ""
+        return " ".join(
+            item
+            for item in (_ed_text(repeat, separators=separators) for repeat in _value_repeats(raw_value, separators=separators))
+            if item
+        )
     if value_type in {"CE", "CWE"}:
-        return _component(raw_value, 2) or _component(raw_value, 1) or ""
-    return raw_value.strip()
+        return " ".join(
+            item
+            for item in (
+                (
+                    _component(repeat, 2, separators=separators)
+                    or _component(repeat, 1, separators=separators)
+                    or ""
+                )
+                for repeat in _value_repeats(raw_value, separators=separators)
+            )
+            if item
+        )
+    return " ".join(
+        item
+        for item in (
+            _hl7_unescape(repeat, separators=separators)
+            for repeat in _value_repeats(raw_value, separators=separators)
+        )
+        if item
+    )
 
 
-def _pv1_site(pv1_segment: list[str] | None) -> str | None:
+def _ed_text(value: str, *, separators: HL7Separators) -> str:
+    components = [item.strip() for item in value.split(separators.component)]
+    if len(components) < 5:
+        return ""
+
+    encoding = components[3].lower()
+    data = components[4].strip()
+    if not data:
+        return ""
+
+    if encoding in {"", "a"}:
+        return _hl7_unescape(data, separators=separators)
+    if encoding in {"base64", "b64"}:
+        try:
+            return _hl7_unescape(base64.b64decode(data, validate=False).decode("utf-8"), separators=separators)
+        except (binascii.Error, UnicodeDecodeError):
+            return ""
+    return _hl7_unescape(data, separators=separators)
+
+
+def _value_repeats(value: str, separators: HL7Separators) -> list[str]:
+    return [item.strip() for item in value.split(separators.repetition) if item.strip()]
+
+
+def _pv1_site(pv1_segment: list[str] | None, *, separators: HL7Separators) -> str | None:
     if pv1_segment is None:
         return None
     location = _segment_field(pv1_segment, 3)
-    return _first_non_empty(_component(location, 4), _component(location, 1))
+    return _first_non_empty(
+        _component(location, 4, separators=separators),
+        _component(location, 1, separators=separators),
+    )
 
 
 def _infer_modality(text: str) -> str:
@@ -272,13 +346,14 @@ def _build_import_metadata(
     sending_facility: str | None,
     message_control_id: str | None,
     group_index: int,
+    separators: HL7Separators,
 ) -> ImportMetadata:
     patient_identifier_candidates = {
-        "PID-3": _repeat_component(_segment_field(pid_segment or [], 3), 1),
-        "PID-2": _repeat_component(_segment_field(pid_segment or [], 2), 1),
+        "PID-3": _repeat_component(_segment_field(pid_segment or [], 3), 1, separators=separators),
+        "PID-2": _repeat_component(_segment_field(pid_segment or [], 2), 1, separators=separators),
     }
     source_system_candidates = {
-        "MSH-3": _repeat_component(sending_application or "", 1),
+        "MSH-3": _repeat_component(sending_application or "", 1, separators=separators),
         "MSH-4": sending_facility,
     }
     return ImportMetadata(
@@ -288,15 +363,15 @@ def _build_import_metadata(
             candidates=patient_identifier_candidates,
         ),
         encounter_identifier=_first_non_empty(
-            _repeat_component(_segment_field(pv1_segment or [], 19), 1),
-            _repeat_component(_segment_field(pv1_segment or [], 50), 1),
+            _repeat_component(_segment_field(pv1_segment or [], 19), 1, separators=separators),
+            _repeat_component(_segment_field(pv1_segment or [], 50), 1, separators=separators),
         ),
         accession_number=_first_non_empty(
-            _repeat_component(_segment_field(obr_segment, 18), 1),
-            _repeat_component(_segment_field(obr_segment, 3), 1),
-            _repeat_component(_segment_field(obr_segment, 2), 1),
+            _repeat_component(_segment_field(obr_segment, 18), 1, separators=separators),
+            _repeat_component(_segment_field(obr_segment, 3), 1, separators=separators),
+            _repeat_component(_segment_field(obr_segment, 2), 1, separators=separators),
         ),
-        ordering_provider=_xcn_display(_segment_field(obr_segment, 16)),
+        ordering_provider=_xcn_display(_segment_field(obr_segment, 16), separators=separators),
         source_system=_select_configured_candidate(
             configured_order=settings.hl7_source_system_field_order_list,
             default_order=_HL7_SOURCE_SYSTEM_FIELD_ORDER,
@@ -305,13 +380,24 @@ def _build_import_metadata(
         source_format="hl7-oru",
         import_source_id=_first_non_empty(
             _with_group_suffix(message_control_id, group_index),
-            _repeat_component(_segment_field(obr_segment, 3), 1),
+            _repeat_component(_segment_field(obr_segment, 3), 1, separators=separators),
         ),
     )
 
 
 def _split_segment(segment: str, field_separator: str) -> list[str]:
     return segment.split(field_separator)
+
+
+def _message_separators(msh_segment: list[str], field_separator: str) -> HL7Separators:
+    encoding_characters = _segment_field(msh_segment, 2)
+    return HL7Separators(
+        field=field_separator,
+        component=encoding_characters[0] if len(encoding_characters) >= 1 else "^",
+        repetition=encoding_characters[1] if len(encoding_characters) >= 2 else "~",
+        escape=encoding_characters[2] if len(encoding_characters) >= 3 else "\\",
+        subcomponent=encoding_characters[3] if len(encoding_characters) >= 4 else "&",
+    )
 
 
 def _segment_field(segment: list[str], field_number: int) -> str:
@@ -328,33 +414,34 @@ def _segment_field(segment: list[str], field_number: int) -> str:
     return ""
 
 
-def _component(value: str, position: int) -> str | None:
+def _component(value: str, position: int, *, separators: HL7Separators) -> str | None:
     if not value:
         return None
-    parts = [item.strip() for item in value.split("^")]
+    parts = [item.strip() for item in value.split(separators.component)]
     index = position - 1
     if 0 <= index < len(parts):
-        return parts[index] or None
+        component_value = _hl7_unescape(parts[index], separators=separators)
+        return component_value or None
     return None
 
 
-def _first_repeat(value: str) -> str:
+def _first_repeat(value: str, *, separators: HL7Separators) -> str:
     if not value:
         return ""
-    return value.split("~", 1)[0].strip()
+    return value.split(separators.repetition, 1)[0].strip()
 
 
-def _repeat_component(value: str, position: int) -> str | None:
-    return _component(_first_repeat(value), position)
+def _repeat_component(value: str, position: int, *, separators: HL7Separators) -> str | None:
+    return _component(_first_repeat(value, separators=separators), position, separators=separators)
 
 
-def _xcn_display(value: str) -> str | None:
-    first_repeat = _first_repeat(value)
-    family = _component(first_repeat, 2)
-    given = _component(first_repeat, 3)
+def _xcn_display(value: str, *, separators: HL7Separators) -> str | None:
+    first_repeat = _first_repeat(value, separators=separators)
+    family = _component(first_repeat, 2, separators=separators)
+    given = _component(first_repeat, 3, separators=separators)
     if family and given:
         return f"{given} {family}"
-    return _first_non_empty(family, given, _component(first_repeat, 1))
+    return _first_non_empty(family, given, _component(first_repeat, 1, separators=separators))
 
 
 def _first_non_empty(*values: str | None) -> str | None:
@@ -384,3 +471,44 @@ def _select_configured_candidate(
         if value:
             return value
     return None
+
+
+def _hl7_unescape(value: str, *, separators: HL7Separators) -> str:
+    if not value or not separators.escape:
+        return value
+
+    escape_char = re.escape(separators.escape)
+    pattern = re.compile(rf"{escape_char}(.*?){escape_char}")
+
+    def replace(match: re.Match[str]) -> str:
+        token = match.group(1)
+        token_upper = token.upper()
+
+        if token_upper == "F":
+            return separators.field
+        if token_upper == "S":
+            return separators.component
+        if token_upper == "R":
+            return separators.repetition
+        if token_upper == "T":
+            return separators.subcomponent
+        if token_upper == "E":
+            return separators.escape
+        if token_upper in {"H", "N", ".FI", ".NF"}:
+            return ""
+        if token_upper in {".BR", ".SP"}:
+            return "\n"
+        if token_upper.startswith("X") and len(token) > 1:
+            hex_value = token[1:]
+            try:
+                raw_bytes = bytes.fromhex(hex_value)
+            except ValueError:
+                return match.group(0)
+            for encoding in ("utf-8", "latin-1"):
+                try:
+                    return raw_bytes.decode(encoding)
+                except UnicodeDecodeError:
+                    continue
+        return match.group(0)
+
+    return pattern.sub(replace, value)

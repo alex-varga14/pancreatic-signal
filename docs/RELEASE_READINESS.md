@@ -26,10 +26,13 @@ Do not tag a release that blurs those boundaries.
 
 - `make validate-strict` passes in the release environment
 - GitHub Actions PR validation is green for the release branch or merge commit when applicable
+- Hosted GitHub Actions pilot smoke is green for the release branch or release candidate when applicable
+- if a hosted smoke workflow was only added recently, its first GitHub-hosted run is either green or explicitly called out as pending
+- the handoff and deployment docs accurately distinguish hosted base plus report-path and structured adapter site-rejection smoke coverage from the broader manual structured-failure and visibility matrix
 - latest API, web, and evaluation results are captured in the release notes or handoff
 - relevant pilot smoke targets have been rerun recently enough to be credible for the release
 - successful and failed import-run shared-visibility expectations, structured adapter site-scope rejection paths, and structured adapter audit-visibility denial paths remain covered by the current smoke matrix
-- any validation that remains intentionally manual, including live overlay smokes, is called out explicitly
+- any validation that remains intentionally manual, including the broader failure-path and visibility-specific overlay smokes, is called out explicitly
 - any skipped smoke paths are explicitly documented
 
 ## Documentation Readiness

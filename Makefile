@@ -38,6 +38,30 @@ validate-strict:
 benchmark-demo:
 	$(PYTHON) scripts/write_demo_benchmark.py
 
+refresh-demo-proof:
+	$(PYTHON) scripts/write_demo_benchmark.py --out-dir docs/examples --basename demo-benchmark-current
+
+benchmark-external:
+	@test -n "$(LABELS)" || (echo "Usage: make benchmark-external LABELS=path/to/labels.jsonl PREDICTIONS=path/to/predictions.jsonl" && exit 2)
+	@test -n "$(PREDICTIONS)" || (echo "Usage: make benchmark-external LABELS=path/to/labels.jsonl PREDICTIONS=path/to/predictions.jsonl" && exit 2)
+	$(PYTHON) scripts/run_external_eval.py \
+		--labels "$(LABELS)" \
+		--predictions "$(PREDICTIONS)" \
+		--threshold "$(or $(THRESHOLD),0.2)" \
+		--top-k "$(or $(TOP_K),25)" \
+		$(if $(OUT_DIR),--out-dir "$(OUT_DIR)",) \
+		$(if $(BASENAME),--basename "$(BASENAME)",) \
+		$(if $(DATASET_NAME),--dataset-name "$(DATASET_NAME)",) \
+		$(if $(DATASET_SPLIT),--dataset-split "$(DATASET_SPLIT)",) \
+		$(if $(PROJECT_NAME),--project-name "$(PROJECT_NAME)",) \
+		$(if $(REPOSITORY_URL),--repository-url "$(REPOSITORY_URL)",) \
+		$(if $(COMMIT_SHA),--commit-sha "$(COMMIT_SHA)",) \
+		$(if $(NOTES),--notes "$(NOTES)",)
+
+validate-benchmark-submission:
+	@test -n "$(SUBMISSION)" || (echo "Usage: make validate-benchmark-submission SUBMISSION=path/to/submission.json" && exit 2)
+	$(PYTHON) scripts/validate_benchmark_submission.py "$(SUBMISSION)"
+
 smoke-proxy-auth:
 	$(PYTHON) scripts/smoke_proxy_auth.py \
 		--base-url "$(or $(SMOKE_BASE_URL),http://localhost:8000)" \

@@ -113,6 +113,8 @@ make pilot-proxy-demo-smoke
 
 The base smoke target waits for API and web readiness, resolves `/api/v1/auth/me`, verifies `/imports` renders successfully, imports the bundled demo reports through `POST /api/v1/imports/reports`, verifies the persisted audit record at `GET /api/v1/imports/runs/{run_id}`, fetches the visible case queue, and confirms a reviewer-action round-trip using the fixed navigator identity.
 
+Hosted smoke automation is now available in [`.github/workflows/pilot-smoke.yml`](../.github/workflows/pilot-smoke.yml). That workflow reuses `make pilot-proxy-demo-smoke`, `make pilot-proxy-demo-site-rejection-smoke`, `make pilot-proxy-demo-adapter-site-rejection-smoke`, `make pilot-header-demo-smoke`, `make pilot-header-demo-site-rejection-smoke`, and `make pilot-header-demo-adapter-site-rejection-smoke` on manual dispatch and a weekly schedule. It is intentionally narrower than the full smoke matrix below: base success-path plus report-path and structured adapter site-rejection overlay checks are hosted, while the broader shared-visibility, audit-denial, and non-site structured failure targets remain manual operator checks.
+
 Adapter-specific live smoke targets are also available in the proxy demo:
 
 ```bash

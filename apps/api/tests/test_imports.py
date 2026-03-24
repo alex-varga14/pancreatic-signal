@@ -1,3 +1,5 @@
+import base64
+
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
@@ -303,6 +305,74 @@ def test_import_fhir_diagnostic_report_supports_reference_identifier_preference_
     assert case_detail["import_metadata"]["encounter_identifier"] == "enc-config"
 
 
+def test_import_fhir_diagnostic_report_supports_inline_reference_identifiers() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = {
+        "resourceType": "DiagnosticReport",
+        "id": "dr-inline-reference-1",
+        "effectiveDateTime": "2026-03-19T11:50:00Z",
+        "subject": {"identifier": {"value": "MRN-INLINE-1"}},
+        "encounter": {"identifier": {"value": "ENC-INLINE-1"}},
+        "basedOn": [
+            {
+                "identifier": {
+                    "type": {"text": "Accession Number"},
+                    "value": "ACC-INLINE-1",
+                }
+            }
+        ],
+        "performer": [{"display": "Inline Hospital"}],
+        "conclusion": "Suspicious for pancreatic neoplasm. Recommend EUS.",
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-inline-reference-1").json()
+    assert case_detail["site"] == "Inline Hospital"
+    assert case_detail["import_metadata"]["patient_identifier"] == "MRN-INLINE-1"
+    assert case_detail["import_metadata"]["encounter_identifier"] == "ENC-INLINE-1"
+    assert case_detail["import_metadata"]["accession_number"] == "ACC-INLINE-1"
+    assert case_detail["import_metadata"]["source_system"] == "Inline Hospital"
+
+
+def test_import_fhir_diagnostic_report_supports_inline_reference_identifier_preference_override(
+    monkeypatch,
+) -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    monkeypatch.setattr(
+        settings,
+        "fhir_reference_identifier_source_order",
+        "reference_tail,reference_identifier,resolved_identifier,resolved_id",
+    )
+
+    payload = {
+        "resourceType": "DiagnosticReport",
+        "id": "dr-inline-config-1",
+        "effectiveDateTime": "2026-03-19T11:55:00Z",
+        "subject": {
+            "reference": "Patient/patient-inline-tail",
+            "identifier": {"value": "MRN-INLINE-CONFIG"},
+        },
+        "encounter": {
+            "reference": "Encounter/encounter-inline-tail",
+            "identifier": {"value": "ENC-INLINE-CONFIG"},
+        },
+        "performer": [{"display": "Config Inline Hospital"}],
+        "conclusion": "Suspicious for pancreatic neoplasm.",
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-inline-config-1").json()
+    assert case_detail["import_metadata"]["patient_identifier"] == "patient-inline-tail"
+    assert case_detail["import_metadata"]["encounter_identifier"] == "encounter-inline-tail"
+
+
 def test_import_fhir_diagnostic_report_respects_site_scope() -> None:
     CASE_STORE.reset()
     client = TestClient(app)
@@ -476,6 +546,194 @@ def test_import_hl7_oru_supports_patient_identifier_field_order_override(monkeyp
 
     case_detail = client.get("/api/v1/cases/R-HL7-CONFIG").json()
     assert case_detail["import_metadata"]["patient_identifier"] == "ALT-PAT"
+
+
+def test_import_hl7_oru_decodes_base64_ed_obx_text() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    encoded_impression = base64.b64encode(
+        b"Suspicious for pancreatic neoplasm. Recommend biopsy."
+    ).decode()
+
+    payload = "\r".join(
+        [
+            "MSH|^~\\&|RADSYS|Demo Hospital|PS|PS|20260319111700||ORU^R01|MSG-ED|P|2.5",
+            "PID|1||PAT-ED^^^MRN||Doe^John",
+            "OBR|1|PLAC-ED|R-HL7-ED|CT ABDOMEN^CT Abdomen|||20260319111700",
+            f"OBX|1|ED|IMPRESSION^Impression||^^^Base64^{encoded_impression}|",
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content=payload,
+        headers={"Content-Type": "text/plain"},
+    )
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/R-HL7-ED").json()
+    assert case_detail["score"] >= 0.3
+    assert "Suspicious for pancreatic neoplasm." in case_detail["report_text"]
+    assert "Recommend biopsy." in case_detail["report_text"]
+
+
+def test_import_hl7_oru_normalizes_repeated_obx_values() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = "\r".join(
+        [
+            "MSH|^~\\&|RADSYS|Demo Hospital|PS|PS|20260319111800||ORU^R01|MSG-REPEAT|P|2.5",
+            "PID|1||PAT-REPEAT^^^MRN||Doe^John",
+            "OBR|1|PLAC-REPEAT|R-HL7-REPEAT|CT ABDOMEN^CT Abdomen|||20260319111800",
+            (
+                "OBX|1|TX|FINDINGS^Findings||Abrupt cutoff of the pancreatic duct~"
+                "with ill-defined pancreatic head lesion.|"
+            ),
+            (
+                "OBX|2|TX|IMPRESSION^Impression||Suspicious for pancreatic neoplasm.~"
+                "Recommend EUS for further evaluation.|"
+            ),
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content=payload,
+        headers={"Content-Type": "text/plain"},
+    )
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/R-HL7-REPEAT").json()
+    assert case_detail["score"] >= 0.3
+    assert "Abrupt cutoff of the pancreatic duct" in case_detail["report_text"]
+    assert "ill-defined pancreatic head lesion." in case_detail["report_text"]
+    assert "Recommend EUS for further evaluation." in case_detail["report_text"]
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
+def test_import_hl7_oru_respects_custom_msh2_delimiters() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    encoded_impression = base64.b64encode(
+        b"Suspicious for pancreatic neoplasm. Recommend biopsy."
+    ).decode()
+
+    pv1_fields = ["PV1", "1", "O", "RAD!!!Demo Hospital", *[""] * 15, "ENC-DELIM"]
+    obr_fields = [
+        "OBR",
+        "1",
+        "PLAC-DELIM",
+        "R-HL7-DELIM",
+        "CT ABDOMEN!CT Abdomen",
+        "",
+        "",
+        "20260319111900",
+        *[""] * 8,
+        "PROV-DELIM!Patel!Jamie",
+        "",
+        "ACC-HL7-DELIM",
+    ]
+    payload = "\r".join(
+        [
+            "MSH|!%?@|RADSYS|Demo Hospital|PS|PS|20260319111900||ORU!R01|MSG-DELIM|P|2.5",
+            "PID|1||PAT-DELIM!!!MRN||Doe!John",
+            "|".join(pv1_fields),
+            "|".join(obr_fields),
+            (
+                "OBX|1|TX|FINDINGS!Findings||Abrupt cutoff of the pancreatic duct%"
+                "with upstream dilation.|"
+            ),
+            f"OBX|2|ED|IMPRESSION!Impression||!!!Base64!{encoded_impression}|",
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content=payload,
+        headers={"Content-Type": "text/plain"},
+    )
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/R-HL7-DELIM").json()
+    assert case_detail["site"] == "Demo Hospital"
+    assert case_detail["modality"] == "CT"
+    assert case_detail["score"] >= 0.3
+    assert case_detail["import_metadata"]["patient_identifier"] == "PAT-DELIM"
+    assert case_detail["import_metadata"]["encounter_identifier"] == "ENC-DELIM"
+    assert case_detail["import_metadata"]["accession_number"] == "ACC-HL7-DELIM"
+    assert case_detail["import_metadata"]["ordering_provider"] == "Jamie Patel"
+    assert case_detail["import_metadata"]["source_system"] == "RADSYS"
+    assert "Abrupt cutoff of the pancreatic duct" in case_detail["report_text"]
+    assert "with upstream dilation." in case_detail["report_text"]
+    assert "Suspicious for pancreatic neoplasm." in case_detail["report_text"]
+    assert "Recommend biopsy." in case_detail["report_text"]
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
+def test_import_hl7_oru_normalizes_default_escape_sequences() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = "\r".join(
+        [
+            "MSH|^~\\&|RADSYS|Demo Hospital|PS|PS|20260319111930||ORU^R01|MSG-ESCAPE|P|2.5",
+            "PID|1||PAT-ESCAPE^^^MRN||Doe^John",
+            "OBR|1|PLAC-ESCAPE|R-HL7-ESCAPE|CT ABDOMEN^CT Abdomen|||20260319111930|||||||||PROV-ESCAPE^O\\S\\Neil^Jamie",
+            (
+                "OBX|1|TX|FINDINGS^Findings||\\H\\Abrupt cutoff of the pancreatic duct\\N\\"
+                "\\.br\\with upstream dilation.|"
+            ),
+            "NTE|1||Recommend EUS\\.br\\Consider MRI follow-up.|",
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content=payload,
+        headers={"Content-Type": "text/plain"},
+    )
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/R-HL7-ESCAPE").json()
+    assert case_detail["score"] >= 0.3
+    assert "Abrupt cutoff of the pancreatic duct with upstream dilation." in case_detail["report_text"]
+    assert "Recommend EUS Consider MRI follow-up." in case_detail["report_text"]
+    assert case_detail["import_metadata"]["ordering_provider"] == "Jamie O^Neil"
+    assert "\\.br\\" not in case_detail["report_text"]
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
+def test_import_hl7_oru_normalizes_custom_escape_sequences() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = "\r".join(
+        [
+            "MSH|!%?@|RADSYS|Demo Hospital|PS|PS|20260319111945||ORU!R01|MSG-ESCAPE-CUSTOM|P|2.5",
+            "PID|1||PAT-ESCAPE-CUSTOM!!!MRN||Doe!John",
+            "OBR|1|PLAC-ESCAPE-CUSTOM|R-HL7-ESCAPE-CUSTOM|CT ABDOMEN!CT Abdomen|||20260319111945|||||||||PROV-ESCAPE-CUSTOM!Mc?S?Kay!Jamie",
+            (
+                "OBX|1|TX|IMPRESSION!Impression||?.br??H?Suspicious for pancreatic neoplasm.?N?"
+                " Recommend biopsy.?X0A?Urgent review.|"
+            ),
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content=payload,
+        headers={"Content-Type": "text/plain"},
+    )
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/R-HL7-ESCAPE-CUSTOM").json()
+    assert case_detail["score"] >= 0.3
+    assert "Suspicious for pancreatic neoplasm." in case_detail["report_text"]
+    assert "Recommend biopsy." in case_detail["report_text"]
+    assert "Urgent review." in case_detail["report_text"]
+    assert case_detail["import_metadata"]["ordering_provider"] == "Jamie Mc!Kay"
+    assert "?.br?" not in case_detail["report_text"]
 
 
 def test_import_hl7_oru_respects_site_scope() -> None:

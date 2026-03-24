@@ -65,4 +65,5 @@ The highest-value collaboration areas after the current pilot hardening work are
 - do not normalize PHI in examples or tests
 - prefer explainable behavior over opaque accuracy claims
 - publish benchmark methods and error buckets, not inflated marketing language
+- make external comparison packages easy to validate and hard to misrepresent
 - treat docs, onboarding, and contributor clarity as product features

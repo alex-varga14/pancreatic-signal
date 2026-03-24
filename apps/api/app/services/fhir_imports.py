@@ -21,7 +21,12 @@ _MODALITY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("EUS", re.compile(r"\b(eus|endoscopic ultrasound)\b", flags=re.IGNORECASE)),
     ("XR", re.compile(r"\b(x-?ray|radiograph)\b", flags=re.IGNORECASE)),
 )
-_FHIR_REFERENCE_IDENTIFIER_SOURCE_ORDER = ("resolved_identifier", "resolved_id", "reference_tail")
+_FHIR_REFERENCE_IDENTIFIER_SOURCE_ORDER = (
+    "resolved_identifier",
+    "reference_identifier",
+    "resolved_id",
+    "reference_tail",
+)
 _FHIR_SOURCE_SYSTEM_SOURCE_ORDER = (
     "meta_source",
     "performer",
@@ -31,8 +36,10 @@ _FHIR_SOURCE_SYSTEM_SOURCE_ORDER = (
 _FHIR_ACCESSION_SOURCE_ORDER = (
     "report_identifier_typed",
     "based_on_identifier_typed",
+    "based_on_reference_identifier_typed",
     "report_identifier",
     "based_on_identifier",
+    "based_on_reference_identifier",
 )
 
 
@@ -299,6 +306,7 @@ def _extract_reference_identifier(
             if resource is not None
             else None
         ),
+        "reference_identifier": _extract_identifier_value(value.get("identifier")),
         "resolved_id": _string_value(resource.get("id")) if resource is not None else None,
         "reference_tail": reference_tail,
     }
@@ -310,6 +318,7 @@ def _extract_reference_identifier(
 
 
 def _extract_accession_number(resource: dict[str, Any], *, resource_index: dict[str, dict[str, Any]]) -> str | None:
+    based_on_references = _based_on_reference_values(resource)
     based_on_resources = _based_on_resources(resource, resource_index=resource_index)
     candidates = {
         "report_identifier_typed": _extract_typed_identifier_value(
@@ -322,9 +331,18 @@ def _extract_accession_number(resource: dict[str, Any], *, resource_index: dict[
                 for item in based_on_resources
             ]
         ),
+        "based_on_reference_identifier_typed": _first_non_empty(
+            *[
+                _extract_typed_identifier_value(item.get("identifier"), patterns=("accession", "acsn"))
+                for item in based_on_references
+            ]
+        ),
         "report_identifier": _extract_identifier_value(resource.get("identifier")),
         "based_on_identifier": _first_non_empty(
             *[_extract_identifier_value(item.get("identifier")) for item in based_on_resources]
+        ),
+        "based_on_reference_identifier": _first_non_empty(
+            *[_extract_identifier_value(item.get("identifier")) for item in based_on_references]
         ),
     }
     return _select_configured_candidate(
@@ -389,15 +407,20 @@ def _based_on_resources(
     *,
     resource_index: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    items = resource.get("basedOn")
-    if not isinstance(items, list):
-        return []
+    items = _based_on_reference_values(resource)
     resolved: list[dict[str, Any]] = []
     for item in items:
         service_request = _resolve_reference_resource(item, resource_index=resource_index)
         if service_request is not None:
             resolved.append(service_request)
     return resolved
+
+
+def _based_on_reference_values(resource: dict[str, Any]) -> list[dict[str, Any]]:
+    items = resource.get("basedOn")
+    if not isinstance(items, list):
+        return []
+    return [item for item in items if isinstance(item, dict)]
 
 
 def _reference_value_display(
@@ -477,24 +500,16 @@ def _resolve_reference_resource(
 
 
 def _extract_identifier_value(value: object) -> str | None:
-    if isinstance(value, list):
-        for item in value:
-            if not isinstance(item, dict):
-                continue
-            identifier_value = _string_value(item.get("value"))
-            if identifier_value:
-                return identifier_value
+    for item in _identifier_items(value):
+        identifier_value = _string_value(item.get("value"))
+        if identifier_value:
+            return identifier_value
     return None
 
 
 def _extract_typed_identifier_value(value: object, *, patterns: tuple[str, ...]) -> str | None:
-    if not isinstance(value, list):
-        return None
-
     normalized_patterns = tuple(item.lower() for item in patterns)
-    for item in value:
-        if not isinstance(item, dict):
-            continue
+    for item in _identifier_items(value):
         identifier_value = _string_value(item.get("value"))
         if not identifier_value:
             continue
@@ -502,6 +517,14 @@ def _extract_typed_identifier_value(value: object, *, patterns: tuple[str, ...])
         if any(pattern in identifier_type for pattern in normalized_patterns):
             return identifier_value
     return None
+
+
+def _identifier_items(value: object) -> list[dict[str, Any]]:
+    if isinstance(value, dict):
+        return [value]
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, dict)]
+    return []
 
 
 def _identifier_type_text(value: object) -> str:

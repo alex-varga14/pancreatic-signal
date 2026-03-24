@@ -11,7 +11,11 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - Repo-level contributor, security, and community docs in [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - A clearer public project narrative in [README.md](README.md) and [docs/OPEN_SOURCE_STRATEGY.md](docs/OPEN_SOURCE_STRATEGY.md)
 - A release-readiness checklist in [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md)
+- An adoption-facing quickstart in [docs/QUICKSTART.md](docs/QUICKSTART.md) plus a checked-in published benchmark snapshot in [`docs/examples/demo-benchmark-current.md`](docs/examples/demo-benchmark-current.md)
+- A public benchmark pack with [docs/LABELING_GUIDE.md](docs/LABELING_GUIDE.md), [docs/BENCHMARK_SUBMISSIONS.md](docs/BENCHMARK_SUBMISSIONS.md), validated submission templates, and a benchmark submission validator
+- A comparable external evaluation bundle writer in [`scripts/run_external_eval.py`](scripts/run_external_eval.py), a `make benchmark-external` entrypoint, and a checked-in prediction template for outside collaborators
 - GitHub Actions pull request and `main` validation via [`.github/workflows/validate.yml`](.github/workflows/validate.yml) using `make validate-strict`
+- A hosted pilot smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) that reuses the base proxy and header overlay smoke targets plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule
 - Live failed-run shared-visibility smoke coverage for a persisted non-site `validation_error` import run in the proxy and header pilot overlays
 - Live structured adapter failed-run shared-visibility smoke coverage for persisted non-site FHIR `unsupported_payload` and HL7 `parse_error` runs in the proxy and header pilot overlays
 - Live structured adapter site-scope rejection smoke coverage for persisted FHIR and HL7 `site_scope_rejection` runs in the proxy and header pilot overlays
@@ -19,14 +23,26 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 
 ### Changed
 
+- The Next.js home and about surfaces now present Pancreatic Signal as a benchmarkable product entrypoint instead of a bare scaffold shell, and the web app now exposes a dedicated `/proof` page backed by the checked-in benchmark snapshot
+- Benchmark-oriented contribution paths now have a documented label schema, stable error-bucket rubric, and a machine-validated submission format for outside collaborators
+- Outside collaborators can now turn label and prediction JSONL files into JSON, Markdown, and submission-draft artifacts without hand-assembling benchmark metrics
+- FHIR `DiagnosticReport` imports now preserve patient, encounter, and accession metadata from inline `Reference.identifier` values when upstream bundles omit fully resolved resources
+- HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component and repetition separators, and normalize common HL7 escape sequences before triage
 - Top-level documentation now describes the implemented research platform instead of the earlier scaffold-era state
 - Deployment and API docs now call out cross-actor visibility for non-site failed import runs with empty `imported_sites`
 - `make validate-strict` now includes web lint alongside Python checks, API tests, evaluation checks, and the web build so local and hosted validation stay aligned
+- The validation and deployment docs now distinguish between hosted base plus report-path and structured adapter site-rejection automation and the broader manual overlay smoke matrix
 
 ### Validated
 
-- `make validate-strict` passed on 2026-03-21 with `9 pass, 0 warn, 0 fail`
-- API validation reported `101 passed`
+- `make validate-strict` passed on 2026-03-24 with `9 pass, 0 warn, 0 fail`
+- API validation reported `117 passed`
+- `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl OUT_DIR=/tmp/pancreatic-signal-external-eval BASENAME=template-external TOP_K=2` wrote JSON, Markdown, and submission-draft artifacts on 2026-03-24
+- `make validate-benchmark-submission SUBMISSION=/tmp/pancreatic-signal-external-eval/template-external-submission.json` passed on 2026-03-24
+- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py apps/api/tests/test_import_runs.py -q` passed on 2026-03-24 with `40 passed`, including inline `Reference.identifier` FHIR coverage plus custom `MSH-2` HL7 delimiter, escape-sequence, and audit-visibility coverage
+- Local reruns of `make pilot-proxy-demo-smoke` and `make pilot-header-demo-smoke` passed on 2026-03-20 local time with persisted run IDs `40` and `41`, matching the checked-in hosted workflow targets
+- Local reruns of `make pilot-proxy-demo-site-rejection-smoke` and `make pilot-header-demo-site-rejection-smoke` passed on 2026-03-22 local time with persisted run IDs `42` and `43`, matching the newly hosted failure-path targets
+- Local reruns of `make pilot-proxy-demo-adapter-site-rejection-smoke` and `make pilot-header-demo-adapter-site-rejection-smoke` passed on 2026-03-22 local time with persisted run IDs `44`, `45`, `46`, and `47`, matching the newly hosted structured failure-path targets
 - Live structured adapter site-scope rejection and audit-visibility smoke runs passed for both trusted-proxy and header-auth overlays and are recorded in [docs/CODEX_HANDOFF.md](docs/CODEX_HANDOFF.md)
 
 ## 0.9.0-preview - 2026-03-20

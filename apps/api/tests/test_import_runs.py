@@ -212,6 +212,84 @@ def test_hl7_import_run_is_visible_to_other_scoped_actor() -> None:
     assert any(run["run_id"] == run_id for run in peer_runs)
 
 
+def test_hl7_custom_delimiter_import_run_is_visible_to_other_scoped_actor() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    owner_headers = _auth_headers("hl7-delimiter-owner", sites="Demo Hospital")
+
+    payload = "\r".join(
+        [
+            "MSH|!%?@|RADSYS|Demo Hospital|PS|PS|20260319100500||ORU!R01|MSG-SHARED-DELIM|P|2.5",
+            "PID|1||PAT-SHARED-DELIM!!!MRN||Doe!Jamie",
+            "PV1|1|O|RAD!!!Demo Hospital",
+            "OBR|1|PLAC-SHARED-DELIM|R-HL7-SHARED-DELIM|CT ABDOMEN!CT Abdomen|||20260319100500",
+            "OBX|1|TX|IMPRESSION!Impression||Suspicious for pancreatic neoplasm.%Recommend biopsy.|",
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content=payload,
+        headers={"Content-Type": "text/plain", **owner_headers},
+    )
+    assert response.status_code == 200
+    run_id = response.json()["run_id"]
+
+    peer_headers = _auth_headers("hl7-delimiter-peer", sites="Demo Hospital")
+    peer_detail_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=peer_headers)
+    assert peer_detail_response.status_code == 200
+    peer_detail = peer_detail_response.json()
+    assert peer_detail["run_id"] == run_id
+    assert peer_detail["actor_user_id"] == "hl7-delimiter-owner"
+    assert peer_detail["source_format"] == "hl7-oru"
+    assert peer_detail["status"] == "completed"
+    assert peer_detail["imported_sites"] == ["Demo Hospital"]
+
+    peer_runs_response = client.get("/api/v1/imports/runs", headers=peer_headers)
+    assert peer_runs_response.status_code == 200
+    peer_runs = peer_runs_response.json()
+    assert any(run["run_id"] == run_id for run in peer_runs)
+
+
+def test_hl7_escaped_content_import_run_is_visible_to_other_scoped_actor() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    owner_headers = _auth_headers("hl7-escape-owner", sites="Demo Hospital")
+
+    payload = "\r".join(
+        [
+            "MSH|!%?@|RADSYS|Demo Hospital|PS|PS|20260319100600||ORU!R01|MSG-SHARED-ESCAPE|P|2.5",
+            "PID|1||PAT-SHARED-ESCAPE!!!MRN||Doe!Jamie",
+            "PV1|1|O|RAD!!!Demo Hospital",
+            "OBR|1|PLAC-SHARED-ESCAPE|R-HL7-SHARED-ESCAPE|CT ABDOMEN!CT Abdomen|||20260319100600",
+            "OBX|1|TX|IMPRESSION!Impression||?.br??H?Suspicious for pancreatic neoplasm.?N? Recommend biopsy.|",
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content=payload,
+        headers={"Content-Type": "text/plain", **owner_headers},
+    )
+    assert response.status_code == 200
+    run_id = response.json()["run_id"]
+
+    peer_headers = _auth_headers("hl7-escape-peer", sites="Demo Hospital")
+    peer_detail_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=peer_headers)
+    assert peer_detail_response.status_code == 200
+    peer_detail = peer_detail_response.json()
+    assert peer_detail["run_id"] == run_id
+    assert peer_detail["actor_user_id"] == "hl7-escape-owner"
+    assert peer_detail["source_format"] == "hl7-oru"
+    assert peer_detail["status"] == "completed"
+    assert peer_detail["imported_sites"] == ["Demo Hospital"]
+
+    peer_runs_response = client.get("/api/v1/imports/runs", headers=peer_headers)
+    assert peer_runs_response.status_code == 200
+    peer_runs = peer_runs_response.json()
+    assert any(run["run_id"] == run_id for run in peer_runs)
+
+
 def test_import_run_records_validation_failure_bucket() -> None:
     CASE_STORE.reset()
     client = TestClient(app)
