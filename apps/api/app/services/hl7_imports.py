@@ -241,7 +241,11 @@ def _build_report_text(
         else:
             other.append(text)
 
-    note_texts = [_segment_field(nte, 3) for nte in nte_segments if _segment_field(nte, 3)]
+    note_texts = [
+        _hl7_unescape(_segment_field(nte, 3), separators=separators)
+        for nte in nte_segments
+        if _segment_field(nte, 3)
+    ]
     sections: list[str] = []
 
     findings_block = " ".join(item for item in [*findings, *other] if item)
@@ -282,7 +286,14 @@ def _obx_text(obx_segment: list[str], *, separators: HL7Separators) -> str:
             )
             if item
         )
-    return " ".join(item for item in _value_repeats(raw_value, separators=separators) if item)
+    return " ".join(
+        item
+        for item in (
+            _hl7_unescape(repeat, separators=separators)
+            for repeat in _value_repeats(raw_value, separators=separators)
+        )
+        if item
+    )
 
 
 def _ed_text(value: str, *, separators: HL7Separators) -> str:
@@ -296,13 +307,13 @@ def _ed_text(value: str, *, separators: HL7Separators) -> str:
         return ""
 
     if encoding in {"", "a"}:
-        return data
+        return _hl7_unescape(data, separators=separators)
     if encoding in {"base64", "b64"}:
         try:
-            return base64.b64decode(data, validate=False).decode("utf-8")
+            return _hl7_unescape(base64.b64decode(data, validate=False).decode("utf-8"), separators=separators)
         except (binascii.Error, UnicodeDecodeError):
             return ""
-    return data
+    return _hl7_unescape(data, separators=separators)
 
 
 def _value_repeats(value: str, separators: HL7Separators) -> list[str]:
@@ -409,7 +420,8 @@ def _component(value: str, position: int, *, separators: HL7Separators) -> str |
     parts = [item.strip() for item in value.split(separators.component)]
     index = position - 1
     if 0 <= index < len(parts):
-        return parts[index] or None
+        component_value = _hl7_unescape(parts[index], separators=separators)
+        return component_value or None
     return None
 
 
@@ -459,3 +471,44 @@ def _select_configured_candidate(
         if value:
             return value
     return None
+
+
+def _hl7_unescape(value: str, *, separators: HL7Separators) -> str:
+    if not value or not separators.escape:
+        return value
+
+    escape_char = re.escape(separators.escape)
+    pattern = re.compile(rf"{escape_char}(.*?){escape_char}")
+
+    def replace(match: re.Match[str]) -> str:
+        token = match.group(1)
+        token_upper = token.upper()
+
+        if token_upper == "F":
+            return separators.field
+        if token_upper == "S":
+            return separators.component
+        if token_upper == "R":
+            return separators.repetition
+        if token_upper == "T":
+            return separators.subcomponent
+        if token_upper == "E":
+            return separators.escape
+        if token_upper in {"H", "N", ".FI", ".NF"}:
+            return ""
+        if token_upper in {".BR", ".SP"}:
+            return "\n"
+        if token_upper.startswith("X") and len(token) > 1:
+            hex_value = token[1:]
+            try:
+                raw_bytes = bytes.fromhex(hex_value)
+            except ValueError:
+                return match.group(0)
+            for encoding in ("utf-8", "latin-1"):
+                try:
+                    return raw_bytes.decode(encoding)
+                except UnicodeDecodeError:
+                    continue
+        return match.group(0)
+
+    return pattern.sub(replace, value)
