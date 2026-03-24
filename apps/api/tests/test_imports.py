@@ -736,6 +736,60 @@ def test_import_hl7_oru_normalizes_custom_escape_sequences() -> None:
     assert "?.br?" not in case_detail["report_text"]
 
 
+def test_import_hl7_oru_extracts_subcomponent_metadata_with_custom_msh2() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    pv1_fields = [
+        "PV1",
+        "1",
+        "O",
+        "RAD!READ1!BED1!Demo Hospital@2.16.840.1@ISO",
+        *[""] * 15,
+        "ENC-SUBCOMP@VISIT@ISO",
+    ]
+    obr_fields = [
+        "OBR",
+        "1",
+        "PLAC-SUBCOMP",
+        "R-HL7-SUBCOMP",
+        "CT ABDOMEN!CT Abdomen",
+        "",
+        "",
+        "20260319112000",
+        *[""] * 8,
+        "12345@NPI@ISO!Patel@MD!Jamie@Ann",
+        "",
+        "ACC-SUBCOMP@PLACER@ISO",
+    ]
+    payload = "\r".join(
+        [
+            "MSH|!%?@|RADSYS!1.2.3.4!ISO|North Hub|PS|PS|20260319112000||ORU!R01|MSG-SUBCOMP|P|2.5",
+            "PID|1||PAT-SUBCOMP!!!MRN@2.16.840.1@ISO||Doe!John",
+            "|".join(pv1_fields),
+            "|".join(obr_fields),
+            "OBX|1|TX|FINDINGS!Findings||Abrupt cutoff of the pancreatic duct.|",
+            "OBX|2|TX|IMPRESSION!Impression||Suspicious for pancreatic neoplasm.|",
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content=payload,
+        headers={"Content-Type": "text/plain"},
+    )
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/R-HL7-SUBCOMP").json()
+    assert case_detail["site"] == "Demo Hospital"
+    assert case_detail["score"] >= 0.3
+    assert case_detail["import_metadata"]["patient_identifier"] == "PAT-SUBCOMP"
+    assert case_detail["import_metadata"]["encounter_identifier"] == "ENC-SUBCOMP"
+    assert case_detail["import_metadata"]["accession_number"] == "ACC-SUBCOMP"
+    assert case_detail["import_metadata"]["ordering_provider"] == "Jamie Patel"
+    assert case_detail["import_metadata"]["source_system"] == "RADSYS"
+
+
 def test_import_hl7_oru_respects_site_scope() -> None:
     CASE_STORE.reset()
     client = TestClient(app)

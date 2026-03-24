@@ -27,7 +27,7 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - Benchmark-oriented contribution paths now have a documented label schema, stable error-bucket rubric, and a machine-validated submission format for outside collaborators
 - Outside collaborators can now turn label and prediction JSONL files into JSON, Markdown, and submission-draft artifacts without hand-assembling benchmark metrics
 - FHIR `DiagnosticReport` imports now preserve patient, encounter, and accession metadata from inline `Reference.identifier` values when upstream bundles omit fully resolved resources
-- HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component and repetition separators, and normalize common HL7 escape sequences before triage
+- HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component and repetition separators, normalize common HL7 escape sequences, and clean composite metadata fields with subcomponent-aware extraction before triage
 - Top-level documentation now describes the implemented research platform instead of the earlier scaffold-era state
 - Deployment and API docs now call out cross-actor visibility for non-site failed import runs with empty `imported_sites`
 - `make validate-strict` now includes web lint alongside Python checks, API tests, evaluation checks, and the web build so local and hosted validation stay aligned
@@ -36,10 +36,10 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 ### Validated
 
 - `make validate-strict` passed on 2026-03-24 with `9 pass, 0 warn, 0 fail`
-- API validation reported `117 passed`
+- API validation reported `119 passed`
 - `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl OUT_DIR=/tmp/pancreatic-signal-external-eval BASENAME=template-external TOP_K=2` wrote JSON, Markdown, and submission-draft artifacts on 2026-03-24
 - `make validate-benchmark-submission SUBMISSION=/tmp/pancreatic-signal-external-eval/template-external-submission.json` passed on 2026-03-24
-- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py apps/api/tests/test_import_runs.py -q` passed on 2026-03-24 with `40 passed`, including inline `Reference.identifier` FHIR coverage plus custom `MSH-2` HL7 delimiter, escape-sequence, and audit-visibility coverage
+- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py apps/api/tests/test_import_runs.py -q` passed on 2026-03-24 with `42 passed`, including inline `Reference.identifier` FHIR coverage plus custom `MSH-2` HL7 delimiter, escape-sequence, subcomponent, and audit-visibility coverage
 - Local reruns of `make pilot-proxy-demo-smoke` and `make pilot-header-demo-smoke` passed on 2026-03-20 local time with persisted run IDs `40` and `41`, matching the checked-in hosted workflow targets
 - Local reruns of `make pilot-proxy-demo-site-rejection-smoke` and `make pilot-header-demo-site-rejection-smoke` passed on 2026-03-22 local time with persisted run IDs `42` and `43`, matching the newly hosted failure-path targets
 - Local reruns of `make pilot-proxy-demo-adapter-site-rejection-smoke` and `make pilot-header-demo-adapter-site-rejection-smoke` passed on 2026-03-22 local time with persisted run IDs `44`, `45`, `46`, and `47`, matching the newly hosted structured failure-path targets

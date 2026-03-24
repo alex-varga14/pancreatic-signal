@@ -14,7 +14,7 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 - The repo also now includes a public benchmark pack: `docs/LABELING_GUIDE.md`, `docs/BENCHMARK_SUBMISSIONS.md`, checked-in label and submission templates, a Pydantic benchmark submission schema, and a validator entrypoint through `make validate-benchmark-submission SUBMISSION=...`.
 - The repo now also includes a comparable external evaluation bundle writer through `scripts/run_external_eval.py` plus `make benchmark-external`, producing JSON, Markdown, and validator-compatible submission-draft artifacts from label and prediction JSONL inputs.
 - FHIR `DiagnosticReport` imports now preserve patient, encounter, and accession metadata from inline `Reference.identifier` values when upstream payloads omit fully resolved `Patient`, `Encounter`, or `ServiceRequest` resources.
-- HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component plus repetition separators, and normalize common HL7 escape sequences before the existing report-text assembly flows into triage and audit persistence.
+- HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component plus repetition separators, normalize common HL7 escape sequences, and clean composite metadata fields with subcomponent-aware extraction before the existing report-text assembly flows into triage and audit persistence.
 - Top-level repo docs now reflect the implemented platform instead of the earlier scaffold framing, and the repository includes checked-in contributor, security, and code-of-conduct docs appropriate for a near-1.0 open-source handoff.
 - The repo still includes checked-in GitHub Actions workflows for strict validation plus hosted base, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage, but that hosted/manual smoke split is now supporting operational context rather than the primary roadmap driver.
 - The highest-value remaining work is not bootstrapping. It is deeper FHIR and HL7 interoperability coverage first, then broader pilot operability, without breaking explainability.
@@ -25,7 +25,7 @@ Confirmed on 2026-03-24:
 
 - `make validate-strict` passes
 - Summary: `9 pass, 0 warn, 0 fail`
-- API tests: `117 passed`
+- API tests: `119 passed`
 - Web checks: `npm run lint` and `npm run build` now both pass through `make validate-strict`
 - Demo evaluation compare and sweep both run through the validation script
 - `make refresh-demo-proof` succeeded and refreshed the checked-in benchmark snapshot that powers `/proof`
@@ -33,7 +33,7 @@ Confirmed on 2026-03-24:
 - `cd apps/api && .venv/bin/python -m pytest tests/test_benchmark_submission.py -q` passed
 - `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl OUT_DIR=/tmp/pancreatic-signal-external-eval BASENAME=template-external TOP_K=2` passed and wrote JSON, Markdown, and submission-draft artifacts
 - `make validate-benchmark-submission SUBMISSION=/tmp/pancreatic-signal-external-eval/template-external-submission.json` passed against the generated draft
-- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py apps/api/tests/test_import_runs.py -q` passed with `40 passed`, including inline `Reference.identifier` extraction coverage plus custom `MSH-2` delimiter, escape-sequence, and audit-visibility coverage
+- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py apps/api/tests/test_import_runs.py -q` passed with `42 passed`, including inline `Reference.identifier` extraction coverage plus custom `MSH-2` delimiter, escape-sequence, subcomponent, and audit-visibility coverage
 - Targeted import / de-identification / export coverage also passes for the new import metadata surface
 - Import-run audit coverage now passes for success, update counts, validation failures, unsupported payloads, site-scope rejection, and audit-route access control
 - Config-override coverage now passes for one FHIR field-preference override and one HL7 field-preference override while preserving defaults
@@ -312,22 +312,22 @@ Additional note from this slice:
 
 ## Recommended Next Slice
 
-Proceed with HL7 subcomponent-aware metadata extraction from composite fields.
+Proceed with FHIR `DiagnosticReport.presentedForm` attachment decoding and narrative extraction hardening.
 
 ### Why this is next
 
-- The current HL7 parser now respects `MSH-2` separators and normalizes common escape sequences, but it still treats subcomponents as opaque strings inside composite identifiers and location/provider fields.
-- That is a real interoperability risk because many interface engines place assigning authority, facility, and provider context into subcomponents even when the top-level component layout is otherwise valid.
-- Making the parser subcomponent-aware would strengthen patient, encounter, site, and provider extraction across the same explainable import path without introducing a new parser family.
+- The current FHIR adapter handles `conclusion`, referenced `Observation` resources, and the existing metadata surfaces well, but many real `DiagnosticReport` feeds still carry the narrative report only in `presentedForm` attachments.
+- That is a real interoperability risk because outside collaborators may hand the adapter a valid report bundle that contains the clinically relevant narrative as base64 attachment data instead of plain `conclusion` text.
+- Hardening `presentedForm` decoding would strengthen narrative extraction across the same explainable import path without introducing a new adapter family.
 - The hosted/manual smoke split is already a useful operational guardrail, so the next agent can keep focusing on adapter robustness rather than expanding benchmark packaging again.
 
 ### Target outcome
 
-Add one meaningful HL7 subcomponent-aware slice that:
-- reads relevant nested values using the `MSH-2` subcomponent separator instead of treating composite components as opaque strings
-- preserves import metadata extraction, audit visibility, and site-scope behavior across subcomponent-heavy messages
+Add one meaningful FHIR attachment-decoding slice that:
+- extracts report narrative from supported `presentedForm` attachments inside the existing `DiagnosticReport` import path
+- preserves import metadata extraction, audit visibility, and site-scope behavior across attachment-backed reports
 - documents any parser assumptions or fixture expectations introduced by the change
-- does not introduce a new HL7 parser, a second persistence path, or opaque inference in this slice
+- does not introduce a new adapter family, a second persistence path, or opaque inference in this slice
 
 ### Suggested implementation shape
 
@@ -338,10 +338,10 @@ Add one meaningful HL7 subcomponent-aware slice that:
    - `apps/api/tests/test_import_runs.py`
    - the current smoke helper and pilot overlay targets only if escape normalization changes live behavior materially
 
-3. Focus on additive subcomponent-aware parsing:
-   - patient and encounter identifier extraction from composite identifier fields
-   - site or location extraction where HD or PL values carry useful subcomponents
-   - provider display cleanup that still preserves the current finding versus impression section assembly and audit semantics
+3. Focus on additive FHIR narrative extraction:
+   - supported text attachment decoding from `presentedForm`
+   - safe content-type handling and fallback ordering alongside `conclusion` and referenced `Observation` text
+   - fixture and docs coverage that keeps the current reviewer and audit semantics understandable
 
 4. Preserve the current operational baseline:
    - do not regress the current pilot smoke matrix
@@ -352,7 +352,7 @@ Add one meaningful HL7 subcomponent-aware slice that:
 
 ### Acceptance criteria
 
-- At least one meaningful subcomponent-heavy HL7 ORU fixture is covered end to end in tests.
+- At least one meaningful attachment-backed FHIR `DiagnosticReport` fixture is covered end to end in tests.
 - The adapter behavior remains explainable and preserves import metadata and audit expectations.
 - Contributor docs call out any new parser expectations introduced by the change.
 - The current benchmark proof and external evaluation bundle path remain intact.
@@ -380,4 +380,4 @@ make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission
 
 ## Handoff Summary
 
-This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base plus report-path and structured adapter site-rejection smoke automation, a sharper public landing experience, a checked-in benchmark proof surface, a machine-validated public benchmark submission pack, a reproducible external evaluation bundle writer, FHIR inline `Reference.identifier` fallback coverage, and HL7 `ED`, repeated-`OBX-5`, custom-`MSH-2` delimiter, plus escape-sequence support are complete. The next agent should focus on HL7 subcomponent-aware metadata extraction while preserving the new benchmark surfaces and import audit behavior, rather than spending the next slice on more benchmark packaging or hosted smoke expansion.
+This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base plus report-path and structured adapter site-rejection smoke automation, a sharper public landing experience, a checked-in benchmark proof surface, a machine-validated public benchmark submission pack, a reproducible external evaluation bundle writer, FHIR inline `Reference.identifier` fallback coverage, and HL7 `ED`, repeated-`OBX-5`, custom-`MSH-2` delimiter, escape-sequence, plus subcomponent-aware metadata support are complete. The next agent should focus on FHIR `presentedForm` attachment decoding while preserving the new benchmark surfaces and import audit behavior, rather than spending the next slice on more benchmark packaging or hosted smoke expansion.

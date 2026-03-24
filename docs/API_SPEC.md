@@ -203,7 +203,7 @@ Behavior:
 - Supports one ORU message with one or more `OBR` groups, or multiple ORU messages concatenated in the same payload.
 - Maps each `OBR` group to one triaged case using `OBR-3` / `OBR-2` identifiers.
 - Builds report text from `OBX` and `NTE` segments, including safe `ED` decoding, repeated `OBX-5` normalization, `MSH-2`-driven component or repetition separator handling, and common HL7 escape-sequence normalization, derives site from `PV1-3` or `MSH-4`, and derives modality heuristically from `OBR-24` / `OBR-4`.
-- Preserves structured import metadata from `PID`, `PV1`, `OBR`, and `MSH`, including patient identifier, encounter identifier, accession number, ordering provider, source system, source format, and import source identifier.
+- Preserves structured import metadata from `PID`, `PV1`, `OBR`, and `MSH`, including patient identifier, encounter identifier, accession number, ordering provider, source system, source format, and import source identifier, with subcomponent-aware cleanup for composite metadata fields.
 - Uses best-effort fallbacks when optional HL7 fields are absent, without changing existing case/report ID semantics.
 - Field-preference order for selected HL7 metadata can be tuned with deployment settings without changing the persistence model.
 
