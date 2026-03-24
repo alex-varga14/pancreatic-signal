@@ -12,10 +12,10 @@
   "score_mode": "external",
   "threshold": 0.2,
   "top_k": 25,
-  "evaluation_command": "python scripts/run_external_eval.py --reports data/test_reports.jsonl --labels data/test_labels.jsonl --threshold 0.20 --top-k 25",
+  "evaluation_command": "python scripts/run_external_eval.py --labels data/test_labels.jsonl --predictions data/test_predictions.jsonl --threshold 0.20 --top-k 25 --out-dir artifacts/benchmarks --basename external-benchmark",
   "artifact_paths": [
-    "artifacts/benchmarks/external-test-run.json",
-    "artifacts/benchmarks/external-threshold-sweep.md"
+    "artifacts/benchmarks/external-benchmark.json",
+    "artifacts/benchmarks/external-benchmark.md"
   ],
   "metrics": {
     "processed": 250,

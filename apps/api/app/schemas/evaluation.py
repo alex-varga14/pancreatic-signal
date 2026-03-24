@@ -2,7 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-ScoreMode = Literal["rules", "hybrid"]
+DemoScoreMode = Literal["rules", "hybrid"]
+ScoreMode = Literal["rules", "hybrid", "external"]
 
 
 class EvaluationLabel(BaseModel):
@@ -38,6 +39,7 @@ class EvaluationCaseResult(BaseModel):
     expected_escalation: bool
     rationale_codes: list[str]
     label_notes: str | None = None
+    false_negative_bucket: str | None = Field(default=None, exclude=True)
 
 
 class EvaluationSummary(BaseModel):
@@ -104,3 +106,39 @@ class ThresholdSweepSummary(BaseModel):
     points: list[ThresholdSweepPoint]
     rules_recommendation: ThresholdRecommendation
     hybrid_recommendation: ThresholdRecommendation
+
+
+class ExternalEvaluationPrediction(BaseModel):
+    report_id: str
+    case_id: str
+    score: float = Field(ge=0.0, le=1.0)
+    rationale_codes: list[str] = Field(default_factory=list)
+    false_negative_bucket: str | None = None
+    notes: str | None = None
+
+
+class ExternalThresholdSweepPoint(BaseModel):
+    threshold: float = Field(ge=0.0, le=1.0)
+    f1: float = Field(ge=0.0, le=1.0)
+    recall: float = Field(ge=0.0, le=1.0)
+    flagged: int = Field(ge=0)
+    precision: float = Field(ge=0.0, le=1.0)
+    precision_at_top_k: float = Field(ge=0.0, le=1.0)
+    sensitivity_at_top_k: float = Field(ge=0.0, le=1.0)
+
+
+class ExternalThresholdRecommendation(BaseModel):
+    score_mode: Literal["external"] = "external"
+    recommended_threshold: float = Field(ge=0.0, le=1.0)
+    rationale: str
+    f1: float = Field(ge=0.0, le=1.0)
+    recall: float = Field(ge=0.0, le=1.0)
+    flagged: int = Field(ge=0)
+
+
+class ExternalThresholdSweepSummary(BaseModel):
+    score_mode: Literal["external"] = "external"
+    top_k: int = Field(ge=1)
+    thresholds: list[float]
+    points: list[ExternalThresholdSweepPoint]
+    recommendation: ExternalThresholdRecommendation

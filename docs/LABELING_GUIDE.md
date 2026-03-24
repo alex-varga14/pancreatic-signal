@@ -14,7 +14,7 @@ Each line is one JSON object with these fields:
 - `should_escalate`
 - `notes`
 
-See the minimal template in [`docs/examples/benchmark-label-template.jsonl`](./examples/benchmark-label-template.jsonl).
+See the minimal template in [`docs/examples/benchmark-label-template.jsonl`](./examples/benchmark-label-template.jsonl). To run the new comparable external evaluation helper, pair that label file with a score file that follows [`docs/examples/benchmark-prediction-template.jsonl`](./examples/benchmark-prediction-template.jsonl).
 
 ## How the benchmark interprets labels
 

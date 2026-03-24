@@ -1,31 +1,44 @@
 # Codex Handoff
 
-Updated: 2026-03-22
+Updated: 2026-03-24
 
-This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, and the best next work is now Phase 6 hardening around expanding hosted pilot-smoke coverage into structured audit and visibility paths on top of the hosted base, report-path site-rejection, and structured adapter site-rejection smoke coverage.
+This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, and the best next work is now Phase 6 interoperability hardening on top of the existing pilot packaging, proof surfaces, public benchmark pack, and external evaluation bundle writer.
 
 ## Current State
 
 - Deterministic pancreatic triage is implemented with section-aware sentence evidence, rationale codes, persistence, exports, and evaluation.
 - Reviewer workflow is implemented end to end with worklist filters, case detail, review actions, feedback capture, hybrid prioritization, and trial matching.
 - Phase 6 pilot work is materially in place: observability, readiness probes, trusted-proxy auth, site scoping, pilot Docker overlays, checked-in env bundles, de-identified research views, FHIR ingestion, HL7 ORU ingestion, structured import metadata persistence, persisted import-run audit records, env-driven field-preference overrides for upstream variability, a dedicated web import workspace with recent-run audit visibility, and live report/FHIR/HL7 success, successful shared-visibility, report-path failed shared-visibility for `validation_error`, structured failed shared-visibility for FHIR `unsupported_payload` plus HL7 `parse_error`, report-path and structured-adapter site-scope rejection, report-path parse/validation, adapter-specific malformed-import, and generic plus structured cross-actor audit denial smoke coverage in both the header-auth and trusted-proxy pilot paths.
+- The web app now has clearer outside-collaborator surfaces: the home and about pages frame the product as an explainable, benchmarkable workflow stack, and `/proof` publishes the checked-in demo benchmark snapshot as a public proof surface.
+- The repo now includes an adoption-facing quickstart, a checked-in benchmark snapshot in `docs/examples/demo-benchmark-current.*`, and a refresh path through `make benchmark-demo` plus `make refresh-demo-proof`.
+- The repo also now includes a public benchmark pack: `docs/LABELING_GUIDE.md`, `docs/BENCHMARK_SUBMISSIONS.md`, checked-in label and submission templates, a Pydantic benchmark submission schema, and a validator entrypoint through `make validate-benchmark-submission SUBMISSION=...`.
+- The repo now also includes a comparable external evaluation bundle writer through `scripts/run_external_eval.py` plus `make benchmark-external`, producing JSON, Markdown, and validator-compatible submission-draft artifacts from label and prediction JSONL inputs.
+- FHIR `DiagnosticReport` imports now preserve patient, encounter, and accession metadata from inline `Reference.identifier` values when upstream payloads omit fully resolved `Patient`, `Encounter`, or `ServiceRequest` resources.
 - Top-level repo docs now reflect the implemented platform instead of the earlier scaffold framing, and the repository includes checked-in contributor, security, and code-of-conduct docs appropriate for a near-1.0 open-source handoff.
-- The repo now also includes a top-level changelog, a release-readiness checklist, and checked-in GitHub Actions workflows for strict validation plus hosted base, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage so the next agent can preserve release-facing narrative quality while continuing implementation.
-- The highest-value remaining work is not bootstrapping. It is improving interoperability depth and pilot operability without breaking explainability.
+- The repo still includes checked-in GitHub Actions workflows for strict validation plus hosted base, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage, but that hosted/manual smoke split is now supporting operational context rather than the primary roadmap driver.
+- The highest-value remaining work is not bootstrapping. It is deeper FHIR and HL7 interoperability coverage first, then broader pilot operability, without breaking explainability.
 
 ## Fresh Validation Status
 
-Confirmed on 2026-03-22:
+Confirmed on 2026-03-24:
 
 - `make validate-strict` passes
 - Summary: `9 pass, 0 warn, 0 fail`
-- API tests: `101 passed`
+- API tests: `110 passed`
 - Web checks: `npm run lint` and `npm run build` now both pass through `make validate-strict`
 - Demo evaluation compare and sweep both run through the validation script
+- `make refresh-demo-proof` succeeded and refreshed the checked-in benchmark snapshot that powers `/proof`
+- `make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission-template.json` passed
+- `cd apps/api && .venv/bin/python -m pytest tests/test_benchmark_submission.py -q` passed
+- `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl OUT_DIR=/tmp/pancreatic-signal-external-eval BASENAME=template-external TOP_K=2` passed and wrote JSON, Markdown, and submission-draft artifacts
+- `make validate-benchmark-submission SUBMISSION=/tmp/pancreatic-signal-external-eval/template-external-submission.json` passed against the generated draft
+- `cd apps/api && .venv/bin/python -m pytest tests/test_imports.py -q` passed, including inline `Reference.identifier` extraction coverage
+- `cd apps/api && .venv/bin/python -m pytest tests/test_import_runs.py -q` passed after the interoperability slice landed
 - Targeted import / de-identification / export coverage also passes for the new import metadata surface
 - Import-run audit coverage now passes for success, update counts, validation failures, unsupported payloads, site-scope rejection, and audit-route access control
 - Config-override coverage now passes for one FHIR field-preference override and one HL7 field-preference override while preserving defaults
 - The new `/imports` workspace is included in the validated web build and uses persisted run IDs to deep-link failed submissions into their audit detail
+- The published demo proof currently includes a checked-in JSON plus Markdown benchmark summary for outside collaborators, and the web app reads that snapshot directly
 - Both pilot demo overlays resolve successfully through `docker compose config`
 - The smoke helper now supports both trusted-identity proxy mode and field-level header-auth mode, plus live verification against `/api/v1/imports/reports`, `/api/v1/imports/fhir/diagnostic-reports`, and `/api/v1/imports/hl7/oru`
 - The smoke helper now also supports live `site_scope_rejection` verification through `/api/v1/imports/reports`, including persisted failed run IDs and zero run-specific visible-case assertions
@@ -41,7 +54,7 @@ Confirmed on 2026-03-22:
 - The proxy demo overlay now defaults to an import-capable navigator identity so the built `/imports` workspace and the live proxy smoke path exercise the same capability class
 - The latest strict validation pass was rerun after expanding the hosted pilot smoke workflow into structured adapter site rejection and remains green
 - GitHub Actions now runs `make validate-strict` on pull requests, on `main`, and through manual workflow dispatch using a checked-in workflow under `.github/workflows/validate.yml`
-- A checked-in workflow under `.github/workflows/pilot-smoke.yml` now reuses `make pilot-proxy-demo-smoke`, `make pilot-proxy-demo-site-rejection-smoke`, `make pilot-proxy-demo-adapter-site-rejection-smoke`, `make pilot-header-demo-smoke`, `make pilot-header-demo-site-rejection-smoke`, and `make pilot-header-demo-adapter-site-rejection-smoke` on manual dispatch plus a weekly Monday schedule; its first GitHub-hosted run covering the new structured adapter site-rejection jobs is still pending
+- A checked-in workflow under `.github/workflows/pilot-smoke.yml` now reuses `make pilot-proxy-demo-smoke`, `make pilot-proxy-demo-site-rejection-smoke`, `make pilot-proxy-demo-adapter-site-rejection-smoke`, `make pilot-header-demo-smoke`, `make pilot-header-demo-site-rejection-smoke`, and `make pilot-header-demo-adapter-site-rejection-smoke` on manual dispatch plus a weekly Monday schedule; it remains intentionally narrower than the full manual visibility and failure-path overlay matrix
 - Release-facing documentation now includes `CHANGELOG.md` and `docs/RELEASE_READINESS.md`
 
 Last known good live deployment check:
@@ -221,6 +234,29 @@ Additional note from this slice:
 - `scripts/run_demo_eval.py`
 - `scripts/validate_repo.py`
 
+### Benchmark proof and public comparison surfaces
+
+- `apps/web/app/page.tsx`
+- `apps/web/app/about/page.tsx`
+- `apps/web/app/proof/page.tsx`
+- `apps/web/app/marketing.module.css`
+- `apps/web/lib/demo-proof.ts`
+- `apps/api/app/schemas/benchmark_submission.py`
+- `apps/api/app/schemas/evaluation.py`
+- `apps/api/tests/test_external_evaluation.py`
+- `scripts/run_external_eval.py`
+- `scripts/write_demo_benchmark.py`
+- `scripts/validate_benchmark_submission.py`
+- `docs/QUICKSTART.md`
+- `docs/EVALUATION.md`
+- `docs/BENCHMARK_SUBMISSIONS.md`
+- `docs/LABELING_GUIDE.md`
+- `docs/examples/demo-benchmark-current.json`
+- `docs/examples/demo-benchmark-current.md`
+- `docs/examples/benchmark-submission-template.json`
+- `docs/examples/benchmark-label-template.jsonl`
+- `docs/examples/benchmark-prediction-template.jsonl`
+
 ### Reviewer workflow and exports
 
 - `apps/api/app/api/routes/cases.py`
@@ -276,49 +312,52 @@ Additional note from this slice:
 
 ## Recommended Next Slice
 
-Proceed with a hosted structured adapter audit-visibility smoke expansion.
+Proceed with HL7 ORU text-extraction hardening for `OBX` edge cases.
 
 ### Why this is next
 
-- The base proxy and header success-path pilot smokes plus the report-path and structured adapter site-rejection flows are now wired into a checked-in hosted workflow, so the highest-value remaining CI gap is structured audit-denial coverage for persisted FHIR and HL7 adapter failures.
-- The existing structured adapter audit-visibility smoke targets are already live, deterministic, and comparatively cheap because they keep visible-case assertions at zero and avoid reviewer round-trips.
-- Promoting one or both structured adapter audit-visibility paths into hosted automation would strengthen auth and site-scope confidence without changing product behavior or inventing a second smoke harness.
+- The inline FHIR `Reference.identifier` gap is now covered, but HL7 report text extraction still has a narrower happy path: plain text `OBX` values with simple labels.
+- Real ORU feeds often encode report bodies in `ED` payloads or repeated `OBX-5` values, which is a common reason for “the message imports, but the report text is incomplete.”
+- Hardening HL7 text extraction compounds the value of the existing audit and benchmark surfaces because more upstream sites can actually get comparable report text into the same explainable triage flow.
+- The hosted/manual smoke split is already a useful operational guardrail, so the next agent can stay inside adapter robustness rather than expanding benchmark packaging again.
 
 ### Target outcome
 
-Add hosted structured audit-denial smoke automation that:
-- runs at least one existing `make pilot-*-adapter-audit-visibility-smoke` target in GitHub Actions
-- keeps the current hosted base plus report-path and structured adapter site-rejection workflow intact and the existing local Make targets as the source-of-truth operational path
-- stays scoped honestly so the docs still distinguish hosted base, hosted report-path failure, hosted structured site-rejection, and hosted structured audit-denial coverage from the broader manual smoke matrix
-- documents which shared-visibility and other higher-cost failure checks still remain manual after the new hosted expansion
+Add one meaningful HL7 text-extraction slice that:
+- decodes or normalizes at least one realistic `OBX` edge case such as `ED` text payloads or repeated `OBX-5` values
+- keeps import metadata preservation, audit visibility, and site-scope behavior intact
+- documents any new parser expectations introduced by the change
+- does not introduce a new HL7 parser, a second persistence path, or opaque inference in this slice
 
 ### Suggested implementation shape
 
-1. Extend the existing hosted smoke workflow or add a tightly scoped sibling workflow rather than folding Docker overlay execution into the fast PR validation job.
+1. Start from `apps/api/app/services/hl7_imports.py` and the existing import tests rather than creating new adapter entrypoints.
 
-2. Reuse the existing `make pilot-*-adapter-audit-visibility-smoke` targets as the workflow entrypoints so local and hosted smoke behavior stay aligned.
+2. Reuse and extend the current structured import coverage:
+   - `apps/api/tests/test_imports.py`
+   - `apps/api/tests/test_import_runs.py`
+   - the current smoke helper and pilot overlay targets only if the text-extraction change alters live behavior materially
 
-3. Keep the workflow readable:
-   - boot one overlay at a time
-   - run the relevant audit-visibility smoke target against `localhost`
-   - tear the overlay down even on failure
-   - start with one or two high-value structured auth-sensitive paths rather than the entire matrix
+3. Focus on additive text-extraction handling:
+   - safe `ED` text decoding
+   - repeated value normalization
+   - preserving existing finding versus impression section assembly when labels are still present
 
-4. Keep the smoke assertions operational:
-   - the existing manual smoke targets remain usable locally
-   - hosted smoke output makes it obvious which overlay and target ran
-   - docs explain any intentionally manual validation that remains outside hosted smoke coverage
+4. Preserve the current operational baseline:
+   - do not regress the current pilot smoke matrix
+   - do not regress import-run audit semantics
+   - do not regress reviewer workflow, `/imports`, `/proof`, or the external benchmark bundle path
 
-5. Prefer additive workflow and docs updates over new runtime abstractions.
+5. Prefer additive parser, fixture, and docs work over new runtime abstractions.
 
 ### Acceptance criteria
 
-- At least one hosted structured adapter audit-visibility pilot smoke target is wired into GitHub Actions.
-- The hosted workflow configuration is checked in and documented honestly.
-- Release-facing docs explain what hosted smoke now covers and what still requires manual live validation.
-- `make validate-strict` passes.
-- Local live validation is rerun for any newly hosted structured audit-visibility target, and if GitHub-hosted execution is not run yet that gap is called out explicitly.
-- If workflow scope changes validation posture materially, update the release-facing docs in the same change set.
+- At least one meaningful new HL7 `OBX` text edge case is covered end to end in tests.
+- The adapter behavior remains explainable and preserves import metadata and audit expectations.
+- Contributor docs call out any new parser expectations introduced by the change.
+- The current benchmark proof and external evaluation bundle path remain intact.
+- `make validate-strict` passes after the implementation change.
+- If the new slice changes release posture materially, update the release-facing docs in the same change set.
 
 ## Good First Commands For The Next Agent
 
@@ -327,44 +366,18 @@ make validate-strict
 sed -n '1,260p' docs/PHASES.md
 sed -n '1,260p' docs/API_SPEC.md
 sed -n '1,260p' docs/DEPLOYMENT.md
-sed -n '1,220p' .github/workflows/pilot-smoke.yml
-sed -n '1,260p' scripts/smoke_proxy_auth.py
-sed -n '1,260p' apps/api/app/services/fhir_imports.py
+sed -n '1,260p' docs/OPEN_SOURCE_STRATEGY.md
+sed -n '1,260p' README.md
+sed -n '1,260p' docs/RELEASE_READINESS.md
 sed -n '1,260p' apps/api/app/services/hl7_imports.py
-sed -n '1,260p' docker-compose.pilot.yml
-sed -n '1,260p' docker-compose.pilot.header-demo.yml
-sed -n '1,260p' docker-compose.pilot.proxy-demo.yml
-find deploy/examples -maxdepth 2 -type f | sort
-make pilot-header-demo-up
-make pilot-header-demo-smoke
-make pilot-header-demo-shared-visibility-smoke
-make pilot-header-demo-failed-shared-visibility-smoke
-make pilot-header-demo-adapter-shared-visibility-smoke
-make pilot-header-demo-adapter-failed-shared-visibility-smoke
-make pilot-header-demo-adapter-site-rejection-smoke
-make pilot-header-demo-adapter-audit-visibility-smoke
-make pilot-header-demo-fhir-smoke
-make pilot-header-demo-hl7-smoke
-make pilot-header-demo-site-rejection-smoke
-make pilot-header-demo-parse-validation-smoke
-make pilot-header-demo-adapter-failure-smoke
-make pilot-header-demo-audit-visibility-smoke
-make pilot-proxy-demo-up
-make pilot-proxy-demo-smoke
-make pilot-proxy-demo-shared-visibility-smoke
-make pilot-proxy-demo-failed-shared-visibility-smoke
-make pilot-proxy-demo-adapter-shared-visibility-smoke
-make pilot-proxy-demo-adapter-failed-shared-visibility-smoke
-make pilot-proxy-demo-adapter-site-rejection-smoke
-make pilot-proxy-demo-adapter-audit-visibility-smoke
-make pilot-proxy-demo-fhir-smoke
-make pilot-proxy-demo-hl7-smoke
-make pilot-proxy-demo-site-rejection-smoke
-make pilot-proxy-demo-parse-validation-smoke
-make pilot-proxy-demo-adapter-failure-smoke
-make pilot-proxy-demo-audit-visibility-smoke
+sed -n '1,260p' apps/api/tests/test_imports.py
+sed -n '1,260p' apps/api/tests/test_import_runs.py
+sed -n '1,260p' scripts/smoke_proxy_auth.py
+sed -n '1,220p' .github/workflows/pilot-smoke.yml
+make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl
+make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission-template.json
 ```
 
 ## Handoff Summary
 
-This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base plus report-path and structured adapter site-rejection pilot smoke automation, and live generic plus structured success, failed shared-visibility, site-scope rejection, parse or validation failure, adapter failure, and audit-visibility denial smoke coverage in both pilot auth modes are complete, so the next agent should focus on promoting structured adapter audit-denial paths into hosted smoke coverage and tightening release hygiene rather than missing product fundamentals.
+This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base plus report-path and structured adapter site-rejection smoke automation, a sharper public landing experience, a checked-in benchmark proof surface, a machine-validated public benchmark submission pack, a reproducible external evaluation bundle writer, and FHIR inline `Reference.identifier` fallback coverage are complete. The next agent should focus on HL7 `OBX` text-extraction hardening while preserving the new benchmark surfaces and import audit behavior, rather than spending the next slice on more benchmark packaging or hosted smoke expansion.

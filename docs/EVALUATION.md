@@ -57,6 +57,8 @@ Current repo helpers for the demo dataset:
 - `python scripts/run_demo_eval.py --sweep --json`
 - `python scripts/write_demo_benchmark.py`
 - `make refresh-demo-proof`
+- `python scripts/run_external_eval.py --labels docs/examples/benchmark-label-template.jsonl --predictions docs/examples/benchmark-prediction-template.jsonl`
+- `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl`
 - `make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission-template.json`
 - `python scripts/validate_repo.py --strict`
 
@@ -68,7 +70,15 @@ Public benchmark pack:
 - `docs/LABELING_GUIDE.md`
 - `docs/BENCHMARK_SUBMISSIONS.md`
 - `docs/examples/benchmark-label-template.jsonl`
+- `docs/examples/benchmark-prediction-template.jsonl`
 - `docs/examples/benchmark-submission-template.json`
+
+Comparable external evaluation workflow:
+1. Prepare labels that match `EvaluationLabel`.
+2. Prepare prediction scores that match `docs/examples/benchmark-prediction-template.jsonl`.
+3. Run `make benchmark-external LABELS=... PREDICTIONS=...`.
+4. Validate the generated `*-submission.json` with `make validate-benchmark-submission SUBMISSION=...`.
+5. Review the generated Markdown bundle before publishing it.
 
 Recommended reproducibility loop:
 1. Run `python scripts/validate_repo.py --strict` in a fully prepared local environment.

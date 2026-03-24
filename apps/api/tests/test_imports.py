@@ -303,6 +303,74 @@ def test_import_fhir_diagnostic_report_supports_reference_identifier_preference_
     assert case_detail["import_metadata"]["encounter_identifier"] == "enc-config"
 
 
+def test_import_fhir_diagnostic_report_supports_inline_reference_identifiers() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = {
+        "resourceType": "DiagnosticReport",
+        "id": "dr-inline-reference-1",
+        "effectiveDateTime": "2026-03-19T11:50:00Z",
+        "subject": {"identifier": {"value": "MRN-INLINE-1"}},
+        "encounter": {"identifier": {"value": "ENC-INLINE-1"}},
+        "basedOn": [
+            {
+                "identifier": {
+                    "type": {"text": "Accession Number"},
+                    "value": "ACC-INLINE-1",
+                }
+            }
+        ],
+        "performer": [{"display": "Inline Hospital"}],
+        "conclusion": "Suspicious for pancreatic neoplasm. Recommend EUS.",
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-inline-reference-1").json()
+    assert case_detail["site"] == "Inline Hospital"
+    assert case_detail["import_metadata"]["patient_identifier"] == "MRN-INLINE-1"
+    assert case_detail["import_metadata"]["encounter_identifier"] == "ENC-INLINE-1"
+    assert case_detail["import_metadata"]["accession_number"] == "ACC-INLINE-1"
+    assert case_detail["import_metadata"]["source_system"] == "Inline Hospital"
+
+
+def test_import_fhir_diagnostic_report_supports_inline_reference_identifier_preference_override(
+    monkeypatch,
+) -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    monkeypatch.setattr(
+        settings,
+        "fhir_reference_identifier_source_order",
+        "reference_tail,reference_identifier,resolved_identifier,resolved_id",
+    )
+
+    payload = {
+        "resourceType": "DiagnosticReport",
+        "id": "dr-inline-config-1",
+        "effectiveDateTime": "2026-03-19T11:55:00Z",
+        "subject": {
+            "reference": "Patient/patient-inline-tail",
+            "identifier": {"value": "MRN-INLINE-CONFIG"},
+        },
+        "encounter": {
+            "reference": "Encounter/encounter-inline-tail",
+            "identifier": {"value": "ENC-INLINE-CONFIG"},
+        },
+        "performer": [{"display": "Config Inline Hospital"}],
+        "conclusion": "Suspicious for pancreatic neoplasm.",
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-inline-config-1").json()
+    assert case_detail["import_metadata"]["patient_identifier"] == "patient-inline-tail"
+    assert case_detail["import_metadata"]["encounter_identifier"] == "encounter-inline-tail"
+
+
 def test_import_fhir_diagnostic_report_respects_site_scope() -> None:
     CASE_STORE.reset()
     client = TestClient(app)
