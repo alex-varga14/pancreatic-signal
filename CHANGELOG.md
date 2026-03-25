@@ -16,6 +16,7 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - A comparable external evaluation bundle writer in [`scripts/run_external_eval.py`](scripts/run_external_eval.py), a `make benchmark-external` entrypoint, and a checked-in prediction template for outside collaborators
 - GitHub Actions pull request and `main` validation via [`.github/workflows/validate.yml`](.github/workflows/validate.yml) using `make validate-strict`
 - A hosted pilot smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) that reuses the base and FHIR proxy and header overlay smoke targets plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule
+- A narrower manual-dispatch path in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) for hosted attachment-backed FHIR confirmation, plus uploaded per-job smoke log artifacts for later run auditing
 - Live failed-run shared-visibility smoke coverage for a persisted non-site `validation_error` import run in the proxy and header pilot overlays
 - Live structured adapter failed-run shared-visibility smoke coverage for persisted non-site FHIR `unsupported_payload` and HL7 `parse_error` runs in the proxy and header pilot overlays
 - Live structured adapter site-scope rejection smoke coverage for persisted FHIR and HL7 `site_scope_rejection` runs in the proxy and header pilot overlays
@@ -38,9 +39,10 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 ### Validated
 
 - `make validate-strict` passed on 2026-03-25 with `9 pass, 0 warn, 0 fail`
-- API validation reported `121 passed` on 2026-03-25
+- API validation reported `123 passed` on 2026-03-25
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_smoke_proxy_auth.py -q` passed on 2026-03-25 with `21 passed`, covering the attachment-backed FHIR smoke fixture shape
 - API-only local reruns of the attachment-backed FHIR smoke path passed on 2026-03-25 in proxy mode and header-auth mode, recording persisted import runs `48` and `49` plus visible-case and reviewer round-trip verification
+- The public GitHub Actions API reported `0` `Pilot Smoke` workflow runs on 2026-03-25, so hosted attachment-backed FHIR evidence is still pending even though the workflow is active
 - `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl OUT_DIR=/tmp/pancreatic-signal-external-eval BASENAME=template-external TOP_K=2` wrote JSON, Markdown, and submission-draft artifacts on 2026-03-24
 - `make validate-benchmark-submission SUBMISSION=/tmp/pancreatic-signal-external-eval/template-external-submission.json` passed on 2026-03-24
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py apps/api/tests/test_import_runs.py -q` passed on 2026-03-24 with `46 passed`, including inline `Reference.identifier` FHIR coverage, attachment-backed `presentedForm` decoding and audit coverage, plus custom `MSH-2` HL7 delimiter, escape-sequence, subcomponent, and audit-visibility coverage

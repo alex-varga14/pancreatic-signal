@@ -1,7 +1,19 @@
 name: Pilot Smoke
 
+run-name: >-
+  Pilot Smoke (${{ github.event_name == 'workflow_dispatch' && inputs.smoke_scope || github.event_name }})
+
 on:
   workflow_dispatch:
+    inputs:
+      smoke_scope:
+        description: Hosted matrix slice to run
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - fhir-success-only
   schedule:
     - cron: "0 15 * * 1"
 
@@ -15,6 +27,12 @@ concurrency:
 jobs:
   pilot-smoke:
     name: ${{ matrix.name }}
+    if: >-
+      ${{
+        github.event_name != 'workflow_dispatch' ||
+        inputs.smoke_scope == 'all' ||
+        (inputs.smoke_scope == 'fhir-success-only' && matrix.manual_scope == 'fhir-success')
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -22,41 +40,57 @@ jobs:
       matrix:
         include:
           - name: Proxy Demo Smoke
+            manual_scope: base-success
+            artifact_name: proxy-demo-smoke
             up: make pilot-proxy-demo-up
             smoke: make pilot-proxy-demo-smoke
             down: make pilot-proxy-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
           - name: Proxy Demo FHIR Smoke
+            manual_scope: fhir-success
+            artifact_name: proxy-demo-fhir-smoke
             up: make pilot-proxy-demo-up
             smoke: make pilot-proxy-demo-fhir-smoke
             down: make pilot-proxy-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
           - name: Proxy Demo Site Rejection Smoke
+            manual_scope: report-site-rejection
+            artifact_name: proxy-demo-site-rejection-smoke
             up: make pilot-proxy-demo-up
             smoke: make pilot-proxy-demo-site-rejection-smoke
             down: make pilot-proxy-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
           - name: Proxy Demo Adapter Site Rejection Smoke
+            manual_scope: structured-site-rejection
+            artifact_name: proxy-demo-adapter-site-rejection-smoke
             up: make pilot-proxy-demo-up
             smoke: make pilot-proxy-demo-adapter-site-rejection-smoke
             down: make pilot-proxy-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
           - name: Header Demo Smoke
+            manual_scope: base-success
+            artifact_name: header-demo-smoke
             up: make pilot-header-demo-up
             smoke: make pilot-header-demo-smoke
             down: make pilot-header-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
           - name: Header Demo FHIR Smoke
+            manual_scope: fhir-success
+            artifact_name: header-demo-fhir-smoke
             up: make pilot-header-demo-up
             smoke: make pilot-header-demo-fhir-smoke
             down: make pilot-header-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
           - name: Header Demo Site Rejection Smoke
+            manual_scope: report-site-rejection
+            artifact_name: header-demo-site-rejection-smoke
             up: make pilot-header-demo-up
             smoke: make pilot-header-demo-site-rejection-smoke
             down: make pilot-header-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
           - name: Header Demo Adapter Site Rejection Smoke
+            manual_scope: structured-site-rejection
+            artifact_name: header-demo-adapter-site-rejection-smoke
             up: make pilot-header-demo-up
             smoke: make pilot-header-demo-adapter-site-rejection-smoke
             down: make pilot-header-demo-down
@@ -80,7 +114,30 @@ jobs:
         run: ${{ matrix.up }}
 
       - name: Run pilot smoke
-        run: ${{ matrix.smoke }}
+        shell: bash
+        run: |
+          set -o pipefail
+          ${{ matrix.smoke }} 2>&1 | tee pilot-smoke.log
+
+      - name: Upload pilot smoke log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilot-smoke-${{ matrix.artifact_name }}
+          path: pilot-smoke.log
+          if-no-files-found: ignore
+
+      - name: Write pilot smoke summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Pilot Smoke"
+            echo "- Matrix job: ${{ matrix.name }}"
+            echo "- Scope: ${{ matrix.manual_scope }}"
+            echo "- Smoke command: \`${{ matrix.smoke }}\`"
+            echo "- Log artifact: \`pilot-smoke-${{ matrix.artifact_name }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Show compose status on failure
         if: failure()
