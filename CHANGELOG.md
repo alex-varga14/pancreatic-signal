@@ -9,6 +9,7 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 ### Added
 
 - Repo-level contributor, security, and community docs in [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- A release-facing runbook in [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md) plus a release notes scaffold in [docs/RELEASE_NOTES_TEMPLATE.md](docs/RELEASE_NOTES_TEMPLATE.md) so maintainers can move from validation to hosted smoke evidence capture without private context
 - A clearer public project narrative in [README.md](README.md) and [docs/OPEN_SOURCE_STRATEGY.md](docs/OPEN_SOURCE_STRATEGY.md)
 - A release-readiness checklist in [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md)
 - An adoption-facing quickstart in [docs/QUICKSTART.md](docs/QUICKSTART.md) plus a checked-in published benchmark snapshot in [`docs/examples/demo-benchmark-current.md`](docs/examples/demo-benchmark-current.md)

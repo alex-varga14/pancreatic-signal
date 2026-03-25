@@ -53,7 +53,7 @@ This project is most helpful to the larger open-source community when it offers:
 
 The highest-value collaboration areas after the current pilot hardening work are:
 
-1. improve interoperability depth across FHIR and HL7 edge cases
+1. record hosted pilot smoke evidence and make the hosted-versus-manual boundary explicit
 2. strengthen benchmark datasets, labeling guidance, and error analysis
 3. expand deployment guidance for real-world pilot constraints
 4. deepen reviewer ergonomics and feedback loops without compromising explainability
