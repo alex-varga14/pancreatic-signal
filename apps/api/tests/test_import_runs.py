@@ -1,3 +1,5 @@
+import base64
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -174,6 +176,56 @@ def test_fhir_import_run_is_visible_to_other_scoped_actor() -> None:
     assert any(run["run_id"] == run_id for run in peer_runs)
 
 
+def test_attachment_backed_fhir_import_run_is_visible_to_other_scoped_actor() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    owner_headers = _auth_headers("fhir-attachment-owner", sites="Demo Hospital")
+
+    attachment_html = (
+        '<div xmlns="http://www.w3.org/1999/xhtml">'
+        "<p><strong>Findings:</strong> Abrupt cutoff of the pancreatic duct.</p>"
+        "<p><strong>Impression:</strong> Suspicious for pancreatic neoplasm.</p>"
+        "</div>"
+    )
+    payload = {
+        "resourceType": "DiagnosticReport",
+        "id": "dr-shared-attachment-1",
+        "effectiveDateTime": "2026-03-19T10:05:00Z",
+        "category": [{"text": "CT abdomen"}],
+        "performer": [{"display": "Demo Hospital"}],
+        "presentedForm": [
+            {
+                "contentType": "application/xhtml+xml; charset=utf-16",
+                "data": base64.b64encode(attachment_html.encode("utf-16")).decode("ascii"),
+            }
+        ],
+    }
+
+    response = client.post(
+        "/api/v1/imports/fhir/diagnostic-reports",
+        json=payload,
+        headers=owner_headers,
+    )
+    assert response.status_code == 200
+    run_id = response.json()["run_id"]
+
+    peer_headers = _auth_headers("fhir-attachment-peer", sites="Demo Hospital")
+    peer_detail_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=peer_headers)
+    assert peer_detail_response.status_code == 200
+    peer_detail = peer_detail_response.json()
+    assert peer_detail["run_id"] == run_id
+    assert peer_detail["actor_user_id"] == "fhir-attachment-owner"
+    assert peer_detail["source_format"] == "fhir-diagnostic-report"
+    assert peer_detail["status"] == "completed"
+    assert peer_detail["imported_sites"] == ["Demo Hospital"]
+    assert peer_detail["items"][0]["source_identifier"] == "DiagnosticReport/dr-shared-attachment-1"
+
+    peer_runs_response = client.get("/api/v1/imports/runs", headers=peer_headers)
+    assert peer_runs_response.status_code == 200
+    peer_runs = peer_runs_response.json()
+    assert any(run["run_id"] == run_id for run in peer_runs)
+
+
 def test_hl7_import_run_is_visible_to_other_scoped_actor() -> None:
     CASE_STORE.reset()
     client = TestClient(app)
@@ -280,6 +332,45 @@ def test_hl7_escaped_content_import_run_is_visible_to_other_scoped_actor() -> No
     peer_detail = peer_detail_response.json()
     assert peer_detail["run_id"] == run_id
     assert peer_detail["actor_user_id"] == "hl7-escape-owner"
+    assert peer_detail["source_format"] == "hl7-oru"
+    assert peer_detail["status"] == "completed"
+    assert peer_detail["imported_sites"] == ["Demo Hospital"]
+
+    peer_runs_response = client.get("/api/v1/imports/runs", headers=peer_headers)
+    assert peer_runs_response.status_code == 200
+    peer_runs = peer_runs_response.json()
+    assert any(run["run_id"] == run_id for run in peer_runs)
+
+
+def test_hl7_subcomponent_metadata_import_run_is_visible_to_other_scoped_actor() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    owner_headers = _auth_headers("hl7-subcomponent-owner", sites="Demo Hospital")
+
+    payload = "\r".join(
+        [
+            "MSH|!%?@|RADSYS!1.2.3.4!ISO|North Hub|PS|PS|20260319100630||ORU!R01|MSG-SHARED-SUBCOMP|P|2.5",
+            "PID|1||PAT-SHARED-SUBCOMP!!!MRN@2.16.840.1@ISO||Doe!Jamie",
+            "PV1|1|O|RAD!READ1!BED1!Demo Hospital@2.16.840.1@ISO",
+            "OBR|1|PLAC-SHARED-SUBCOMP|R-HL7-SHARED-SUBCOMP|CT ABDOMEN!CT Abdomen|||20260319100630|||||||||12345@NPI@ISO!Patel@MD!Jamie@Ann||ACC-SHARED-SUBCOMP@PLACER@ISO",
+            "OBX|1|TX|IMPRESSION!Impression||Suspicious for pancreatic neoplasm.|",
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content=payload,
+        headers={"Content-Type": "text/plain", **owner_headers},
+    )
+    assert response.status_code == 200
+    run_id = response.json()["run_id"]
+
+    peer_headers = _auth_headers("hl7-subcomponent-peer", sites="Demo Hospital")
+    peer_detail_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=peer_headers)
+    assert peer_detail_response.status_code == 200
+    peer_detail = peer_detail_response.json()
+    assert peer_detail["run_id"] == run_id
+    assert peer_detail["actor_user_id"] == "hl7-subcomponent-owner"
     assert peer_detail["source_format"] == "hl7-oru"
     assert peer_detail["status"] == "completed"
     assert peer_detail["imported_sites"] == ["Demo Hospital"]
@@ -474,6 +565,47 @@ def test_fhir_import_run_records_site_scope_rejection() -> None:
     assert own_run["failure_counts"]["site_scope_rejection"] == 1
     assert own_run["items"][0]["error_bucket"] == "site_scope_rejection"
     assert own_run["items"][0]["site"] == "Demo Hospital"
+
+    cases_response = client.get("/api/v1/cases", headers=north_headers)
+    assert cases_response.status_code == 200
+    assert cases_response.json() == []
+
+
+def test_attachment_backed_fhir_import_run_records_site_scope_rejection() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+    north_headers = _auth_headers("fhir-attachment-north-analyst", sites="North Clinic")
+
+    attachment_text = "Findings: Abrupt cutoff of the pancreatic duct. Impression: Suspicious for pancreatic neoplasm."
+    response = client.post(
+        "/api/v1/imports/fhir/diagnostic-reports",
+        json={
+            "resourceType": "DiagnosticReport",
+            "id": "dr-fhir-attachment-site-reject",
+            "effectiveDateTime": "2026-03-19T10:10:00Z",
+            "category": [{"text": "CT abdomen"}],
+            "performer": [{"display": "Demo Hospital"}],
+            "presentedForm": [
+                {
+                    "contentType": "text/plain; charset=utf-8",
+                    "data": base64.b64encode(attachment_text.encode("utf-8")).decode("ascii"),
+                }
+            ],
+        },
+        headers=north_headers,
+    )
+    assert response.status_code == 403
+    assert response.headers["x-import-run-id"]
+    run_id = int(response.headers["x-import-run-id"])
+
+    own_run_response = client.get(f"/api/v1/imports/runs/{run_id}", headers=north_headers)
+    assert own_run_response.status_code == 200
+    own_run = own_run_response.json()
+    assert own_run["source_format"] == "fhir-diagnostic-report"
+    assert own_run["failure_counts"]["site_scope_rejection"] == 1
+    assert own_run["items"][0]["error_bucket"] == "site_scope_rejection"
+    assert own_run["items"][0]["site"] == "Demo Hospital"
+    assert own_run["items"][0]["source_identifier"] == "DiagnosticReport/dr-fhir-attachment-site-reject"
 
     cases_response = client.get("/api/v1/cases", headers=north_headers)
     assert cases_response.status_code == 200

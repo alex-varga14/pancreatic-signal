@@ -325,7 +325,9 @@ def _pv1_site(pv1_segment: list[str] | None, *, separators: HL7Separators) -> st
         return None
     location = _segment_field(pv1_segment, 3)
     return _first_non_empty(
+        _component_leaf(location, 4, separators=separators),
         _component(location, 4, separators=separators),
+        _component_leaf(location, 1, separators=separators),
         _component(location, 1, separators=separators),
     )
 
@@ -349,11 +351,20 @@ def _build_import_metadata(
     separators: HL7Separators,
 ) -> ImportMetadata:
     patient_identifier_candidates = {
-        "PID-3": _repeat_component(_segment_field(pid_segment or [], 3), 1, separators=separators),
-        "PID-2": _repeat_component(_segment_field(pid_segment or [], 2), 1, separators=separators),
+        "PID-3": _first_non_empty(
+            _repeat_component_leaf(_segment_field(pid_segment or [], 3), 1, separators=separators),
+            _repeat_component(_segment_field(pid_segment or [], 3), 1, separators=separators),
+        ),
+        "PID-2": _first_non_empty(
+            _repeat_component_leaf(_segment_field(pid_segment or [], 2), 1, separators=separators),
+            _repeat_component(_segment_field(pid_segment or [], 2), 1, separators=separators),
+        ),
     }
     source_system_candidates = {
-        "MSH-3": _repeat_component(sending_application or "", 1, separators=separators),
+        "MSH-3": _first_non_empty(
+            _repeat_component_leaf(sending_application or "", 1, separators=separators),
+            _repeat_component(sending_application or "", 1, separators=separators),
+        ),
         "MSH-4": sending_facility,
     }
     return ImportMetadata(
@@ -363,12 +374,17 @@ def _build_import_metadata(
             candidates=patient_identifier_candidates,
         ),
         encounter_identifier=_first_non_empty(
+            _repeat_component_leaf(_segment_field(pv1_segment or [], 19), 1, separators=separators),
             _repeat_component(_segment_field(pv1_segment or [], 19), 1, separators=separators),
+            _repeat_component_leaf(_segment_field(pv1_segment or [], 50), 1, separators=separators),
             _repeat_component(_segment_field(pv1_segment or [], 50), 1, separators=separators),
         ),
         accession_number=_first_non_empty(
+            _repeat_component_leaf(_segment_field(obr_segment, 18), 1, separators=separators),
             _repeat_component(_segment_field(obr_segment, 18), 1, separators=separators),
+            _repeat_component_leaf(_segment_field(obr_segment, 3), 1, separators=separators),
             _repeat_component(_segment_field(obr_segment, 3), 1, separators=separators),
+            _repeat_component_leaf(_segment_field(obr_segment, 2), 1, separators=separators),
             _repeat_component(_segment_field(obr_segment, 2), 1, separators=separators),
         ),
         ordering_provider=_xcn_display(_segment_field(obr_segment, 16), separators=separators),
@@ -415,13 +431,20 @@ def _segment_field(segment: list[str], field_number: int) -> str:
 
 
 def _component(value: str, position: int, *, separators: HL7Separators) -> str | None:
+    component_value = _component_raw(value, position, separators=separators)
+    if component_value is None:
+        return None
+    component_value = _hl7_unescape(component_value, separators=separators)
+    return component_value or None
+
+
+def _component_raw(value: str, position: int, *, separators: HL7Separators) -> str | None:
     if not value:
         return None
     parts = [item.strip() for item in value.split(separators.component)]
     index = position - 1
     if 0 <= index < len(parts):
-        component_value = _hl7_unescape(parts[index], separators=separators)
-        return component_value or None
+        return parts[index] or None
     return None
 
 
@@ -435,13 +458,49 @@ def _repeat_component(value: str, position: int, *, separators: HL7Separators) -
     return _component(_first_repeat(value, separators=separators), position, separators=separators)
 
 
+def _subcomponent(value: str, position: int, *, separators: HL7Separators) -> str | None:
+    if not value:
+        return None
+    parts = [item.strip() for item in value.split(separators.subcomponent)]
+    index = position - 1
+    if 0 <= index < len(parts):
+        subcomponent_value = _hl7_unescape(parts[index], separators=separators)
+        return subcomponent_value or None
+    return None
+
+
+def _component_leaf(value: str, position: int, *, separators: HL7Separators) -> str | None:
+    component_value = _component_raw(value, position, separators=separators)
+    if component_value is None:
+        return None
+    return _first_non_empty(
+        _subcomponent(component_value, 1, separators=separators),
+        _hl7_unescape(component_value, separators=separators),
+    )
+
+
+def _repeat_component_leaf(value: str, position: int, *, separators: HL7Separators) -> str | None:
+    return _component_leaf(_first_repeat(value, separators=separators), position, separators=separators)
+
+
 def _xcn_display(value: str, *, separators: HL7Separators) -> str | None:
     first_repeat = _first_repeat(value, separators=separators)
-    family = _component(first_repeat, 2, separators=separators)
-    given = _component(first_repeat, 3, separators=separators)
+    family = _first_non_empty(
+        _component_leaf(first_repeat, 2, separators=separators),
+        _component(first_repeat, 2, separators=separators),
+    )
+    given = _first_non_empty(
+        _component_leaf(first_repeat, 3, separators=separators),
+        _component(first_repeat, 3, separators=separators),
+    )
     if family and given:
         return f"{given} {family}"
-    return _first_non_empty(family, given, _component(first_repeat, 1, separators=separators))
+    return _first_non_empty(
+        family,
+        given,
+        _component_leaf(first_repeat, 1, separators=separators),
+        _component(first_repeat, 1, separators=separators),
+    )
 
 
 def _first_non_empty(*values: str | None) -> str | None:

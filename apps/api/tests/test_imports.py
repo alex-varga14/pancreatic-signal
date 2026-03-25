@@ -231,6 +231,139 @@ def test_import_fhir_diagnostic_report_bundle_resolves_references() -> None:
     assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
 
 
+def test_import_fhir_diagnostic_report_decodes_presented_form_attachment_bundle() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    attachment_html = (
+        '<div xmlns="http://www.w3.org/1999/xhtml">'
+        "<p><strong>Findings:</strong> Abrupt cutoff of the pancreatic duct with ill-defined pancreatic head lesion.</p>"
+        "<p><strong>Impression:</strong> Suspicious for pancreatic neoplasm. Recommend EUS.</p>"
+        "</div>"
+    )
+    attachment_data = base64.b64encode(attachment_html.encode("utf-16")).decode("ascii")
+
+    payload = {
+        "resourceType": "Bundle",
+        "type": "collection",
+        "entry": [
+            {
+                "resource": {
+                    "resourceType": "Organization",
+                    "id": "org-attachment-1",
+                    "name": "Attachment Hospital",
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "Patient",
+                    "id": "patient-attachment-1",
+                    "identifier": [{"value": "MRN-ATTACH-1"}],
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "Encounter",
+                    "id": "enc-attachment-1",
+                    "identifier": [{"value": "ENC-ATTACH-1"}],
+                    "serviceProvider": {"reference": "Organization/org-attachment-1"},
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "Practitioner",
+                    "id": "practitioner-attachment-1",
+                    "name": [{"given": ["Jamie"], "family": "Patel"}],
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "ServiceRequest",
+                    "id": "sr-attachment-1",
+                    "identifier": [
+                        {
+                            "type": {"text": "Accession Number"},
+                            "value": "ACC-ATTACH-1",
+                        }
+                    ],
+                    "requester": {"reference": "Practitioner/practitioner-attachment-1"},
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "DiagnosticReport",
+                    "id": "dr-attachment-1",
+                    "meta": {"source": "urn:source:attachment-feed"},
+                    "effectiveDateTime": "2026-03-19T11:15:00Z",
+                    "subject": {"reference": "Patient/patient-attachment-1"},
+                    "encounter": {"reference": "Encounter/enc-attachment-1"},
+                    "basedOn": [{"reference": "ServiceRequest/sr-attachment-1"}],
+                    "category": [{"text": "MRI abdomen"}],
+                    "performer": [{"reference": "Organization/org-attachment-1"}],
+                    "presentedForm": [
+                        {
+                            "contentType": "application/xhtml+xml; charset=utf-16",
+                            "data": attachment_data,
+                        }
+                    ],
+                },
+            },
+        ],
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["processed"] == 1
+    assert body["flagged"] == 1
+
+    case_detail = client.get("/api/v1/cases/dr-attachment-1").json()
+    assert case_detail["site"] == "Attachment Hospital"
+    assert case_detail["modality"] == "MRI"
+    assert case_detail["score"] >= 0.3
+    assert case_detail["report_text"].startswith("Findings: Abrupt cutoff of the pancreatic duct")
+    assert "Impression: Suspicious for pancreatic neoplasm. Recommend EUS." in case_detail["report_text"]
+    assert case_detail["import_metadata"]["patient_identifier"] == "MRN-ATTACH-1"
+    assert case_detail["import_metadata"]["encounter_identifier"] == "ENC-ATTACH-1"
+    assert case_detail["import_metadata"]["accession_number"] == "ACC-ATTACH-1"
+    assert case_detail["import_metadata"]["ordering_provider"] == "Jamie Patel"
+    assert case_detail["import_metadata"]["source_system"] == "urn:source:attachment-feed"
+    assert case_detail["import_metadata"]["import_source_id"] == "DiagnosticReport/dr-attachment-1"
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
+def test_import_fhir_diagnostic_report_merges_unstructured_presented_form_with_conclusion() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    attachment_text = "Abrupt cutoff of the pancreatic duct with ill-defined pancreatic head lesion."
+    payload = {
+        "resourceType": "DiagnosticReport",
+        "id": "dr-attachment-merge-1",
+        "effectiveDateTime": "2026-03-19T11:20:00Z",
+        "category": [{"text": "CT abdomen"}],
+        "performer": [{"display": "Merge Hospital"}],
+        "presentedForm": [
+            {
+                "contentType": "text/plain; charset=utf-8",
+                "data": base64.b64encode(attachment_text.encode("utf-8")).decode("ascii"),
+            }
+        ],
+        "conclusion": "Suspicious for pancreatic neoplasm. Recommend biopsy.",
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-attachment-merge-1").json()
+    assert case_detail["site"] == "Merge Hospital"
+    assert case_detail["report_text"] == (
+        "Findings: Abrupt cutoff of the pancreatic duct with ill-defined pancreatic head lesion. "
+        "Impression: Suspicious for pancreatic neoplasm. Recommend biopsy."
+    )
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
 def test_import_fhir_diagnostic_report_falls_back_to_reference_identifiers() -> None:
     CASE_STORE.reset()
     client = TestClient(app)
@@ -734,6 +867,60 @@ def test_import_hl7_oru_normalizes_custom_escape_sequences() -> None:
     assert "Urgent review." in case_detail["report_text"]
     assert case_detail["import_metadata"]["ordering_provider"] == "Jamie Mc!Kay"
     assert "?.br?" not in case_detail["report_text"]
+
+
+def test_import_hl7_oru_extracts_subcomponent_metadata_with_custom_msh2() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    pv1_fields = [
+        "PV1",
+        "1",
+        "O",
+        "RAD!READ1!BED1!Demo Hospital@2.16.840.1@ISO",
+        *[""] * 15,
+        "ENC-SUBCOMP@VISIT@ISO",
+    ]
+    obr_fields = [
+        "OBR",
+        "1",
+        "PLAC-SUBCOMP",
+        "R-HL7-SUBCOMP",
+        "CT ABDOMEN!CT Abdomen",
+        "",
+        "",
+        "20260319112000",
+        *[""] * 8,
+        "12345@NPI@ISO!Patel@MD!Jamie@Ann",
+        "",
+        "ACC-SUBCOMP@PLACER@ISO",
+    ]
+    payload = "\r".join(
+        [
+            "MSH|!%?@|RADSYS!1.2.3.4!ISO|North Hub|PS|PS|20260319112000||ORU!R01|MSG-SUBCOMP|P|2.5",
+            "PID|1||PAT-SUBCOMP!!!MRN@2.16.840.1@ISO||Doe!John",
+            "|".join(pv1_fields),
+            "|".join(obr_fields),
+            "OBX|1|TX|FINDINGS!Findings||Abrupt cutoff of the pancreatic duct.|",
+            "OBX|2|TX|IMPRESSION!Impression||Suspicious for pancreatic neoplasm.|",
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/imports/hl7/oru",
+        content=payload,
+        headers={"Content-Type": "text/plain"},
+    )
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/R-HL7-SUBCOMP").json()
+    assert case_detail["site"] == "Demo Hospital"
+    assert case_detail["score"] >= 0.3
+    assert case_detail["import_metadata"]["patient_identifier"] == "PAT-SUBCOMP"
+    assert case_detail["import_metadata"]["encounter_identifier"] == "ENC-SUBCOMP"
+    assert case_detail["import_metadata"]["accession_number"] == "ACC-SUBCOMP"
+    assert case_detail["import_metadata"]["ordering_provider"] == "Jamie Patel"
+    assert case_detail["import_metadata"]["source_system"] == "RADSYS"
 
 
 def test_import_hl7_oru_respects_site_scope() -> None:
