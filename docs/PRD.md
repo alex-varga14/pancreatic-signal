@@ -2,198 +2,197 @@
 
 ## 1. Product summary
 
-Pancreatic Signal is an open-source, research-first triage platform that analyzes radiology report text for signals suspicious for pancreatic malignancy or other high-risk pancreatic abnormalities, then routes those cases into a human-reviewed workflow for faster review, escalation, and downstream navigation.
+Pancreatic Signal is an open-source, research-first triage platform for identifying radiology reports that may contain pancreatic malignancy signals, high-risk pancreatic abnormalities, or important follow-up recommendations, then routing those cases into a human-reviewed worklist.
 
-The product intentionally targets the **workflow gap** between imaging interpretation and timely follow-up, rather than trying to autonomously diagnose pancreatic cancer from scans.
+The current product is no longer an early prototype. It now includes reviewer workflow, explainable trial matching, hybrid prioritization, structured FHIR and HL7 ingestion, import-run auditing, and pilot deployment/auth packaging on top of the deterministic rule engine.
 
-## 2. Problem statement
+## 2. Product problem
 
-Pancreatic cancer is frequently detected late. In practice, many clinically important delays happen not only because lesions are difficult to see, but because suspicious findings are:
-- subtle or described indirectly
-- buried in free-text radiology reports
-- recommended for follow-up without reliable closed-loop tracking
-- not consistently routed to navigators, tumor boards, or oncology review
-- discovered in non-specialist workflows where pancreatic suspicion is not the primary clinical question
+Important pancreatic findings are often delayed operationally, not only diagnostically. Suspicious language can be:
 
-A lightweight, explainable triage layer can help identify and queue these reports for faster human review.
+- subtle or indirect
+- buried in long report text
+- attached to follow-up recommendations that are easy to miss
+- surfaced in broad abdominal workflows instead of dedicated pancreatic review queues
+- hard to audit consistently across retrospective or pilot environments
+
+The product exists to reduce those workflow misses by surfacing high-value reports for faster human review without obscuring why they were flagged.
 
 ## 3. Goals
 
 ### Primary goals
-- Identify radiology reports suspicious for pancreatic cancer or high-risk pancreatic findings.
-- Surface exact evidence phrases and structured rationales.
-- Route flagged cases into a prioritized reviewer / navigator queue.
-- Create an auditable retrospective and prospective workflow.
-- Provide a clean open-source foundation for research collaborations.
+
+- detect suspicious pancreatic report text with transparent evidence and rationale codes
+- prioritize a reviewer worklist around risk, confidence, and operational review value
+- preserve auditability for imports, reviewer actions, and pilot access controls
+- support research, retrospective evaluation, and controlled pilot demonstrations
+- provide an open, explainable baseline that others can benchmark against
 
 ### Secondary goals
-- Track downstream actions and timing metrics.
-- Support trial pre-screening extensions.
-- Enable future imaging-assisted modules without redesigning the platform.
+
+- surface follow-up-sensitive cases even when malignancy language is indirect
+- support explainable downstream trial pre-screening from current case evidence
+- preserve enough metadata to support interoperability audits and site-scoped pilots
+- expose hybrid ranking improvements without replacing the deterministic baseline
 
 ## 4. Non-goals
-- Replacing radiologists or oncologists.
-- Providing direct patient-facing diagnosis.
-- Autonomous treatment recommendations.
-- Production-grade EHR integration in MVP.
-- Standalone image inference in v1.
 
-## 5. Target users
+- autonomous diagnosis
+- patient-facing interpretation
+- treatment recommendation
+- image-native inference from PACS or DICOM
+- unsupervised production deployment guidance
+- claims of clinical validation or regulatory clearance
 
-### Primary users
-- Nurse navigators
-- Oncology program coordinators
-- Radiology quality teams
-- Research coordinators
-- GI / pancreatic tumor board support staff
+## 5. Primary users
 
-### Secondary users
-- Radiologists validating retrospective findings
-- Clinical informatics teams
-- Pancreatic cancer researchers
-- Trial screening teams
+- nurse navigators and oncology coordinators
+- radiology quality or safety teams
+- research coordinators running retrospective datasets
+- clinical informatics teams piloting explainable workflow tooling
+- tumor-board or trial-screening support staff
 
-## 6. Core use cases
+## 6. Current supported workflows
 
-### UC1 — Retrospective quality audit
-A research coordinator uploads historic abdominal CT/MRI reports and identifies which cases the system would have flagged, why, and whether follow-up occurred.
+### Workflow 1 — Direct report triage
 
-### UC2 — Daily navigator worklist
-A navigator receives a queue of new suspicious pancreatic reports with priority score, evidence spans, and status controls.
+A user submits report-text payloads through the API and receives structured triage outputs with score, urgency, rationale codes, evidence spans, and optional hybrid analysis.
 
-### UC3 — Reviewer case inspection
-A reviewer opens a case, sees the full report text with highlighted evidence, reviews structured findings and rationale codes, and records an action.
+### Workflow 2 — Structured adapter imports
 
-### UC4 — Follow-up gap detection
-The system identifies reports with follow-up recommendations but no documented closure.
+A user imports FHIR `DiagnosticReport` or HL7 ORU content. The system extracts report text and metadata, triages the result, persists cases and reports, and records import-run summaries plus item-level audit detail.
 
-### UC5 — Trial matching extension
-A coordinator uses structured findings and basic patient abstractions to pre-screen for pancreatic oncology trials.
+### Workflow 3 — Reviewer worklist and case review
+
+A reviewer opens the web worklist, filters or sorts cases, inspects full report text, reviews evidence and rationale, checks hybrid guidance, and records review actions or feedback.
+
+### Workflow 4 — Explainable trial matching
+
+A reviewer or coordinator requests case-level trial matching and sees structured pancreatic abstractions plus explainable PDAC trial candidates.
+
+### Workflow 5 — Retrospective evaluation and public benchmarking
+
+A contributor runs the demo evaluation or external benchmark workflow, generates comparable benchmark artifacts, and publishes results with consistent labels and validation.
 
 ## 7. Functional requirements
 
-### FR1 — Ingestion
-- Accept CSV and JSONL report batches.
-- Required fields: report_id, patient_id or pseudonymous case_id, accession date, modality, report text.
-- Optional fields: site, ordering service, radiologist, exam description, indication.
+### FR1 — Ingestion and interoperability
 
-### FR2 — Preprocessing
-- Normalize whitespace and punctuation.
-- Segment report into sections if available (history, technique, findings, impression).
-- Sentence split report text.
-- Detect negation windows and uncertainty phrases.
-- Preserve raw source text.
+The system must:
 
-### FR3 — Triage engine
-System must detect:
-- explicit pancreatic mass mentions
-- suspicious lesion language
-- pancreatic duct dilation / abrupt cut-off / interruption
-- double-duct sign
-- focal pancreatic atrophy
-- vascular involvement language
-- indeterminate pancreatic lesion
-- worrisome cystic lesion descriptors
-- recommended EUS / biopsy / follow-up language
-- pancreatitis with suspicious morphology
-- relevant combinations of secondary signs
+- accept direct report-text payloads and batch report imports
+- accept supported FHIR `DiagnosticReport` payloads
+- accept supported HL7 ORU payloads
+- preserve source metadata such as patient identifier, encounter identifier, accession number, ordering provider, source system, source format, and import source identifier when available
+- persist run-level and item-level audit detail for structured imports
+- surface structured failure buckets for parse, validation, unsupported payload, and site-scope rejection paths
 
-System must emit:
-- risk score
-- urgency band
-- rationale codes
-- evidence spans
-- confidence metadata
-- suppression reasons where applicable (e.g., clear negation)
+### FR2 — Explainable triage
 
-### FR4 — Case management
-- Create or update a case on ingestion.
-- Store review state: new, in_review, escalated, dismissed, closed.
-- Allow note-taking and assignment.
-- Record reviewer action history.
+The system must:
 
-### FR5 — Worklist
-- Sort by urgency, confidence, recency.
-- Filter by status, site, modality, rationale, reviewer.
-- Search by case id / report id.
+- score pancreatic risk on a bounded scale
+- emit urgency and rationale codes
+- preserve evidence spans with section and character offsets
+- remain explainable at the sentence and finding level
+- support hybrid analysis that augments ranking without hiding the deterministic baseline
 
-### FR6 — Case detail view
-- Show full report text with evidence highlights.
-- Show extracted findings and rationale codes.
-- Show audit history.
-- Show reviewer notes and status controls.
+### FR3 — Case persistence and review
 
-### FR7 — Export and evaluation
-- Export triage results to CSV / JSON.
-- Support confusion-matrix labeling fields.
-- Provide batch evaluation script hooks.
+The system must:
 
-### FR8 — Configuration
-- Tune pattern weights and thresholds.
-- Enable / disable rationale families.
-- Support site-specific rule packs later.
+- create or update cases and reports on import
+- persist findings separately from reports
+- support reviewer assignment, notes, escalation, dismissal, closure, and reopen-style follow-up actions through review records
+- expose reviewer feedback history in addition to action history
+- keep site scoping visible in case and import behavior where applicable
 
-## 8. Future requirements
-- FHIR / HL7 ingestion
-- de-identification pipeline
-- PACS / DICOM links
-- trial matching
-- imaging overlays
-- active learning loop
-- LLM summarization under strict review constraints
+### FR4 — Reviewer-facing product surfaces
 
-## 9. User stories
+The web experience must:
 
-### Navigator
-As a navigator, I want the highest-risk pancreatic cases surfaced first so that I can prioritize urgent review.
+- expose a prioritized case list
+- allow filtering and sorting by workflow-relevant fields
+- show full report text, import metadata, evidence, review history, and feedback on case detail
+- expose explainable trial matches without presenting them as definitive enrollment guidance
+- preserve research-only framing throughout the experience
 
-### Reviewer
-As a reviewer, I want to know exactly which report phrases caused a case to be flagged so that I can trust and validate the output quickly.
+### FR5 — Pilot auth and deployment support
 
-### Research coordinator
-As a research coordinator, I want to run the system on retrospective report sets and export labeled results so that I can evaluate its potential impact.
+The platform must:
 
-### Informatics lead
-As an informatics lead, I want clear audit logs and configurable rules so that the system can be safely tested in a research environment.
+- remain easy to run locally with mock auth
+- support trusted-proxy and field-level header auth for controlled pilots
+- preserve audit visibility around site-scope acceptance and denial behavior
+- ship with smokeable deployment overlays and documented operator workflows
 
-## 10. Success metrics
+### FR6 — Evaluation and open comparison
 
-### Product metrics
-- batch ingestion success rate
-- time to triage result
-- reviewer time per case
-- percentage of cases with usable evidence highlights
+The repository must:
 
-### Quality metrics
-- recall on confirmed suspicious pancreatic reports
-- precision at top-k queue positions
-- reviewer acceptance rate of flagged cases
-- follow-up recommendation capture rate
-- negation error rate
+- support reproducible demo evaluation and threshold sweeps
+- generate benchmark proof artifacts from the demo dataset
+- generate comparable external benchmark bundles
+- validate public submission JSON against the shared schema
+- keep documentation aligned with the actual implementation state
 
-### Workflow metrics
-- hypothetical time-to-review reduction
-- hypothetical time-to-navigation reduction
-- trial pre-screen time reduction in future phases
+## 8. Current product boundaries
 
-## 11. Risks
-- false positives from chronic pancreatitis, cystic lesions, post-op anatomy, or broad abdominal malignancy wording
-- false negatives from unusual wording or buried secondary signs
-- overtrust if the UI presents the score as a diagnosis
-- institution-specific reporting style drift
+The current release intentionally stops short of:
 
-## 12. Safety requirements
-- visible research-only warning
-- human review required for all outputs
-- preserve raw source text
-- explain every flag
-- never hide uncertainty / negation logic
-- do not surface patient-facing language
+- enterprise identity-provider integrations beyond the pilot auth modes
+- longitudinal patient threading across multiple external systems
+- automated follow-up closure detection from downstream EHR state
+- image-derived features or PACS-native workflows
+- a closed-loop active learning queue that retrains or rewrites thresholds automatically
 
-## 13. Release criteria for MVP
-- all required ingestion paths work on demo data
-- rule engine outputs stable structured triage results
-- web queue and case detail pages function
-- reviewer actions persist
-- evaluation scripts and docs are present
-- example dataset and ontology ship with the repo
+## 9. Success measures
+
+### Workflow measures
+
+- import success rate across report, FHIR, and HL7 paths
+- reviewer time-to-understand why a case was flagged
+- queue usefulness at the top reviewed ranks
+- visibility of failed or denied imports during pilot operations
+
+### Quality measures
+
+- recall and precision on labeled datasets
+- sensitivity and precision at top-k review depth
+- follow-up recommendation capture on the demo and benchmark flows
+- reduction in unexplained false positives and negation failures
+
+### Platform measures
+
+- repeatable `make validate-strict` health
+- accurate deployment and handoff documentation
+- successful pilot smoke coverage for the intended hosted/manual matrix
+
+## 10. Known risks
+
+- wording variance and secondary-sign-only reports can still evade deterministic rules
+- inflammatory or cystic confounders can still overcall risk
+- reviewers may overtrust scores if explanations are not kept prominent
+- interoperability inputs vary by site and vendor, especially for structured narratives and identifiers
+- pilot auth and site-scope behavior can drift if smoke coverage is not kept current
+
+## 11. Near-term roadmap
+
+The next requirements focus on late-Phase-6 hardening rather than new foundation work:
+
+1. capture the first green GitHub-hosted attachment-backed FHIR smoke run
+2. decide whether HL7 success smoke moves into the hosted matrix
+3. continue interoperability hardening around FHIR and HL7 edge cases
+4. deepen benchmark coverage with more realistic labeled datasets
+5. strengthen reviewer ergonomics and feedback utilization without weakening explainability
+
+## 12. Release-readiness criteria for the current phase
+
+The current product state is release-ready for research and controlled pilot packaging when:
+
+- direct report, FHIR, and HL7 imports behave as documented
+- import-run audit lookup matches persisted structured import behavior
+- reviewer workflow, feedback, and trial matching work end to end
+- deployment overlays and smoke workflows reflect the real supported auth modes
+- benchmark artifacts and validation commands remain reproducible
+- docs describe the implementation that actually ships, not an earlier MVP plan
