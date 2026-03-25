@@ -1,97 +1,129 @@
-# Evaluation plan
+# Evaluation
 
 ## Evaluation philosophy
 
-The first goal is not headline AUROC. It is practical triage usefulness:
+The primary goal is practical triage usefulness, not headline AUROC. The most important questions are:
+
 - does the system surface the right cases early in the queue?
-- are the reasons understandable?
-- does it reduce reviewer search burden?
+- can a reviewer understand why a case was flagged quickly?
+- do the benchmark artifacts make comparison honest and reproducible?
+
+## Current evaluation assets
+
+The repository already ships with:
+
+- a synthetic/demo dataset for repeatable local evaluation
+- a deterministic-versus-hybrid comparison flow
+- threshold sweep helpers for review-depth tuning
+- generated benchmark proof artifacts in `docs/examples/`
+- an external benchmark bundle writer and submission validator
 
 ## Datasets
-- demo synthetic dataset in this repo
-- future de-identified retrospective labeled report sets
-- institution-specific validation sets later
 
-## Ground truth strategy
-Each report should eventually be labeled for:
-- suspicious pancreatic malignancy present? yes/no
-- high-risk pancreatic abnormality present? yes/no
-- action-worthy follow-up recommendation present? yes/no
-- flag should have been escalated? yes/no
+Current datasets:
+
+- synthetic demo data in this repository
+- public benchmark templates in `docs/examples/`
+
+Next datasets to prioritize:
+
+- de-identified retrospective labeled report sets
+- site-specific validation sets for interoperability and wording variance
+
+## Ground-truth framing
+
+The current benchmark logic supports labels for:
+
+- suspicious pancreatic malignancy present
+- high-risk pancreatic abnormality present
+- action-worthy follow-up recommendation present
+- reviewer escalation expected
+
+For benchmark comparison, `should_flag` is derived from the logical OR of those labels so the evaluation can reward important non-malignancy follow-up cases as well as overtly suspicious lesions.
 
 ## Metrics
 
-### Core
+### Core performance
+
 - precision
 - recall
 - F1
 - sensitivity at top-k
 - precision at top-k
 - reviewer yield
-- false negative count by rationale family
+- false-negative count by shared bucket name
 
-### Operational
+### Operational usefulness
+
 - average cases reviewed to find one true action-worthy signal
 - estimated review-time savings
-- threshold-volume curve
+- threshold-versus-volume tradeoffs
+- reviewer comprehension of evidence and rationale
 
-## Error analysis buckets
-- negated finding interpreted as positive
+### Platform quality
+
+- repeatability of demo benchmark outputs
+- validity of exported benchmark submission bundles
+- consistency between docs, commands, and generated artifacts
+
+## Error-analysis buckets
+
+Use these stable buckets when reviewing misses:
+
+- negation failure
 - historical finding interpreted as current
-- incidental cystic lesion overcalled
-- pancreatitis / inflammatory confounder
+- incidental cyst overcall
+- pancreatitis or inflammatory confounder
 - secondary signs missed
 - recommendation language missed
 - uncommon wording
 
-## Benchmark procedure
-1. Run batch inference on labeled data.
-2. Save outputs and thresholds.
-3. Produce confusion matrix and queue metrics.
-4. Review top false positives and false negatives.
-5. Update ontology / rules.
-6. Re-run and compare deltas.
+## Current repo workflows
 
-Current repo helpers for the demo dataset:
+### Demo proof and comparison
+
 - `python scripts/run_demo_eval.py --compare --json`
 - `python scripts/run_demo_eval.py --sweep --json`
 - `python scripts/write_demo_benchmark.py`
 - `make refresh-demo-proof`
+
+### External benchmark workflow
+
 - `python scripts/run_external_eval.py --labels docs/examples/benchmark-label-template.jsonl --predictions docs/examples/benchmark-prediction-template.jsonl`
 - `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl`
 - `make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission-template.json`
+
+### Repo health gate
+
 - `python scripts/validate_repo.py --strict`
 
-Published demo proof files:
+## Published proof surfaces
+
 - `docs/examples/demo-benchmark-current.json`
 - `docs/examples/demo-benchmark-current.md`
-
-Public benchmark pack:
 - `docs/LABELING_GUIDE.md`
 - `docs/BENCHMARK_SUBMISSIONS.md`
 - `docs/examples/benchmark-label-template.jsonl`
 - `docs/examples/benchmark-prediction-template.jsonl`
 - `docs/examples/benchmark-submission-template.json`
 
-Comparable external evaluation workflow:
-1. Prepare labels that match `EvaluationLabel`.
-2. Prepare prediction scores that match `docs/examples/benchmark-prediction-template.jsonl`.
-3. Run `make benchmark-external LABELS=... PREDICTIONS=...`.
-4. Validate the generated `*-submission.json` with `make validate-benchmark-submission SUBMISSION=...`.
-5. Review the generated Markdown bundle before publishing it.
+## Recommended reproducibility loop
 
-Recommended reproducibility loop:
-1. Run `python scripts/validate_repo.py --strict` in a fully prepared local environment.
-2. Generate benchmark artifacts with `python scripts/write_demo_benchmark.py`.
-3. Save the JSON and Markdown snapshot alongside any rule or threshold changes.
-4. Compare the new snapshot against the previous run before changing operating thresholds.
+1. Run `python scripts/validate_repo.py --strict` in a prepared local environment.
+2. Regenerate demo benchmark artifacts with `python scripts/write_demo_benchmark.py`.
+3. Compare benchmark deltas before changing thresholds or rationale families.
+4. When sharing results publicly, generate the external benchmark bundle and validate the submission JSON.
 
-## Human factors checks
-- Can reviewers understand why a case was flagged within 10 seconds?
+## Human-factors checks
+
+- Can reviewers understand why a case was flagged within roughly 10 seconds?
 - Does the UI avoid presenting a score as a diagnosis?
-- Are uncertainty and negation visible?
+- Are uncertainty, negation, and recommendation language visible?
+- Are trial matches and hybrid factors presented as review support instead of automated decisions?
 
-## Future evaluation
-- site-shift performance
-- hybrid model calibration
-- prospective workflow analysis
+## Near-term evaluation work
+
+- expand beyond the synthetic/demo dataset
+- compare more structured-import edge cases under realistic site variability
+- use reviewer feedback and import audit outcomes to refine benchmarking priorities
+- keep public benchmark artifacts aligned with the current hybrid baseline and supported workflows

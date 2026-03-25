@@ -2,122 +2,155 @@
 
 ## 1. Overview
 
-Pancreatic Signal is organized as a modular monorepo with:
-- `apps/api` — ingestion, triage, persistence, evaluation endpoints
-- `apps/web` — reviewer-facing dashboard
-- `data` — demo reports and ontology files
-- `docs` — specification and handoff materials
-- `scripts` — local bootstrapping and packaging
+Pancreatic Signal is a modular monorepo with clear boundaries between ingestion, triage, reviewer workflow, evaluation, and pilot packaging:
 
-## 2. High-level flow
+- `apps/api` handles ingestion, triage, persistence, auth, evaluation, and trial matching
+- `apps/web` provides the reviewer worklist, case detail experience, and import workspace
+- `data` stores demo reports, ontology files, and trial-matching rule assets
+- `docs` contains the operator, product, benchmark, and handoff materials
+- `scripts` provides local tooling, smoke helpers, and evaluation/export helpers
 
-1. Reports are imported from CSV / JSONL.
-2. API normalizes and segments report text.
-3. Triage engine scores pancreatic suspicion.
-4. Findings and evidence spans are persisted.
-5. Cases are shown in a prioritized worklist.
-6. Reviewer actions update status and audit logs.
-7. Exports and evaluation pipelines consume structured outputs.
+## 2. Current end-to-end flow
 
-## 3. Component diagram
+1. A user imports report text directly or submits structured FHIR/HL7 content.
+2. The API extracts report text, structured identifiers, and source metadata.
+3. The rule engine normalizes text, sections content, extracts evidence spans, and assigns pancreatic rationale codes.
+4. Hybrid analysis optionally augments the deterministic result with calibrated scoring, confidence, sentence candidates, and review-priority hints.
+5. The API creates or updates case, report, and finding records.
+6. Structured adapter imports also persist an import-run summary plus per-item audit results.
+7. The web app reads persisted case detail, review history, feedback, hybrid guidance, import metadata, and trial matches for human review.
+8. Evaluation and benchmark helpers consume the same stored or generated outputs for reproducible proof artifacts.
+
+## 3. Runtime component map
 
 ```text
-[Importer / CLI / Upload]
-          |
-          v
-   [FastAPI ingestion]
-          |
-          v
- [Preprocessor + Parser]
-          |
-          v
-   [Triage Engine v1]
-          |
-   +------+------+
-   |             |
-   v             v
-[DB models]   [Export / Eval]
-   |
-   v
-[Cases API]
-   |
-   v
-[Next.js worklist UI]
+[Report / FHIR / HL7 import]
+            |
+            v
+   [FastAPI auth + adapters]
+            |
+            v
+ [Normalization + rule triage]
+            |
+      +-----+------+
+      |            |
+      v            v
+[Hybrid analysis] [Trial abstraction helpers]
+      |            |
+      +-----+------+
+            |
+            v
+ [SQLAlchemy persistence layer]
+            |
+      +-----+------+
+      |            |
+      v            v
+[Cases / imports API] [Eval + benchmark helpers]
+      |
+      v
+[Next.js reviewer and import UI]
 ```
 
-## 4. API design principles
-- clean JSON contracts
-- deterministic triage output
-- auditable rationale codes
-- API should be UI-agnostic
-- versionable endpoints from day one
+## 4. API architecture principles
 
-## 5. Triage engine design
+- deterministic baseline behavior remains inspectable
+- hybrid outputs may improve ranking but must not replace explainability
+- API contracts stay UI-agnostic and versionable
+- audit visibility is a first-class product concern, not a side effect
+- structured adapters should degrade into explicit failure buckets rather than silent drops
 
-### Stage 1 — sectioning
-Split report into findings / impression when possible.
+## 5. Core service layers
 
-### Stage 2 — sentence analysis
-Run pattern matching over each sentence.
+### Ingestion adapters
 
-### Stage 3 — evidence extraction
-Collect evidence spans, offsets, section name, and matched ontology codes.
+The API supports three import shapes:
 
-### Stage 4 — scoring
-Aggregate matches using weighted heuristics:
-- explicit mass terms = high weight
-- secondary sign combinations = medium-high weight
-- follow-up recommendations = additive
-- negations / benign explanations = subtractive or suppressive
+- direct report-text payloads for local/demo and simple integrations
+- FHIR `DiagnosticReport` ingestion for structured clinical interoperability
+- HL7 ORU ingestion for legacy feed compatibility
 
-### Stage 5 — output normalization
-Emit:
-- score
-- urgency band
-- finding list
-- rationale summary
-- explainability metadata
+Adapter code is responsible for extracting text, preserving import metadata, and classifying unsupported or malformed payloads clearly.
 
-## 6. Persistence model
-The core entities are:
-- Case
-- Report
-- Finding
-- ReviewAction
-- TrialCandidate (future)
-- AuditEvent
+### Rule triage engine
 
-See `docs/DATA_MODEL.md`.
+The deterministic triage service:
 
-## 7. Extensibility plan
-The architecture intentionally allows:
-- swapping rule engine for hybrid rules + ML
-- replacing local file ingestion with FHIR / HL7 adapters
-- integrating trial matching
-- connecting imaging outputs later
+- sections report text where possible
+- evaluates sentence-level pattern families
+- applies negation and contextual suppression
+- emits evidence spans and rationale codes
+- assigns a bounded score and urgency level
 
-## 8. Operational modes
+### Hybrid analysis
 
-### Research mode
-- local or sandbox deployment
-- de-identified data
-- retrospective analysis
-- configurable thresholds
+Hybrid analysis is a separate layer that enriches the baseline result with:
 
-### Pilot mode
-- daily imports
-- human navigator queue
-- no autonomous escalation
+- calibrated score
+- confidence label
+- review priority
+- active-learning-oriented priority hints
+- summary factors
+- sentence-level candidates with matched codes and rationales
 
-## 9. Security posture for MVP
-- no PHI is included in demo data
-- local-only defaults
-- simple mock auth
-- visible audit logging
-- secrets via environment variables only
+This keeps the rule engine legible while still surfacing ranking improvements.
 
-## 10. Future architecture additions
-- async jobs for large batches
-- vector / retrieval layer for trial eligibility explanations
-- site-specific rule packs
-- report deduplication / longitudinal threading
+### Trial matching
+
+Trial matching operates on persisted case/report evidence and derived abstractions. It is rule-based and explainable: every candidate includes a score, status, rationale, and criterion-level traces.
+
+## 6. Persistence and audit model
+
+The durable relational core is:
+
+- `CaseRecord`
+- `ReportRecord`
+- `FindingRecord`
+- `ReviewActionRecord`
+- `ImportRunRecord`
+- `ImportRunItemRecord`
+
+There is no separate generic `AuditEvent` table in the current implementation. Instead, auditability is expressed through:
+
+- review-action history on cases
+- timestamps on persisted domain records
+- structured import-run summaries and item-level import results
+
+## 7. Auth and deployment modes
+
+### Local development mode
+
+- mock auth enabled by default
+- fast iteration for API, web, and demo imports
+- suitable for synthetic or de-identified local work
+
+### Pilot modes
+
+The current pilot packaging supports:
+
+- trusted-proxy auth using an upstream identity envelope
+- field-level header auth with explicit forwarded actor fields
+- site-scoped imports and access decisions
+- shared reviewer identities when desired for demos
+
+These modes are documented and smoke-tested; they are not marketed as full enterprise SSO integrations.
+
+## 8. Current smoke and deployment boundary
+
+The pilot smoke workflow intentionally splits coverage:
+
+- hosted GitHub Actions covers base report success, attachment-backed FHIR success, report-path site rejection, and structured adapter site rejection
+- manual/operator-driven smokes still cover the broader HL7 success path, shared-visibility paths, audit-denial flows, and additional structured failure paths
+
+This boundary is deliberate and should stay aligned with `docs/DEPLOYMENT.md` and the active workflow file.
+
+## 9. Extensibility and remaining architecture work
+
+The architecture still leaves room for:
+
+- deeper FHIR and HL7 interoperability coverage
+- stronger enterprise auth integrations beyond pilot modes
+- broader trial catalogs and abstraction depth
+- richer feedback loops around reviewer labels and hybrid prioritization
+- future async execution for heavier import or evaluation loads
+
+What it does not currently prioritize is PACS-native imaging inference or opaque retrieval-heavy decision paths.

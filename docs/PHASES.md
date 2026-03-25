@@ -1,118 +1,114 @@
-# Phased implementation plan
+# Phase status and next slices
 
-## Phase 0 — Repository foundation
-### Goal
-Make the repo runnable and understandable.
+This repository has already completed the early foundation and MVP-oriented phases. The current work is late Phase 6 interoperability and pilot hardening, not initial product construction.
 
-### Deliverables
-- bootable API and web shell
-- demo data
-- docs complete enough for contributors
-- packaging scripts
+## Completed phases
 
-### Exit criteria
-- `uvicorn app.main:app` works
-- `npm run dev` works
-- example files exist
+### Phase 0 — Repository foundation
 
----
+Completed outcomes:
 
-## Phase 1 — Deterministic triage MVP
-### Goal
-Flag suspicious pancreatic reports from text.
+- bootable API and web app
+- demo data and local developer workflow
+- baseline docs, packaging, and validation commands
 
-### Work items
-- ontology completion
-- report normalization
-- negation handling
-- weighted rule scoring
-- structured findings model
-- triage endpoints
+### Phase 1 — Deterministic triage baseline
 
-### Exit criteria
-- batch import produces structured triage outputs
-- evidence spans visible in API output
-- tests cover core rule families
+Completed outcomes:
 
----
+- transparent rule-based pancreatic triage
+- rationale codes and evidence spans
+- bounded scoring and urgency output
+- batch and direct report ingestion
 
-## Phase 2 — Reviewer workflow
-### Goal
-Turn triage outputs into a usable queue.
+### Phase 2 — Reviewer workflow
 
-### Work items
-- case persistence
-- worklist filters
-- case detail page
-- status transitions
-- reviewer notes and assignments
+Completed outcomes:
 
-### Exit criteria
-- cases can be reviewed end to end
-- audit actions persist
-- UI reads live API data
+- persisted cases, reports, findings, and review actions
+- worklist filters and case detail pages
+- reviewer assignment, notes, escalation, dismissal, and status tracking
 
----
+### Phase 3 — Evaluation and benchmark surfaces
 
-## Phase 3 — Evaluation and retrospective studies
-### Goal
-Quantify value.
+Completed outcomes:
 
-### Work items
-- evaluation scripts
-- error bucket templates
-- export files
-- calibration / threshold analysis
-- charting notebook placeholders
+- demo evaluation scripts and threshold sweeps
+- benchmark proof artifacts in `docs/examples/`
+- external benchmark bundle generation and submission validation
 
-### Exit criteria
-- reproducible evaluation run on demo / labeled data
-- documented benchmark procedure
+### Phase 4 — Trial matching extension
 
----
+Completed outcomes:
 
-## Phase 4 — Trial matching extension
-### Goal
-Assist downstream pancreatic oncology coordination.
+- explainable pancreatic abstraction fields
+- rule-based PDAC trial matching
+- case-detail trial candidate display and API support
 
-### Work items
-- structured abstractions
-- trial criteria retrieval
-- explainable rule-based matching
-- eligibility trace UI
+### Phase 5 — Hybrid prioritization upgrade
 
-### Exit criteria
-- a case can show potential PDAC trial candidates with explanation
+Completed outcomes:
 
----
+- hybrid scoring and calibrated ranking surfaces
+- confidence and review-priority outputs
+- reviewer feedback capture and recommendation scaffolding
 
-## Phase 5 — Hybrid AI upgrade
-### Goal
-Improve sensitivity and robustness while preserving explainability.
+## Active phase
 
-### Work items
-- sentence classifier
-- ranking model
-- confidence calibration
-- active learning queue
-- site-specific adaptation
+### Phase 6 — Interoperability, pilot auth, and deployment hardening
 
-### Exit criteria
-- hybrid system benchmarks above rules-only baseline
-- explanations remain reviewer-usable
+Already completed in this phase:
 
----
+- trusted-proxy and header-auth pilot modes
+- site-scoped access and import behavior
+- de-identified research views
+- FHIR ingestion
+- HL7 ORU ingestion
+- structured import metadata persistence
+- persisted import-run audit records
+- pilot Docker overlays and smoke coverage
+- hosted GitHub smoke coverage for the narrower supported matrix
 
-## Phase 6 — Integration and deployment
-### Goal
-Support real research pilots.
+## Current next slices
 
-### Work items
-- FHIR / HL7 adapters
-- SSO
-- observability
-- de-identification pipeline
-- deployment manifests
+### Phase 6A — Hosted FHIR smoke confirmation
 
-### Exit criteria
-- documented pilot deployment path
+Goal:
+
+- record the first green GitHub-hosted attachment-backed FHIR smoke run using the current `Pilot Smoke` workflow
+
+### Phase 6B — HL7 hosting decision
+
+Goal:
+
+- decide whether HL7 success-path smoke should join the hosted matrix or remain operator-triggered based on reliability and maintenance cost
+
+### Phase 6C — Interoperability depth and audit hardening
+
+Goal:
+
+- continue closing edge cases around structured narratives, identifiers, site-scope denials, and failure-path visibility without regressing explainability
+
+### Phase 6D — Release-facing polish
+
+Goal:
+
+- keep deployment, readiness, benchmark, and handoff docs aligned with the shipping implementation so contributors and operators can work without private context
+
+## What is not a current phase target
+
+The repo is not currently prioritizing:
+
+- PACS-native image inference
+- autonomous diagnosis or treatment logic
+- opaque model-only triage replacements
+- broad hospital production deployment claims
+
+## Phase 6 exit view
+
+Phase 6 is in a good state when:
+
+- the hosted/manual smoke boundary is intentionally documented and verified
+- the structured import paths behave consistently across report, FHIR, and HL7 inputs
+- pilot auth modes remain documented, tested, and auditable
+- release-facing docs match the actual product state

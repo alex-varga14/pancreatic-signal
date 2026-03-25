@@ -39,7 +39,7 @@ This project is most helpful to the larger open-source community when it offers:
 - realistic workflow surfaces instead of isolated NLP scripts
 - import adapters that help teams meet existing hospital data where it is
 - safety-forward examples of review, audit, scope control, and de-identification
-- a place where research groups can improve rules and evaluation methods in the open
+- a place where research groups can improve rules, benchmarks, and workflow ergonomics in the open
 
 ## Contribution Model
 
@@ -56,8 +56,8 @@ The highest-value collaboration areas after the current pilot hardening work are
 1. improve interoperability depth across FHIR and HL7 edge cases
 2. strengthen benchmark datasets, labeling guidance, and error analysis
 3. expand deployment guidance for real-world pilot constraints
-4. deepen reviewer ergonomics without compromising explainability
-5. add trial-matching and abstraction features on top of the stable triage core
+4. deepen reviewer ergonomics and feedback loops without compromising explainability
+5. refine the existing trial-matching and abstraction layer instead of replacing it with opaque matching
 
 ## Open-Source Guardrails
 

@@ -1,161 +1,101 @@
-# MVP Plan — Pancreatic Signal
+# Platform Snapshot And Near-Term Plan
 
-## MVP objective
+This repository is no longer in MVP planning mode. The core research-first triage platform is implemented, validated, and in late Phase 6 interoperability and pilot-hardening work.
 
-Deliver a research-grade, open-source prototype that can ingest de-identified radiology report text, flag suspicious pancreatic cases using a transparent rule engine, and support a minimal reviewer workflow.
+This document keeps the old filename for continuity, but it now serves as the current-state snapshot plus the near-term execution plan for the next few slices.
 
-## Why this MVP
+## Current platform status
 
-This version maximizes:
-- feasibility for a small team or solo builder
-- explainability
-- retrospective evaluation readiness
-- extensibility into trial matching and imaging modules
+Pancreatic Signal already supports:
 
-It avoids the hardest early blockers:
-- raw DICOM inference
-- hospital integration
-- model governance for black-box AI
-- patient-facing or treatment-facing claims
+- report-text ingestion for direct triage and batch imports
+- structured FHIR `DiagnosticReport` imports
+- HL7 ORU import handling, including recent metadata and parser hardening
+- persisted case, report, finding, review-action, and import-run audit records
+- a reviewer worklist with filters, case detail, notes, assignment, escalation, dismissal, and feedback capture
+- hybrid prioritization alongside the deterministic rule engine
+- explainable PDAC trial matching from current case evidence
+- pilot auth and deployment modes for mock auth, trusted-proxy auth, and header-based auth
+- de-identified research views, benchmark artifacts, and external evaluation bundle generation
 
-## MVP scope
+## What the current platform is optimized for
 
-### In scope
-- CSV / JSONL ingestion
-- rule-based pancreatic suspicion scoring
-- evidence highlighting
-- worklist UI
-- case detail UI
-- reviewer actions and notes
-- export
-- demo dataset and evaluation scaffold
+The platform is designed for:
 
-### Out of scope
-- PACS integration
-- EHR integration
-- user / org management beyond mock auth
-- LLM-only inference
-- active learning
-- production deployment hardening
+- research-first workflow support rather than autonomous diagnosis
+- transparent text triage with evidence spans and rationale codes
+- human-reviewed queueing and escalation workflows
+- auditable import, review, and pilot smoke behavior
+- open benchmarking and reproducible evaluation
 
-## MVP deliverables
+The platform is intentionally not designed for:
 
-1. API service
-2. Web worklist
-3. Demo dataset
-4. Rule ontology
-5. Evaluation scripts
-6. Documentation for future autonomous implementation
+- image-native inference from DICOM or PACS
+- patient-facing recommendations
+- unsupervised clinical deployment
+- opaque model-only decision making
+- production EHR rollout claims
 
-## Feature breakdown
+## Current capability areas
 
-### Feature 1 — Report ingestion
-#### Capability
-Upload or load structured report data and persist a normalized report record.
+### Ingestion and normalization
 
-#### Acceptance criteria
-- accepts CSV and JSONL
-- validates schema
-- stores raw and normalized text
-- returns import summary
+- Direct report imports accept structured report text with optional import metadata.
+- FHIR imports preserve attachment-backed narratives, structured identifiers, and source metadata.
+- HL7 imports preserve source identifiers, accession/provider metadata, and parser failure detail.
+- Every structured import path can persist an import-run summary and item-level audit trail.
 
-### Feature 2 — Triage engine
-#### Capability
-Generate structured pancreatic suspicion output from report text.
+### Triage and prioritization
 
-#### Acceptance criteria
-- emits risk score 0–1
-- emits urgency band
-- emits rationale codes
-- emits evidence spans with section + sentence offsets
-- handles simple negation and uncertainty
+- The deterministic rule engine remains the baseline scoring layer.
+- Triage outputs include a normalized score, urgency, rationale codes, and evidence spans.
+- Hybrid analysis adds calibrated ranking, confidence, review-priority hints, factors, and sentence-level candidates without replacing explainability.
+- Threshold and scoring proof surfaces are already wired into the demo evaluation workflow.
 
-### Feature 3 — Case creation
-#### Capability
-Convert triage outputs into searchable queue items.
+### Reviewer workflow
 
-#### Acceptance criteria
-- each imported report maps to a case record
-- case statuses persist
-- repeated imports update rather than duplicate when configured
+- The web app exposes a live worklist with sort/filter support and case detail views.
+- Reviewers can assign, escalate, dismiss, close, or annotate cases.
+- Reviewer feedback is stored and summarized separately from review actions.
+- Trial matching is available on case detail as an explainable downstream support feature.
 
-### Feature 4 — Reviewer worklist
-#### Capability
-Enable reviewers to sort and inspect flagged cases.
+### Pilot operations
 
-#### Acceptance criteria
-- list view with filters
-- case detail page
-- reviewer note / status actions
-- assignment field
-- audit log display
+- Local development defaults to mock auth so the stack is easy to boot.
+- Pilot overlays support trusted-proxy identity envelopes and field-level header auth.
+- Site scoping, import denial behavior, audit visibility, and failure-path smoke coverage exist in both pilot auth modes.
+- Hosted GitHub smoke coverage now includes the base report success path, attachment-backed FHIR success path, and site-rejection checks, with a narrower `fhir-success-only` dispatch option.
 
-### Feature 5 — Evaluation
-#### Capability
-Measure usefulness of the triage engine on demo / labeled data.
+### Evaluation and public proof
 
-#### Acceptance criteria
-- precision / recall calculation script
-- top-k review yield calculation
-- qualitative error bucket template
+- Demo benchmark artifacts are generated and checked into `docs/examples/`.
+- The repo can generate comparable external benchmark bundles and validate third-party submissions.
+- Release-readiness, deployment, and handoff docs are maintained as active operator references rather than aspirational notes.
 
-## MVP architecture decisions
-- backend-first: FastAPI
-- frontend: Next.js App Router
-- storage: SQLite locally, Postgres-ready
-- triage logic: Python service layer with configurable YAML / JSON ontology
-- auth: mocked
-- jobs: synchronous now
+## What remains near term
 
-## Data contract for v1
-Required fields:
-- report_id
-- case_id or patient_id
-- report_datetime
-- modality
-- report_text
+The next work is not foundation work. It is targeted late-Phase-6 execution:
 
-Recommended fields:
-- impression_text
-- findings_text
-- indication
-- site
-- accession_number
+1. Record the first green GitHub-hosted FHIR-only pilot smoke run.
+2. Decide whether HL7 success smoke should join the hosted workflow matrix or remain operator-triggered.
+3. Continue interoperability hardening around structured edge cases and pilot failure visibility.
+4. Expand real benchmark and retrospective evaluation inputs beyond the synthetic/demo set.
+5. Keep improving reviewer ergonomics and feedback loops without weakening explainability.
 
-## Prioritized implementation order
+## What is still intentionally incomplete
 
-### Sprint 1
-- repo boots
-- health endpoints
-- schemas
-- demo dataset
-- ontology files
+- There is no production-ready enterprise SSO integration yet; the current pilot modes are mock, trusted-proxy, and fixed-header auth.
+- Trial matching is implemented, but the trial catalog and abstraction layer remain curated and rules-based.
+- Hybrid analysis exposes active-learning-oriented prioritization fields, but there is not yet a full closed-loop active learning workflow.
+- Deployment guidance targets research and controlled pilot environments, not general hospital production rollout.
 
-### Sprint 2
-- rule engine
-- triage endpoint
-- batch ingestion
+## Current definition of ready
 
-### Sprint 3
-- database persistence
-- worklist endpoint
-- case detail endpoint
+The repository is in a good operational state when a new contributor can:
 
-### Sprint 4
-- web worklist
-- web case detail
-- reviewer actions
-
-### Sprint 5
-- export
-- evaluation script
-- polishing docs and examples
-
-## Definition of done
-The MVP is done when a new contributor can:
-1. run the stack locally
-2. load the sample dataset
-3. view prioritized pancreatic-signal cases in the UI
-4. inspect why each case was flagged
-5. export results
-6. understand what to build next from the docs
+1. boot the API and web app locally
+2. import sample data through the supported report or structured adapter paths
+3. inspect cases, evidence, import metadata, and reviewer actions in the UI
+4. review import-run audit summaries and failure details
+5. run the benchmark and validation workflows
+6. understand the next late-Phase-6 priorities from the docs without private handoff
