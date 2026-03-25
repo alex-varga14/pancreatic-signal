@@ -182,7 +182,7 @@ The next requirements focus on late-Phase-6 hardening rather than new foundation
 
 1. capture the first green GitHub-hosted attachment-backed FHIR smoke run
 2. decide whether HL7 success smoke moves into the hosted matrix
-3. continue interoperability hardening around FHIR and HL7 edge cases
+3. record the hosted smoke evidence and hosted or manual HL7 decision clearly in release-facing docs
 4. deepen benchmark coverage with more realistic labeled datasets
 5. strengthen reviewer ergonomics and feedback utilization without weakening explainability
 

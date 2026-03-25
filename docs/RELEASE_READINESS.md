@@ -29,6 +29,7 @@ Do not tag a release that blurs those boundaries.
 - Hosted GitHub Actions pilot smoke is green for the release branch or release candidate when applicable
 - if a hosted smoke workflow was only added recently, its first GitHub-hosted run is either green or explicitly called out as pending
 - hosted smoke summaries are captured from `pilot-smoke-summary.json` and `pilot-smoke-summary.md` when those artifacts exist
+- failed historical workflow executions without jobs or uploaded artifacts are not treated as hosted evidence
 - the handoff and deployment docs accurately distinguish hosted base plus report-path and structured adapter site-rejection smoke coverage from the broader manual structured-failure and visibility matrix
 - latest API, web, and evaluation results are captured in the release notes or handoff
 - relevant pilot smoke targets have been rerun recently enough to be credible for the release

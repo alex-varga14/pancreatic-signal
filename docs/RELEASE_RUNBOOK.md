@@ -66,6 +66,8 @@ The minimum hosted evidence path is:
    - [docs/CODEX_HANDOFF.md](./CODEX_HANDOFF.md)
    - [CHANGELOG.md](../CHANGELOG.md) if the run materially changes release confidence
 
+Historical failed workflow executions without jobs or uploaded artifacts do not count as hosted evidence. Treat the first usable hosted checkpoint as the first green run that actually produces `pilot-smoke-summary.json` and `pilot-smoke-summary.md`.
+
 If you are making the HL7 hosting decision for Phase 6B, also dispatch:
 
 1. `smoke_scope=hl7-success-only`
@@ -132,4 +134,3 @@ As of the current Phase 6 state:
 - repo-side interoperability hardening is already in place
 - the highest-value remaining work is hosted smoke evidence capture for Phase 6A and 6B
 - release-facing docs should help contributors understand that boundary without private context
-
