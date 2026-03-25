@@ -28,19 +28,6 @@ concurrency:
 jobs:
   pilot-smoke:
     name: ${{ matrix.name }}
-    if: >-
-      ${{
-        (
-          github.event_name == 'schedule' &&
-          matrix.hosted_mode != 'manual_only'
-        ) || (
-          github.event_name == 'workflow_dispatch' && (
-            (inputs.smoke_scope == 'all' && matrix.hosted_mode != 'manual_only') ||
-            (inputs.smoke_scope == 'fhir-success-only' && matrix.manual_scope == 'fhir-success') ||
-            (inputs.smoke_scope == 'hl7-success-only' && matrix.manual_scope == 'hl7-success')
-          )
-        )
-      }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -129,10 +116,42 @@ jobs:
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
 
     steps:
+      - name: Select matrix slice
+        id: matrix_gate
+        shell: bash
+        run: |
+          should_run=false
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            if [[ "${{ matrix.hosted_mode }}" != "manual_only" ]]; then
+              should_run=true
+            fi
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            case "${{ inputs.smoke_scope }}" in
+              all)
+                if [[ "${{ matrix.hosted_mode }}" != "manual_only" ]]; then
+                  should_run=true
+                fi
+                ;;
+              fhir-success-only)
+                if [[ "${{ matrix.manual_scope }}" == "fhir-success" ]]; then
+                  should_run=true
+                fi
+                ;;
+              hl7-success-only)
+                if [[ "${{ matrix.manual_scope }}" == "hl7-success" ]]; then
+                  should_run=true
+                fi
+                ;;
+            esac
+          fi
+          echo "should_run=${should_run}" >> "$GITHUB_OUTPUT"
+
       - name: Check out repository
+        if: steps.matrix_gate.outputs.should_run == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Python
+        if: steps.matrix_gate.outputs.should_run == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -140,13 +159,16 @@ jobs:
           cache-dependency-path: apps/api/pyproject.toml
 
       - name: Install API dependencies
+        if: steps.matrix_gate.outputs.should_run == 'true'
         run: make api-install
 
       - name: Boot pilot overlay
+        if: steps.matrix_gate.outputs.should_run == 'true'
         run: ${{ matrix.up }}
 
       - name: Run pilot smoke
         id: run_pilot_smoke
+        if: steps.matrix_gate.outputs.should_run == 'true'
         shell: bash
         run: |
           set -o pipefail
@@ -159,7 +181,7 @@ jobs:
           exit "${status}"
 
       - name: Upload pilot smoke log
-        if: always()
+        if: always() && steps.matrix_gate.outputs.should_run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: pilot-smoke-${{ matrix.artifact_name }}
@@ -167,7 +189,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Generate pilot smoke summary artifacts
-        if: always()
+        if: always() && steps.matrix_gate.outputs.should_run == 'true'
         run: |
           python scripts/summarize_pilot_smoke.py \
             --log-path pilot-smoke.log \
@@ -192,7 +214,7 @@ jobs:
             --sha "${{ github.sha }}"
 
       - name: Upload pilot smoke summary artifacts
-        if: always()
+        if: always() && steps.matrix_gate.outputs.should_run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: pilot-smoke-summary-${{ matrix.artifact_name }}
@@ -202,21 +224,32 @@ jobs:
           if-no-files-found: ignore
 
       - name: Write pilot smoke summary
-        if: always()
+        if: always() && steps.matrix_gate.outputs.should_run == 'true'
         shell: bash
         run: |
           if [[ -f pilot-smoke-summary.md ]]; then
             cat pilot-smoke-summary.md >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Note skipped matrix slice
+        if: steps.matrix_gate.outputs.should_run != 'true'
+        run: |
+          {
+            echo "## Pilot Smoke"
+            echo "- Matrix job: ${{ matrix.name }}"
+            echo "- Scope: ${{ matrix.manual_scope }}"
+            echo "- Hosted mode: ${{ matrix.hosted_mode }}"
+            echo "- Status: skipped for this event or dispatch scope"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Show compose status on failure
-        if: failure()
+        if: failure() && steps.matrix_gate.outputs.should_run == 'true'
         run: docker compose ${{ matrix.compose_args }} ps
 
       - name: Show compose logs on failure
-        if: failure()
+        if: failure() && steps.matrix_gate.outputs.should_run == 'true'
         run: docker compose ${{ matrix.compose_args }} logs --no-color --tail=200
 
       - name: Tear down pilot overlay
-        if: always()
+        if: always() && steps.matrix_gate.outputs.should_run == 'true'
         run: ${{ matrix.down }}
