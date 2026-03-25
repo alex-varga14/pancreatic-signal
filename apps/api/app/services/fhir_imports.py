@@ -186,7 +186,7 @@ def _index_resource(resource_index: dict[str, dict[str, Any]], resource: dict[st
 
 
 def _build_report_text(resource: dict[str, Any], *, resource_index: dict[str, dict[str, Any]]) -> str:
-    presented_form_text = _extract_presented_form_text(resource.get("presentedForm"))
+    presented_form_text = _extract_presented_form_text(resource.get("presentedForm"), resource_index=resource_index)
     findings = _extract_findings_text(resource, resource_index=resource_index)
     if presented_form_text and _text_matches(presented_form_text, findings):
         presented_form_text = ""
@@ -196,10 +196,7 @@ def _build_report_text(resource: dict[str, Any], *, resource_index: dict[str, di
     else:
         sections = []
 
-    conclusion = _first_non_empty(
-        _string_value(resource.get("conclusion")),
-        _extract_narrative_text(resource),
-    )
+    conclusion = _extract_conclusion_text(resource)
     if presented_form_text and _text_matches(presented_form_text, conclusion):
         presented_form_text = ""
     if presented_form_text and _looks_like_sectioned_report(presented_form_text):
@@ -223,7 +220,7 @@ def _extract_findings_text(resource: dict[str, Any], *, resource_index: dict[str
     if isinstance(results, list):
         for item in results:
             observation = _resolve_reference_resource(item, resource_index=resource_index)
-            text = _observation_to_text(observation)
+            text = _observation_to_text(observation, resource_index=resource_index)
             if text:
                 findings.append(text)
 
@@ -236,28 +233,122 @@ def _extract_findings_text(resource: dict[str, Any], *, resource_index: dict[str
     return ""
 
 
-def _observation_to_text(resource: dict[str, Any] | None) -> str:
+def _observation_to_text(
+    resource: dict[str, Any] | None,
+    *,
+    resource_index: dict[str, dict[str, Any]],
+    seen_observations: set[str] | None = None,
+) -> str:
     if not resource:
         return ""
+
+    observation_identity = _resource_identity(resource)
+    next_seen = set(seen_observations or set())
+    if observation_identity:
+        if observation_identity in next_seen:
+            return ""
+        next_seen.add(observation_identity)
 
     narrative = _extract_narrative_text(resource)
     if narrative:
         return _ensure_sentence(narrative)
 
+    component_text = _observation_component_text(resource)
+    member_text = _observation_member_text(
+        resource,
+        resource_index=resource_index,
+        seen_observations=next_seen,
+    )
+    direct_text = _observation_direct_text(
+        resource,
+        include_label_only=not (component_text or member_text),
+    )
+    detail_fragments: list[str] = []
+    _append_unique_fragment(detail_fragments, direct_text)
+    _append_unique_fragment(detail_fragments, component_text)
+    _append_unique_fragment(detail_fragments, member_text)
+    detail_text = " ".join(item for item in detail_fragments if item)
+
+    if detail_text:
+        return detail_text
+    return _ensure_sentence(_codeable_concept_text(resource.get("code")))
+
+
+def _observation_direct_text(resource: dict[str, Any], *, include_label_only: bool = True) -> str:
     label = _codeable_concept_text(resource.get("code"))
-    value = _first_non_empty(
+    value = _observation_value_text(resource)
+    interpretation = _observation_interpretation_text(resource.get("interpretation"))
+    reference_range = _observation_reference_range_text(resource.get("referenceRange"))
+
+    fragments: list[str] = []
+    if label and value:
+        fragments.append(_ensure_sentence(f"{label}: {value}"))
+    elif value:
+        fragments.append(_ensure_sentence(value))
+    elif include_label_only and label and not interpretation and not reference_range:
+        fragments.append(_ensure_sentence(label))
+
+    _append_unique_fragment(fragments, interpretation)
+    _append_unique_fragment(fragments, reference_range)
+    return " ".join(item for item in fragments if item)
+
+
+def _observation_value_text(resource: dict[str, Any]) -> str:
+    boolean_value = resource.get("valueBoolean")
+    if isinstance(boolean_value, bool):
+        return "present" if boolean_value else "absent"
+
+    integer_value = resource.get("valueInteger")
+    if isinstance(integer_value, int) and not isinstance(integer_value, bool):
+        return str(integer_value)
+
+    return _first_non_empty(
         _string_value(resource.get("valueString")),
         _codeable_concept_text(resource.get("valueCodeableConcept")),
         _quantity_text(resource.get("valueQuantity")),
         _range_text(resource.get("valueRange")),
+        _ratio_text(resource.get("valueRatio")),
+        _string_value(resource.get("valueDateTime")),
+        _period_text(resource.get("valuePeriod")),
         _note_text(resource.get("note")),
-    )
+    ) or ""
 
-    if label and value:
-        return _ensure_sentence(f"{label}: {value}")
-    if value:
-        return _ensure_sentence(value)
-    return _ensure_sentence(label)
+
+def _observation_component_text(resource: dict[str, Any]) -> str:
+    components = resource.get("component")
+    if not isinstance(components, list):
+        return ""
+
+    component_texts: list[str] = []
+    for item in components:
+        if not isinstance(item, dict):
+            continue
+        _append_unique_fragment(component_texts, _observation_direct_text(item))
+
+    return " ".join(item for item in component_texts if item)
+
+
+def _observation_member_text(
+    resource: dict[str, Any],
+    *,
+    resource_index: dict[str, dict[str, Any]],
+    seen_observations: set[str],
+) -> str:
+    members = resource.get("hasMember")
+    if not isinstance(members, list):
+        return ""
+
+    member_texts: list[str] = []
+    for item in members:
+        observation = _resolve_reference_resource(item, resource_index=resource_index)
+        text = _observation_to_text(
+            observation,
+            resource_index=resource_index,
+            seen_observations=seen_observations,
+        )
+        _append_unique_fragment(member_texts, text)
+
+    return " ".join(item for item in member_texts if item)
 
 
 def _extract_site(resource: dict[str, Any], *, resource_index: dict[str, dict[str, Any]]) -> str | None:
@@ -293,6 +384,14 @@ def _build_import_metadata(
         source_system=_extract_source_system(resource, resource_index=resource_index),
         source_format="fhir-diagnostic-report",
         import_source_id=_extract_import_source_id(resource),
+    )
+
+
+def _extract_conclusion_text(resource: dict[str, Any]) -> str:
+    return (
+        _string_value(resource.get("conclusion"))
+        or _codeable_concept_text(resource.get("conclusionCode"))
+        or _extract_narrative_text(resource)
     )
 
 
@@ -463,32 +562,100 @@ def _reference_value_display(
     return _reference_display(value, resource_index=resource_index)
 
 
-def _extract_presented_form_text(value: object) -> str:
+def _extract_presented_form_text(
+    value: object,
+    *,
+    resource_index: dict[str, dict[str, Any]],
+) -> str:
     if not isinstance(value, list):
         return ""
 
+    fragments: list[str] = []
     for item in value:
         if not isinstance(item, dict):
             continue
-        media_type, charset = _parse_attachment_content_type(_string_value(item.get("contentType")))
-        if media_type and not _is_supported_presented_form_media_type(media_type):
-            continue
+        decoded = _extract_presented_form_attachment_text(item, resource_index=resource_index)
+        if decoded:
+            _append_presented_form_fragment(fragments, decoded)
 
-        raw_data = _string_value(item.get("data"))
-        if raw_data:
-            try:
-                raw_bytes = base64.b64decode(raw_data, validate=False)
-            except binascii.Error:
-                raw_bytes = b""
-            decoded = _decode_presented_form_bytes(raw_bytes, charset=charset)
-            if decoded:
-                return _cleanup_text(decoded)
+    if not fragments:
+        return ""
+    return normalize_text(" ".join(fragments))
 
-        inline_text = _string_value(item.get("text"))
-        if inline_text:
-            return _cleanup_text(inline_text)
+
+def _extract_presented_form_attachment_text(
+    value: dict[str, Any],
+    *,
+    resource_index: dict[str, dict[str, Any]],
+) -> str:
+    media_type, charset = _parse_attachment_content_type(_string_value(value.get("contentType")))
+
+    raw_data = _string_value(value.get("data"))
+    if raw_data:
+        return _decode_presented_form_attachment_data(raw_data, media_type=media_type, charset=charset)
+
+    inline_text = _string_value(value.get("text"))
+    if inline_text and (not media_type or _is_supported_presented_form_media_type(media_type)):
+        return inline_text
+
+    attachment_url = _string_value(value.get("url"))
+    if not attachment_url:
+        return ""
+
+    binary_resource = resource_index.get(attachment_url)
+    if _resource_type(binary_resource) != "Binary":
+        return ""
+
+    binary_media_type, binary_charset = _parse_attachment_content_type(
+        _string_value(binary_resource.get("contentType"))
+    )
+    effective_media_type = binary_media_type or media_type
+    effective_charset = binary_charset or charset
+
+    binary_data = _string_value(binary_resource.get("data"))
+    if binary_data:
+        return _decode_presented_form_attachment_data(
+            binary_data,
+            media_type=effective_media_type,
+            charset=effective_charset,
+        )
 
     return ""
+
+
+def _decode_presented_form_attachment_data(raw_data: str, *, media_type: str, charset: str | None) -> str:
+    if media_type and not _is_supported_presented_form_media_type(media_type):
+        return ""
+
+    try:
+        raw_bytes = base64.b64decode(raw_data, validate=False)
+    except binascii.Error:
+        return ""
+
+    return _decode_presented_form_bytes(raw_bytes, charset=charset)
+
+
+def _append_presented_form_fragment(fragments: list[str], value: str) -> None:
+    _append_unique_fragment(fragments, value)
+
+
+def _append_unique_fragment(fragments: list[str], value: str) -> None:
+    cleaned = _cleanup_text(value)
+    if not cleaned:
+        return
+
+    cleaned_cf = cleaned.casefold()
+    updated_fragments: list[str] = []
+    for existing in fragments:
+        existing_cf = existing.casefold()
+        if cleaned_cf in existing_cf:
+            return
+        if existing_cf in cleaned_cf:
+            continue
+        updated_fragments.append(existing)
+
+    updated_fragments.append(cleaned)
+    fragments[:] = updated_fragments
 
 
 def _parse_attachment_content_type(value: str | None) -> tuple[str, str | None]:
@@ -693,6 +860,67 @@ def _range_text(value: object) -> str:
     return low or high
 
 
+def _ratio_text(value: object) -> str:
+    if not isinstance(value, dict):
+        return ""
+    numerator = _quantity_text(value.get("numerator"))
+    denominator = _quantity_text(value.get("denominator"))
+    if numerator and denominator:
+        return f"{numerator} / {denominator}"
+    return numerator or denominator
+
+
+def _period_text(value: object) -> str:
+    if not isinstance(value, dict):
+        return ""
+    start = _string_value(value.get("start"))
+    end = _string_value(value.get("end"))
+    if start and end:
+        return f"{start} to {end}"
+    return start or end or ""
+
+
+def _observation_interpretation_text(value: object) -> str:
+    text = _codeable_concept_text(value)
+    if not text:
+        return ""
+    return _ensure_sentence(f"Interpretation: {text}")
+
+
+def _observation_reference_range_text(value: object) -> str:
+    if not isinstance(value, list):
+        return ""
+
+    range_texts: list[str] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        direct_text = _string_value(item.get("text"))
+        type_text = _codeable_concept_text(item.get("type"))
+        bounds_text = _reference_range_bounds_text(item)
+
+        if type_text and bounds_text:
+            _append_unique_fragment(range_texts, _ensure_sentence(f"{type_text} reference range: {bounds_text}"))
+        elif bounds_text:
+            _append_unique_fragment(range_texts, _ensure_sentence(f"Reference range: {bounds_text}"))
+        elif direct_text:
+            _append_unique_fragment(range_texts, _ensure_sentence(f"Reference range: {direct_text}"))
+
+    return " ".join(item for item in range_texts if item)
+
+
+def _reference_range_bounds_text(value: dict[str, Any]) -> str:
+    low = _quantity_text(value.get("low"))
+    high = _quantity_text(value.get("high"))
+    if low and high:
+        return f"{low} to {high}"
+    if high:
+        return f"up to {high}"
+    if low:
+        return f"{low} or greater"
+    return ""
+
+
 def _note_text(value: object) -> str:
     if not isinstance(value, list):
         return ""
@@ -720,6 +948,14 @@ def _human_name_text(value: object) -> str:
     if family:
         parts.append(family)
     return " ".join(parts).strip()
+
+
+def _resource_identity(value: dict[str, Any]) -> str | None:
+    resource_type = _resource_type(value)
+    resource_id = _string_value(value.get("id"))
+    if resource_type and resource_id:
+        return f"{resource_type}/{resource_id}"
+    return None
 
 
 def _resource_type(value: object) -> str | None:

@@ -65,6 +65,7 @@ Already completed in this phase:
 - FHIR ingestion
 - HL7 ORU ingestion
 - structured import metadata persistence
+- repo-side Phase 6C interoperability hardening for structured FHIR narratives, identifier fallbacks, and import-run audit visibility
 - persisted import-run audit records
 - pilot Docker overlays and smoke coverage
 - hosted GitHub smoke coverage for the narrower supported matrix
@@ -82,12 +83,6 @@ Goal:
 Goal:
 
 - decide whether HL7 success-path smoke should join the hosted matrix or remain operator-triggered based on reliability and maintenance cost
-
-### Phase 6C — Interoperability depth and audit hardening
-
-Goal:
-
-- continue closing edge cases around structured narratives, identifiers, site-scope denials, and failure-path visibility without regressing explainability
 
 ### Phase 6D — Release-facing polish
 

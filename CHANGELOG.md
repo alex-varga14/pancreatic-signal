@@ -39,11 +39,17 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - The validation and deployment docs now distinguish between hosted base plus report-path and structured adapter site-rejection automation and the broader manual overlay smoke matrix
 - Hosted pilot smoke jobs now generate machine-readable and Markdown summary artifacts from `pilot-smoke.log`, so the first green attachment-backed FHIR run can be recorded without manual log scraping
 - Hosted pilot smoke summaries now include smoke duration and exit code, and HL7 success-path coverage remains manual by default pending hosted trial evidence
+- FHIR `DiagnosticReport` imports now merge multiple supported `presentedForm` attachments in order and suppress shorter overlapping fragments when a richer narrative attachment already contains them
+- FHIR `DiagnosticReport` imports now also decode supported `presentedForm.url` attachments when they resolve to bundled or contained FHIR `Binary` resources
+- FHIR `DiagnosticReport` imports now expand referenced `Observation.component` findings into report text so structured component-level pancreatic findings are preserved for triage
+- FHIR `DiagnosticReport` imports now also expand grouped referenced `Observation.hasMember` findings into report text and fall back to `conclusionCode` text when a report omits free-text `conclusion`
+- FHIR `DiagnosticReport` imports now also preserve referenced `Observation.interpretation` and `referenceRange` context for reviewer-visible pancreatic measurements, while avoiding duplicate or cyclic grouped-member expansion
 
 ### Validated
 
 - `make validate-strict` passed on 2026-03-25 with `9 pass, 0 warn, 0 fail`
-- API validation reported `125 passed` on 2026-03-25
+- API validation reported `134 passed` on 2026-03-25
+- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py -q` passed on 2026-03-25 with `34 passed`, including split, overlapping, bundled or contained `Binary`-backed FHIR `presentedForm`, grouped and cycle-safe `Observation.hasMember`, `conclusionCode`, measurement `interpretation` plus `referenceRange`, and `Observation.component` coverage
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_summarize_pilot_smoke.py apps/api/tests/test_smoke_proxy_auth.py -q` passed on 2026-03-25 with `23 passed`, covering the hosted smoke summary parser plus the attachment-backed FHIR smoke fixture shape
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_smoke_proxy_auth.py -q` passed on 2026-03-25 with `21 passed`, covering the attachment-backed FHIR smoke fixture shape
 - API-only local reruns of the attachment-backed FHIR smoke path passed on 2026-03-25 in proxy mode and header-auth mode, recording persisted import runs `48` and `49` plus visible-case and reviewer round-trip verification
