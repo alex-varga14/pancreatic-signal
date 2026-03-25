@@ -1285,6 +1285,13 @@ def build_fhir_demo_payload(
 ) -> tuple[dict[str, object], list[str], list[str]]:
     target_site = _target_site(site_scope)
     diagnostic_report_id = f"dr-fhir-{run_id}"
+    attachment_html = (
+        '<div xmlns="http://www.w3.org/1999/xhtml">'
+        "<p><strong>Findings:</strong> Abrupt cutoff of the pancreatic duct with upstream dilation.</p>"
+        "<p><strong>Impression:</strong> Suspicious for pancreatic neoplasm. Recommend EUS.</p>"
+        "</div>"
+    )
+    attachment_data = base64.b64encode(attachment_html.encode("utf-16")).decode("ascii")
     payload: dict[str, object] = {
         "resourceType": "Bundle",
         "type": "collection",
@@ -1333,14 +1340,6 @@ def build_fhir_demo_payload(
             },
             {
                 "resource": {
-                    "resourceType": "Observation",
-                    "id": f"observation-{run_id}",
-                    "code": {"text": "Pancreatic duct"},
-                    "valueString": "Abrupt cutoff of the pancreatic duct with upstream dilation.",
-                }
-            },
-            {
-                "resource": {
                     "resourceType": "DiagnosticReport",
                     "id": diagnostic_report_id,
                     "meta": {"source": f"urn:source:fhir-smoke:{run_id}"},
@@ -1350,8 +1349,12 @@ def build_fhir_demo_payload(
                     "basedOn": [{"reference": f"ServiceRequest/service-request-{run_id}"}],
                     "category": [{"text": "MRI abdomen"}],
                     "performer": [{"reference": "Organization/org-smoke"}],
-                    "result": [{"reference": f"Observation/observation-{run_id}"}],
-                    "conclusion": "Suspicious for pancreatic neoplasm. Recommend EUS.",
+                    "presentedForm": [
+                        {
+                            "contentType": "application/xhtml+xml; charset=utf-16",
+                            "data": attachment_data,
+                        }
+                    ],
                 }
             },
         ],

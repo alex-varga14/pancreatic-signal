@@ -15,7 +15,7 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - A public benchmark pack with [docs/LABELING_GUIDE.md](docs/LABELING_GUIDE.md), [docs/BENCHMARK_SUBMISSIONS.md](docs/BENCHMARK_SUBMISSIONS.md), validated submission templates, and a benchmark submission validator
 - A comparable external evaluation bundle writer in [`scripts/run_external_eval.py`](scripts/run_external_eval.py), a `make benchmark-external` entrypoint, and a checked-in prediction template for outside collaborators
 - GitHub Actions pull request and `main` validation via [`.github/workflows/validate.yml`](.github/workflows/validate.yml) using `make validate-strict`
-- A hosted pilot smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) that reuses the base proxy and header overlay smoke targets plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule
+- A hosted pilot smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) that reuses the base and FHIR proxy and header overlay smoke targets plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule
 - Live failed-run shared-visibility smoke coverage for a persisted non-site `validation_error` import run in the proxy and header pilot overlays
 - Live structured adapter failed-run shared-visibility smoke coverage for persisted non-site FHIR `unsupported_payload` and HL7 `parse_error` runs in the proxy and header pilot overlays
 - Live structured adapter site-scope rejection smoke coverage for persisted FHIR and HL7 `site_scope_rejection` runs in the proxy and header pilot overlays
@@ -28,6 +28,7 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - Outside collaborators can now turn label and prediction JSONL files into JSON, Markdown, and submission-draft artifacts without hand-assembling benchmark metrics
 - FHIR `DiagnosticReport` imports now preserve patient, encounter, and accession metadata from inline `Reference.identifier` values when upstream bundles omit fully resolved resources
 - FHIR `DiagnosticReport` imports now decode supported text-like `presentedForm` attachments, including attachment-backed XHTML narratives, and keep unsectioned attachment findings merged with `conclusion` instead of dropping the conclusion text
+- The proxy and header FHIR pilot smoke fixtures now submit attachment-backed `DiagnosticReport.presentedForm` XHTML narratives, so deployable smoke coverage exercises the supported text-like attachment decode path instead of only an `Observation`-backed structured result
 - HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component and repetition separators, normalize common HL7 escape sequences, and clean composite metadata fields with subcomponent-aware extraction before triage
 - Top-level documentation now describes the implemented research platform instead of the earlier scaffold-era state
 - Deployment and API docs now call out cross-actor visibility for non-site failed import runs with empty `imported_sites`
@@ -36,8 +37,10 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 
 ### Validated
 
-- `make validate-strict` passed on 2026-03-24 with `9 pass, 0 warn, 0 fail`
-- API validation reported `123 passed`
+- `make validate-strict` passed on 2026-03-25 with `9 pass, 0 warn, 0 fail`
+- API validation reported `121 passed` on 2026-03-25
+- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_smoke_proxy_auth.py -q` passed on 2026-03-25 with `21 passed`, covering the attachment-backed FHIR smoke fixture shape
+- API-only local reruns of the attachment-backed FHIR smoke path passed on 2026-03-25 in proxy mode and header-auth mode, recording persisted import runs `48` and `49` plus visible-case and reviewer round-trip verification
 - `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl OUT_DIR=/tmp/pancreatic-signal-external-eval BASENAME=template-external TOP_K=2` wrote JSON, Markdown, and submission-draft artifacts on 2026-03-24
 - `make validate-benchmark-submission SUBMISSION=/tmp/pancreatic-signal-external-eval/template-external-submission.json` passed on 2026-03-24
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py apps/api/tests/test_import_runs.py -q` passed on 2026-03-24 with `46 passed`, including inline `Reference.identifier` FHIR coverage, attachment-backed `presentedForm` decoding and audit coverage, plus custom `MSH-2` HL7 delimiter, escape-sequence, subcomponent, and audit-visibility coverage

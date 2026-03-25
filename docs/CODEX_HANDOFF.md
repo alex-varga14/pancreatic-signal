@@ -1,6 +1,6 @@
 # Codex Handoff
 
-Updated: 2026-03-24
+Updated: 2026-03-25
 
 This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, and the best next work is now Phase 6 interoperability hardening on top of the existing pilot packaging, proof surfaces, public benchmark pack, and external evaluation bundle writer.
 
@@ -17,16 +17,20 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 - FHIR `DiagnosticReport` imports now also decode supported text-like `presentedForm` attachments, including base64 XHTML narratives with explicit charsets, and keep unsectioned attachment findings merged with `conclusion` text when that preserves a more reviewer-usable report shape.
 - HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component plus repetition separators, normalize common HL7 escape sequences, and clean composite metadata fields with subcomponent-aware extraction before the existing report-text assembly flows into triage and audit persistence.
 - Top-level repo docs now reflect the implemented platform instead of the earlier scaffold framing, and the repository includes checked-in contributor, security, and code-of-conduct docs appropriate for a near-1.0 open-source handoff.
-- The repo still includes checked-in GitHub Actions workflows for strict validation plus hosted base, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage, but that hosted/manual smoke split is now supporting operational context rather than the primary roadmap driver.
+- The repo still includes checked-in GitHub Actions workflows for strict validation plus hosted base, attachment-backed FHIR success-path, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage, but that hosted/manual smoke split is now supporting operational context rather than the primary roadmap driver.
 - The highest-value remaining work is not bootstrapping. It is deeper FHIR and HL7 interoperability coverage first, then broader pilot operability, without breaking explainability.
 
 ## Fresh Validation Status
 
-Confirmed on 2026-03-24:
+Confirmed on 2026-03-25:
 
 - `make validate-strict` passes
 - Summary: `9 pass, 0 warn, 0 fail`
-- API tests: `123 passed`
+- API tests: `121 passed`
+- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_smoke_proxy_auth.py -q` passed with `21 passed`, covering the attachment-backed FHIR smoke fixture and its expected `presentedForm` payload shape
+- An API-only local rerun of the proxy attachment-backed FHIR smoke passed on 2026-03-25, recording import run `48` completed at `2026-03-25T17:13:02.907406Z` with one visible case plus a successful reviewer round-trip
+- An API-only local rerun of the header-auth attachment-backed FHIR smoke passed on 2026-03-25, recording import run `49` completed at `2026-03-25T17:14:13.069507Z` with one visible case plus a successful reviewer round-trip
+- Those two reruns intentionally booted only the pilot `db` and `api` services because an unrelated local Next dev server was already bound to host port `3000`, so the full web checks from `make pilot-*-fhir-smoke` were not repeated in this slice
 - Web checks: `npm run lint` and `npm run build` now both pass through `make validate-strict`
 - Demo evaluation compare and sweep both run through the validation script
 - `make refresh-demo-proof` succeeded and refreshed the checked-in benchmark snapshot that powers `/proof`
@@ -53,9 +57,10 @@ Confirmed on 2026-03-24:
 - The smoke helper now also supports live failed-run shared-visibility verification by reusing a persisted `/api/v1/imports/reports` `validation_error` run, proving a second same-site actor can inspect the failed detail and recent-run entry even when `imported_sites` is empty
 - The smoke helper now also supports live structured failed-run shared-visibility verification by reusing persisted FHIR `unsupported_payload` and HL7 `parse_error` runs, proving a second same-site actor can inspect both failed details and recent-run entries even when `imported_sites` is empty
 - The proxy demo overlay now defaults to an import-capable navigator identity so the built `/imports` workspace and the live proxy smoke path exercise the same capability class
-- The latest strict validation pass was rerun after expanding the hosted pilot smoke workflow into structured adapter site rejection and remains green
+- The latest strict validation pass was rerun after widening the hosted pilot smoke workflow to include the attachment-backed FHIR success path and remains green
 - GitHub Actions now runs `make validate-strict` on pull requests, on `main`, and through manual workflow dispatch using a checked-in workflow under `.github/workflows/validate.yml`
-- A checked-in workflow under `.github/workflows/pilot-smoke.yml` now reuses `make pilot-proxy-demo-smoke`, `make pilot-proxy-demo-site-rejection-smoke`, `make pilot-proxy-demo-adapter-site-rejection-smoke`, `make pilot-header-demo-smoke`, `make pilot-header-demo-site-rejection-smoke`, and `make pilot-header-demo-adapter-site-rejection-smoke` on manual dispatch plus a weekly Monday schedule; it remains intentionally narrower than the full manual visibility and failure-path overlay matrix
+- The smoke helper's FHIR demo path now uses an attachment-backed `DiagnosticReport.presentedForm` XHTML narrative encoded as base64 UTF-16, so the existing `pilot-*-fhir-smoke` targets exercise the same supported text-like attachment decode path covered by API tests
+- A checked-in workflow under `.github/workflows/pilot-smoke.yml` now reuses `make pilot-proxy-demo-smoke`, `make pilot-proxy-demo-fhir-smoke`, `make pilot-proxy-demo-site-rejection-smoke`, `make pilot-proxy-demo-adapter-site-rejection-smoke`, `make pilot-header-demo-smoke`, `make pilot-header-demo-fhir-smoke`, `make pilot-header-demo-site-rejection-smoke`, and `make pilot-header-demo-adapter-site-rejection-smoke` on manual dispatch plus a weekly Monday schedule; it remains intentionally narrower than the full manual visibility and failure-path overlay matrix
 - Release-facing documentation now includes `CHANGELOG.md` and `docs/RELEASE_READINESS.md`
 
 Last known good live deployment check:
@@ -313,48 +318,38 @@ Additional note from this slice:
 
 ## Recommended Next Slice
 
-Proceed with live pilot smoke coverage for attachment-backed FHIR `DiagnosticReport.presentedForm` imports.
+Record the first GitHub-hosted attachment-backed FHIR success run, then decide whether the hosted pilot matrix should expand to HL7 success-path coverage.
 
 ### Why this is next
 
-- The parser and API tests now cover attachment-backed `presentedForm` narratives, including XHTML plus charset-aware decoding and fallback ordering with `conclusion`.
-- The remaining gap is operational confidence: the current proxy and header demo smokes still prove only the older structured FHIR success path, not the new attachment-backed one.
-- Adding one attachment-backed pilot path would tighten the link between interoperability tests and deployable demo evidence without introducing a new adapter family or persistence path.
+- The attachment-backed FHIR `presentedForm` path is now covered in parser tests, the smoke helper fixture, the hosted workflow definition, and fresh local proxy plus header-auth reruns.
+- What is still missing is a recorded GitHub-hosted execution of the widened `pilot-smoke` workflow so the repo has both local and hosted evidence for the new fixture.
+- HL7 success-path hosting is still manual, and that decision should be made with actual hosted runtime and stability information from the widened FHIR matrix rather than guesswork.
 
 ### Target outcome
 
-Add one pilot-validation slice that:
-- exercises an attachment-backed FHIR `DiagnosticReport` through the existing smoke helper and one or both pilot overlays
-- preserves run ID capture, audit visibility, and site-scope behavior for that attachment-backed path
-- documents the new fixture shape so contributors understand which attachment content types are intentionally supported
-- leaves the current benchmark, reviewer, and import workspace surfaces unchanged
+Add one hosted-operability slice that:
+- records the first green GitHub-hosted attachment-backed FHIR success-path run with its exact workflow date or link
+- decides explicitly whether HL7 success-path coverage should stay manual or be promoted into the hosted weekly smoke matrix
+- updates the handoff and deployment-facing notes with that hosted decision
+- leaves the benchmark, reviewer, and import audit surfaces unchanged
 
 ### Suggested implementation shape
 
-1. Reuse the current smoke helper and Make targets instead of adding a parallel validation path.
+1. Start with the existing `.github/workflows/pilot-smoke.yml` matrix rather than creating a second hosted workflow.
 
-2. Extend the existing structured FHIR success fixture first:
-   - `scripts/smoke_proxy_auth.py`
-   - `apps/api/tests/test_smoke_proxy_auth.py`
-   - any affected Make targets only if the new fixture needs an explicit mode
+2. Once a green hosted FHIR run exists, record that exact run in this handoff and compare its duration and stability to the current weekly smoke budget.
 
-3. Keep the attachment scope narrow and explainable:
-   - one supported text-like `presentedForm` attachment fixture
-   - no PDF parsing, OCR, or remote fetch behavior
-   - no changes to the import persistence model
+3. If the hosted FHIR expansion stays stable, consider mirroring the same promotion for `pilot-proxy-demo-hl7-smoke` and `pilot-header-demo-hl7-smoke`.
 
-4. Preserve the current operational baseline:
-   - do not regress the existing proxy or header success and failure smokes
-   - do not regress import-run audit semantics
-   - do not regress reviewer workflow, `/imports`, `/proof`, or the external benchmark bundle path
+4. If hosted runtime or flakiness becomes a concern, explicitly document that HL7 remains manual and keep the workflow narrower on purpose.
 
 ### Acceptance criteria
 
-- At least one live or smoke-level attachment-backed FHIR import path is covered end to end.
-- The attachment-backed path still proves persisted run IDs plus expected audit visibility behavior.
-- Contributor docs call out the attachment fixture expectations clearly.
-- `make validate-strict` passes after the implementation change.
-- If live smoke targets are rerun, the exact overlay or Make target is recorded in this handoff.
+- The handoff includes at least one exact GitHub-hosted attachment-backed FHIR success run.
+- The hosted-versus-manual HL7 decision is documented, even if the answer is to defer it.
+- Any workflow-matrix change still leaves `make validate-strict` green.
+- The handoff distinguishes the new hosted evidence from the local API-only reruns already captured above.
 
 ## Good First Commands For The Next Agent
 
@@ -377,4 +372,4 @@ make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission
 
 ## Handoff Summary
 
-This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base plus report-path and structured adapter site-rejection smoke automation, a sharper public landing experience, a checked-in benchmark proof surface, a machine-validated public benchmark submission pack, a reproducible external evaluation bundle writer, FHIR inline `Reference.identifier` fallback coverage, FHIR `presentedForm` attachment-backed narrative decoding, and HL7 `ED`, repeated-`OBX-5`, custom-`MSH-2` delimiter, escape-sequence, plus subcomponent-aware metadata support are complete. The next agent should focus on attachment-backed FHIR pilot smoke coverage while preserving the benchmark surfaces and import audit behavior, rather than reopening parser work that is now already covered in tests.
+This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base plus attachment-backed FHIR success-path plus report-path and structured adapter site-rejection smoke automation, a sharper public landing experience, a checked-in benchmark proof surface, a machine-validated public benchmark submission pack, a reproducible external evaluation bundle writer, FHIR inline `Reference.identifier` fallback coverage, FHIR `presentedForm` attachment-backed narrative decoding, and HL7 `ED`, repeated-`OBX-5`, custom-`MSH-2` delimiter, escape-sequence, plus subcomponent-aware metadata support are complete. Fresh local proxy and header-auth reruns now also confirm the attachment-backed FHIR smoke path operationally with persisted runs `48` and `49`. The next agent should focus on recording the first green hosted FHIR success run and then making an explicit HL7-hosting decision, rather than reopening parser work that is now already covered in tests.

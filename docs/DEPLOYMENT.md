@@ -113,7 +113,7 @@ make pilot-proxy-demo-smoke
 
 The base smoke target waits for API and web readiness, resolves `/api/v1/auth/me`, verifies `/imports` renders successfully, imports the bundled demo reports through `POST /api/v1/imports/reports`, verifies the persisted audit record at `GET /api/v1/imports/runs/{run_id}`, fetches the visible case queue, and confirms a reviewer-action round-trip using the fixed navigator identity.
 
-Hosted smoke automation is now available in [`.github/workflows/pilot-smoke.yml`](../.github/workflows/pilot-smoke.yml). That workflow reuses `make pilot-proxy-demo-smoke`, `make pilot-proxy-demo-site-rejection-smoke`, `make pilot-proxy-demo-adapter-site-rejection-smoke`, `make pilot-header-demo-smoke`, `make pilot-header-demo-site-rejection-smoke`, and `make pilot-header-demo-adapter-site-rejection-smoke` on manual dispatch and a weekly schedule. It is intentionally narrower than the full smoke matrix below: base success-path plus report-path and structured adapter site-rejection overlay checks are hosted, while the broader shared-visibility, audit-denial, and non-site structured failure targets remain manual operator checks.
+Hosted smoke automation is now available in [`.github/workflows/pilot-smoke.yml`](../.github/workflows/pilot-smoke.yml). That workflow reuses `make pilot-proxy-demo-smoke`, `make pilot-proxy-demo-fhir-smoke`, `make pilot-proxy-demo-site-rejection-smoke`, `make pilot-proxy-demo-adapter-site-rejection-smoke`, `make pilot-header-demo-smoke`, `make pilot-header-demo-fhir-smoke`, `make pilot-header-demo-site-rejection-smoke`, and `make pilot-header-demo-adapter-site-rejection-smoke` on manual dispatch and a weekly schedule. It is intentionally narrower than the full smoke matrix below: base report success-path, attachment-backed FHIR success-path, report-path site-rejection, and structured adapter site-rejection overlay checks are hosted, while the broader HL7 success-path, shared-visibility, audit-denial, and non-site structured failure targets remain manual operator checks.
 
 Adapter-specific live smoke targets are also available in the proxy demo:
 
@@ -137,6 +137,7 @@ These targets follow the same readiness and auth-resolution checks, but drive:
 - `POST /api/v1/imports/hl7/oru`
 
 Success-path variants verify the returned `run_id`, persisted audit detail, visible imported cases, and reviewer-action round-trip in the same trusted-proxy session. Failure-path and visibility-only variants still reach the same web and audit surfaces, but intentionally skip the reviewer round-trip when no run-specific cases should be visible.
+The FHIR success-path fixture is attachment-backed: it submits a `DiagnosticReport.presentedForm` XHTML narrative encoded as base64 UTF-16 so pilot smoke coverage exercises the same supported text-like attachment decoding path covered by the API tests.
 
 The shared-visibility target reuses the successful `/api/v1/imports/reports` path and then checks the audit endpoints across two actors. It verifies:
 - the creating scoped actor can inspect the successful run through `GET /api/v1/imports/runs/{run_id}` and sees it in `GET /api/v1/imports/runs`
@@ -249,6 +250,7 @@ These targets follow the same readiness and auth-resolution checks, but drive:
 - `POST /api/v1/imports/hl7/oru`
 
 Success-path variants verify the returned `run_id`, persisted audit detail, visible imported cases, and reviewer-action round-trip in the same scoped session. Failure-path and visibility-only variants still reach the same web and audit surfaces, but intentionally skip the reviewer round-trip when no run-specific cases should be visible.
+The FHIR success-path fixture is attachment-backed here as well, using a base64 UTF-16 XHTML `presentedForm` narrative rather than an `Observation` result so both pilot auth modes exercise the same supported text-like attachment path.
 
 The header-auth shared-visibility target exercises the same successful import path and then confirms the owning actor plus a second scoped actor can both access the same persisted run detail and recent-run listing.
 The header-auth adapter shared-visibility target exercises the successful FHIR and HL7 import paths and then confirms the owning actor plus a second scoped actor can both access those structured run details and recent-run listings.

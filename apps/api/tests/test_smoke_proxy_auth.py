@@ -446,11 +446,18 @@ def test_build_fhir_demo_payload_uses_run_id_and_site_scope() -> None:
 
     diagnostic_report = payload["entry"][-1]["resource"]
     organization = payload["entry"][0]["resource"]
+    attachment = diagnostic_report["presentedForm"][0]
+    attachment_html = base64.b64decode(attachment["data"]).decode("utf-16")
 
     assert organization["name"] == "North Clinic"
     assert diagnostic_report["id"] == "dr-fhir-smoke-456"
     assert diagnostic_report["subject"]["reference"] == "Patient/patient-smoke-456"
     assert diagnostic_report["encounter"]["reference"] == "Encounter/encounter-smoke-456"
+    assert attachment["contentType"] == "application/xhtml+xml; charset=utf-16"
+    assert "Findings:" in attachment_html
+    assert "Suspicious for pancreatic neoplasm. Recommend EUS." in attachment_html
+    assert "result" not in diagnostic_report
+    assert "conclusion" not in diagnostic_report
     assert case_ids == ["dr-fhir-smoke-456"]
     assert report_ids == ["dr-fhir-smoke-456"]
 
