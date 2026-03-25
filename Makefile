@@ -58,6 +58,15 @@ benchmark-external:
 		$(if $(COMMIT_SHA),--commit-sha "$(COMMIT_SHA)",) \
 		$(if $(NOTES),--notes "$(NOTES)",)
 
+pilot-smoke-evidence:
+	@test -n "$(SUMMARY_DIR)" || (echo "Usage: make pilot-smoke-evidence SUMMARY_DIR=path/to/downloaded/pilot-smoke-artifacts [OUT_DIR=path] [HL7_DECISION=pending|keep-manual|promote-default] [HL7_RATIONALE='reason']" && exit 2)
+	$(PYTHON) scripts/build_pilot_smoke_evidence.py \
+		--summary-dir "$(SUMMARY_DIR)" \
+		--out-json "$(or $(OUT_JSON),$(or $(OUT_DIR),$(SUMMARY_DIR))/pilot-smoke-evidence.json)" \
+		--out-markdown "$(or $(OUT_MARKDOWN),$(or $(OUT_DIR),$(SUMMARY_DIR))/pilot-smoke-evidence.md)" \
+		--hl7-decision "$(or $(HL7_DECISION),pending)" \
+		$(if $(HL7_RATIONALE),--hl7-rationale "$(HL7_RATIONALE)",)
+
 validate-benchmark-submission:
 	@test -n "$(SUBMISSION)" || (echo "Usage: make validate-benchmark-submission SUBMISSION=path/to/submission.json" && exit 2)
 	$(PYTHON) scripts/validate_benchmark_submission.py "$(SUBMISSION)"

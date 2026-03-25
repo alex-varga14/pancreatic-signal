@@ -24,6 +24,7 @@
 
 - Hosted FHIR smoke run:
 - Hosted FHIR summary artifacts:
+- Hosted evidence bundle:
 - Hosted HL7 decision:
 - Manual-only smoke paths still relied on:
 
@@ -47,4 +48,3 @@
 ## Highest-Priority Next Slice
 
 - 
-

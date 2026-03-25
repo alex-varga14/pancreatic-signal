@@ -62,7 +62,10 @@ The minimum hosted evidence path is:
    - `pilot-smoke.log`
    - `pilot-smoke-summary.json`
    - `pilot-smoke-summary.md`
-3. Record the exact run date, run URL, duration, outcome, and visible-case summary in:
+3. Build a bundled hosted evidence record from the downloaded summary artifacts:
+   - `make pilot-smoke-evidence SUMMARY_DIR=/path/to/downloaded/pilot-smoke-artifacts HL7_DECISION=pending`
+   - This writes `pilot-smoke-evidence.json` and `pilot-smoke-evidence.md` next to the downloaded artifacts unless you override `OUT_DIR`, `OUT_JSON`, or `OUT_MARKDOWN`.
+4. Record the exact run date, run URL, duration, outcome, and visible-case summary in:
    - [docs/CODEX_HANDOFF.md](./CODEX_HANDOFF.md)
    - [CHANGELOG.md](../CHANGELOG.md) if the run materially changes release confidence
 
@@ -72,7 +75,8 @@ If you are making the HL7 hosting decision for Phase 6B, also dispatch:
 
 1. `smoke_scope=hl7-success-only`
 2. compare its duration and stability to the FHIR-only hosted path
-3. record whether HL7 should stay manual or join the default hosted matrix
+3. rerun `make pilot-smoke-evidence SUMMARY_DIR=/path/to/downloaded/pilot-smoke-artifacts HL7_DECISION=keep-manual` or `HL7_DECISION=promote-default`
+4. record whether HL7 should stay manual or join the default hosted matrix
 
 ## 5. Refresh Local Manual Evidence When Needed
 

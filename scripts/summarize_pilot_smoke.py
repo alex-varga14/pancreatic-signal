@@ -25,6 +25,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--outcome", default="", help="Step outcome for the smoke command.")
     parser.add_argument("--exit-code", default="", help="Smoke command exit code.")
     parser.add_argument("--duration-seconds", default="", help="Smoke command duration in seconds.")
+    parser.add_argument("--started-at", default="", help="UTC timestamp when the smoke command started.")
+    parser.add_argument("--finished-at", default="", help="UTC timestamp when the smoke command finished.")
+    parser.add_argument(
+        "--summary-generated-at",
+        default="",
+        help="UTC timestamp when the structured summary was generated.",
+    )
     parser.add_argument("--run-id", default="", help="GitHub Actions run ID.")
     parser.add_argument("--run-attempt", default="", help="GitHub Actions run attempt.")
     parser.add_argument("--run-url", default="", help="GitHub Actions run URL.")
@@ -54,6 +61,9 @@ def main() -> int:
             "outcome": args.outcome,
             "exit_code": args.exit_code,
             "duration_seconds": args.duration_seconds,
+            "started_at": args.started_at,
+            "finished_at": args.finished_at,
+            "summary_generated_at": args.summary_generated_at,
             "run_id": args.run_id,
             "run_attempt": args.run_attempt,
             "run_url": args.run_url,
@@ -203,6 +213,9 @@ def render_markdown(summary: dict[str, Any]) -> str:
         ("Smoke command", "smoke_command"),
         ("Exit code", "exit_code"),
         ("Duration seconds", "duration_seconds"),
+        ("Started at", "started_at"),
+        ("Finished at", "finished_at"),
+        ("Summary generated at", "summary_generated_at"),
         ("Repository", "repository"),
         ("Ref", "ref"),
         ("SHA", "sha"),
