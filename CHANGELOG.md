@@ -17,6 +17,8 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - GitHub Actions pull request and `main` validation via [`.github/workflows/validate.yml`](.github/workflows/validate.yml) using `make validate-strict`
 - A hosted pilot smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) that reuses the base and FHIR proxy and header overlay smoke targets plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule
 - A narrower manual-dispatch path in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) for hosted attachment-backed FHIR confirmation, plus uploaded per-job smoke log artifacts for later run auditing
+- A structured hosted smoke summary generator in [`scripts/summarize_pilot_smoke.py`](scripts/summarize_pilot_smoke.py) plus workflow-uploaded JSON and Markdown summary artifacts for later handoff capture
+- A manual-only `hl7-success-only` dispatch path in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) so hosted HL7 success-path trials can be recorded without widening the default weekly matrix
 - Live failed-run shared-visibility smoke coverage for a persisted non-site `validation_error` import run in the proxy and header pilot overlays
 - Live structured adapter failed-run shared-visibility smoke coverage for persisted non-site FHIR `unsupported_payload` and HL7 `parse_error` runs in the proxy and header pilot overlays
 - Live structured adapter site-scope rejection smoke coverage for persisted FHIR and HL7 `site_scope_rejection` runs in the proxy and header pilot overlays
@@ -35,11 +37,14 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - Deployment and API docs now call out cross-actor visibility for non-site failed import runs with empty `imported_sites`
 - `make validate-strict` now includes web lint alongside Python checks, API tests, evaluation checks, and the web build so local and hosted validation stay aligned
 - The validation and deployment docs now distinguish between hosted base plus report-path and structured adapter site-rejection automation and the broader manual overlay smoke matrix
+- Hosted pilot smoke jobs now generate machine-readable and Markdown summary artifacts from `pilot-smoke.log`, so the first green attachment-backed FHIR run can be recorded without manual log scraping
+- Hosted pilot smoke summaries now include smoke duration and exit code, and HL7 success-path coverage remains manual by default pending hosted trial evidence
 
 ### Validated
 
 - `make validate-strict` passed on 2026-03-25 with `9 pass, 0 warn, 0 fail`
-- API validation reported `123 passed` on 2026-03-25
+- API validation reported `125 passed` on 2026-03-25
+- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_summarize_pilot_smoke.py apps/api/tests/test_smoke_proxy_auth.py -q` passed on 2026-03-25 with `23 passed`, covering the hosted smoke summary parser plus the attachment-backed FHIR smoke fixture shape
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_smoke_proxy_auth.py -q` passed on 2026-03-25 with `21 passed`, covering the attachment-backed FHIR smoke fixture shape
 - API-only local reruns of the attachment-backed FHIR smoke path passed on 2026-03-25 in proxy mode and header-auth mode, recording persisted import runs `48` and `49` plus visible-case and reviewer round-trip verification
 - The public GitHub Actions API reported `0` `Pilot Smoke` workflow runs on 2026-03-25, so hosted attachment-backed FHIR evidence is still pending even though the workflow is active

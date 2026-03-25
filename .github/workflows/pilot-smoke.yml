@@ -14,6 +14,7 @@ on:
         options:
           - all
           - fhir-success-only
+          - hl7-success-only
   schedule:
     - cron: "0 15 * * 1"
 
@@ -29,9 +30,16 @@ jobs:
     name: ${{ matrix.name }}
     if: >-
       ${{
-        github.event_name != 'workflow_dispatch' ||
-        inputs.smoke_scope == 'all' ||
-        (inputs.smoke_scope == 'fhir-success-only' && matrix.manual_scope == 'fhir-success')
+        (
+          github.event_name == 'schedule' &&
+          matrix.hosted_mode != 'manual_only'
+        ) || (
+          github.event_name == 'workflow_dispatch' && (
+            (inputs.smoke_scope == 'all' && matrix.hosted_mode != 'manual_only') ||
+            (inputs.smoke_scope == 'fhir-success-only' && matrix.manual_scope == 'fhir-success') ||
+            (inputs.smoke_scope == 'hl7-success-only' && matrix.manual_scope == 'hl7-success')
+          )
+        )
       }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -40,6 +48,7 @@ jobs:
       matrix:
         include:
           - name: Proxy Demo Smoke
+            hosted_mode: default
             manual_scope: base-success
             artifact_name: proxy-demo-smoke
             up: make pilot-proxy-demo-up
@@ -47,13 +56,23 @@ jobs:
             down: make pilot-proxy-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
           - name: Proxy Demo FHIR Smoke
+            hosted_mode: default
             manual_scope: fhir-success
             artifact_name: proxy-demo-fhir-smoke
             up: make pilot-proxy-demo-up
             smoke: make pilot-proxy-demo-fhir-smoke
             down: make pilot-proxy-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
+          - name: Proxy Demo HL7 Smoke
+            hosted_mode: manual_only
+            manual_scope: hl7-success
+            artifact_name: proxy-demo-hl7-smoke
+            up: make pilot-proxy-demo-up
+            smoke: make pilot-proxy-demo-hl7-smoke
+            down: make pilot-proxy-demo-down
+            compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
           - name: Proxy Demo Site Rejection Smoke
+            hosted_mode: default
             manual_scope: report-site-rejection
             artifact_name: proxy-demo-site-rejection-smoke
             up: make pilot-proxy-demo-up
@@ -61,6 +80,7 @@ jobs:
             down: make pilot-proxy-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
           - name: Proxy Demo Adapter Site Rejection Smoke
+            hosted_mode: default
             manual_scope: structured-site-rejection
             artifact_name: proxy-demo-adapter-site-rejection-smoke
             up: make pilot-proxy-demo-up
@@ -68,6 +88,7 @@ jobs:
             down: make pilot-proxy-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.proxy-demo.yml
           - name: Header Demo Smoke
+            hosted_mode: default
             manual_scope: base-success
             artifact_name: header-demo-smoke
             up: make pilot-header-demo-up
@@ -75,13 +96,23 @@ jobs:
             down: make pilot-header-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
           - name: Header Demo FHIR Smoke
+            hosted_mode: default
             manual_scope: fhir-success
             artifact_name: header-demo-fhir-smoke
             up: make pilot-header-demo-up
             smoke: make pilot-header-demo-fhir-smoke
             down: make pilot-header-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
+          - name: Header Demo HL7 Smoke
+            hosted_mode: manual_only
+            manual_scope: hl7-success
+            artifact_name: header-demo-hl7-smoke
+            up: make pilot-header-demo-up
+            smoke: make pilot-header-demo-hl7-smoke
+            down: make pilot-header-demo-down
+            compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
           - name: Header Demo Site Rejection Smoke
+            hosted_mode: default
             manual_scope: report-site-rejection
             artifact_name: header-demo-site-rejection-smoke
             up: make pilot-header-demo-up
@@ -89,6 +120,7 @@ jobs:
             down: make pilot-header-demo-down
             compose_args: -f docker-compose.yml -f docker-compose.pilot.yml -f docker-compose.pilot.header-demo.yml
           - name: Header Demo Adapter Site Rejection Smoke
+            hosted_mode: default
             manual_scope: structured-site-rejection
             artifact_name: header-demo-adapter-site-rejection-smoke
             up: make pilot-header-demo-up
@@ -114,10 +146,17 @@ jobs:
         run: ${{ matrix.up }}
 
       - name: Run pilot smoke
+        id: run_pilot_smoke
         shell: bash
         run: |
           set -o pipefail
+          start_epoch="$(date +%s)"
           ${{ matrix.smoke }} 2>&1 | tee pilot-smoke.log
+          status="${PIPESTATUS[0]}"
+          end_epoch="$(date +%s)"
+          echo "smoke_exit_code=${status}" >> "$GITHUB_OUTPUT"
+          echo "smoke_duration_seconds=$((end_epoch - start_epoch))" >> "$GITHUB_OUTPUT"
+          exit "${status}"
 
       - name: Upload pilot smoke log
         if: always()
@@ -127,17 +166,48 @@ jobs:
           path: pilot-smoke.log
           if-no-files-found: ignore
 
+      - name: Generate pilot smoke summary artifacts
+        if: always()
+        run: |
+          python scripts/summarize_pilot_smoke.py \
+            --log-path pilot-smoke.log \
+            --out-json pilot-smoke-summary.json \
+            --out-markdown pilot-smoke-summary.md \
+            --workflow-name "${{ github.workflow }}" \
+            --job-name "${{ matrix.name }}" \
+            --job-scope "${{ matrix.manual_scope }}" \
+            --dispatch-scope "${{ github.event_name == 'workflow_dispatch' && inputs.smoke_scope || '' }}" \
+            --smoke-command "${{ matrix.smoke }}" \
+            --log-artifact-name "pilot-smoke-${{ matrix.artifact_name }}" \
+            --summary-artifact-name "pilot-smoke-summary-${{ matrix.artifact_name }}" \
+            --event-name "${{ github.event_name }}" \
+            --outcome "${{ steps.run_pilot_smoke.outcome }}" \
+            --exit-code "${{ steps.run_pilot_smoke.outputs.smoke_exit_code }}" \
+            --duration-seconds "${{ steps.run_pilot_smoke.outputs.smoke_duration_seconds }}" \
+            --run-id "${{ github.run_id }}" \
+            --run-attempt "${{ github.run_attempt }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --repository "${{ github.repository }}" \
+            --ref "${{ github.ref }}" \
+            --sha "${{ github.sha }}"
+
+      - name: Upload pilot smoke summary artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilot-smoke-summary-${{ matrix.artifact_name }}
+          path: |
+            pilot-smoke-summary.json
+            pilot-smoke-summary.md
+          if-no-files-found: ignore
+
       - name: Write pilot smoke summary
         if: always()
         shell: bash
         run: |
-          {
-            echo "## Pilot Smoke"
-            echo "- Matrix job: ${{ matrix.name }}"
-            echo "- Scope: ${{ matrix.manual_scope }}"
-            echo "- Smoke command: \`${{ matrix.smoke }}\`"
-            echo "- Log artifact: \`pilot-smoke-${{ matrix.artifact_name }}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f pilot-smoke-summary.md ]]; then
+            cat pilot-smoke-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Show compose status on failure
         if: failure()
