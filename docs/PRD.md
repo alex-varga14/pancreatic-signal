@@ -180,11 +180,11 @@ The current release intentionally stops short of:
 
 The next requirements focus on late-Phase-6 hardening rather than new foundation work:
 
-1. capture the first green GitHub-hosted attachment-backed FHIR smoke run
-2. decide whether HL7 success smoke moves into the hosted matrix
-3. record the hosted smoke evidence and hosted or manual HL7 decision clearly in release-facing docs
-4. deepen benchmark coverage with more realistic labeled datasets
-5. strengthen reviewer ergonomics and feedback utilization without weakening explainability
+1. deepen benchmark coverage with more realistic labeled datasets
+2. strengthen reviewer ergonomics and feedback utilization without weakening explainability
+3. keep release-facing docs and onboarding surfaces aligned with the recorded hosted smoke evidence
+4. preserve the intentional hosted/manual smoke boundary as release cadence evolves
+5. continue interoperability hardening only where new pilot fixtures expose concrete gaps
 
 ## 12. Release-readiness criteria for the current phase
 

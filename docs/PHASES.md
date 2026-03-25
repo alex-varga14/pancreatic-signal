@@ -1,6 +1,6 @@
 # Phase status and next slices
 
-This repository has already completed the early foundation and MVP-oriented phases. The current work is late Phase 6 hosted smoke evidence capture and pilot closeout, not initial product construction.
+This repository has already completed the early foundation and MVP-oriented phases. Late Phase 6 hosted smoke evidence capture and pilot closeout are now complete, so the next work should move beyond smoke-baseline capture rather than back toward initial product construction.
 
 ## Completed phases
 
@@ -69,21 +69,18 @@ Already completed in this phase:
 - persisted import-run audit records
 - pilot Docker overlays and smoke coverage
 - hosted GitHub smoke coverage for the narrower supported matrix
+- hosted GitHub FHIR confirmation recorded on 2026-03-25 in run `#23563902873`
+- hosted GitHub HL7 trial recorded on 2026-03-25 in run `#23564057337`
+- an explicit decision to keep HL7 manual-only in the default hosted matrix to control recurring runtime and maintenance cost
 - repo-side Phase 6D release-facing polish across quickstart, deployment, release-readiness, and handoff docs
 
 ## Current next slices
 
-### Phase 6A — Hosted FHIR smoke confirmation
+### Post-Phase-6 follow-through
 
 Goal:
 
-- record the first green GitHub-hosted attachment-backed FHIR smoke run using the current `Pilot Smoke` workflow
-
-### Phase 6B — HL7 hosting decision
-
-Goal:
-
-- decide whether HL7 success-path smoke should join the hosted matrix or remain operator-triggered based on reliability and maintenance cost
+- deepen benchmark realism and reviewer-facing proof surfaces now that the hosted/manual smoke boundary is documented and verified
 
 ## What is not a current phase target
 

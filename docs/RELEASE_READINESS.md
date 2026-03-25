@@ -26,8 +26,8 @@ Do not tag a release that blurs those boundaries.
 
 - `make validate-strict` passes in the release environment
 - GitHub Actions PR validation is green for the release branch or merge commit when applicable
-- Hosted GitHub Actions pilot smoke is green for the release branch or release candidate when applicable
-- if a hosted smoke workflow was only added recently, its first GitHub-hosted run is either green or explicitly called out as pending
+- Hosted GitHub Actions pilot smoke is green for the release branch or release candidate when applicable; the current recorded baseline is FHIR run `#23563902873` plus HL7 trial `#23564057337` on 2026-03-25
+- if a hosted smoke workflow was only added recently, its first GitHub-hosted run is either green or explicitly called out as pending; for `Pilot Smoke`, the recorded March 25, 2026 green runs are now the baseline until a newer release-candidate rerun supersedes them
 - hosted smoke summaries are captured from `pilot-smoke-summary.json` and `pilot-smoke-summary.md` when those artifacts exist
 - when multiple hosted summary artifacts are downloaded, they can be consolidated into `pilot-smoke-evidence.json` and `pilot-smoke-evidence.md`
 - failed historical workflow executions without jobs or uploaded artifacts are not treated as hosted evidence
