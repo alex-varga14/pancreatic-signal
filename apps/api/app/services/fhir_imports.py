@@ -13,6 +13,10 @@ from app.services.text_utils import normalize_text
 
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _WHITESPACE_RE = re.compile(r"\s+")
+_REPORT_SECTION_RE = re.compile(
+    r"\b(clinical history|history|technique|findings|impression|conclusion|report)\s*:",
+    flags=re.IGNORECASE,
+)
 _MODALITY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("CT", re.compile(r"\b(ct|computed tomography)\b", flags=re.IGNORECASE)),
     ("MRI", re.compile(r"\b(mri|mr imaging|magnetic resonance)\b", flags=re.IGNORECASE)),
@@ -40,6 +44,19 @@ _FHIR_ACCESSION_SOURCE_ORDER = (
     "report_identifier",
     "based_on_identifier",
     "based_on_reference_identifier",
+)
+_FHIR_PRESENTED_FORM_TEXT_MEDIA_TYPES = {
+    "application/xhtml+xml",
+    "application/xml",
+    "text/xml",
+}
+_FHIR_PRESENTED_FORM_TEXT_ENCODINGS = (
+    "utf-8",
+    "utf-8-sig",
+    "utf-16",
+    "utf-16le",
+    "utf-16be",
+    "cp1252",
 )
 
 
@@ -170,22 +187,31 @@ def _index_resource(resource_index: dict[str, dict[str, Any]], resource: dict[st
 
 def _build_report_text(resource: dict[str, Any], *, resource_index: dict[str, dict[str, Any]]) -> str:
     presented_form_text = _extract_presented_form_text(resource.get("presentedForm"))
-    if presented_form_text:
-        return normalize_text(presented_form_text)
-
-    sections: list[str] = []
-
     findings = _extract_findings_text(resource, resource_index=resource_index)
+    if presented_form_text and _text_matches(presented_form_text, findings):
+        presented_form_text = ""
+
     if findings:
-        sections.append(f"Findings: {findings}")
+        sections = [f"Findings: {findings}"]
+    else:
+        sections = []
 
     conclusion = _first_non_empty(
         _string_value(resource.get("conclusion")),
         _extract_narrative_text(resource),
     )
+    if presented_form_text and _text_matches(presented_form_text, conclusion):
+        presented_form_text = ""
+    if presented_form_text and _looks_like_sectioned_report(presented_form_text):
+        return normalize_text(presented_form_text)
+    if presented_form_text and not findings and conclusion:
+        sections.append(f"Findings: {presented_form_text}")
+
     if conclusion:
-        label = "Impression" if findings else "Report"
+        label = "Impression" if sections else "Report"
         sections.append(f"{label}: {conclusion}")
+    elif presented_form_text and not sections:
+        sections.append(f"Report: {presented_form_text}")
 
     combined = " ".join(item for item in sections if item)
     return normalize_text(combined)
@@ -444,16 +470,17 @@ def _extract_presented_form_text(value: object) -> str:
     for item in value:
         if not isinstance(item, dict):
             continue
-        content_type = (_string_value(item.get("contentType")) or "").lower()
-        if content_type and not content_type.startswith("text/"):
+        media_type, charset = _parse_attachment_content_type(_string_value(item.get("contentType")))
+        if media_type and not _is_supported_presented_form_media_type(media_type):
             continue
 
         raw_data = _string_value(item.get("data"))
         if raw_data:
             try:
-                decoded = base64.b64decode(raw_data, validate=False).decode("utf-8")
-            except (binascii.Error, UnicodeDecodeError):
-                decoded = ""
+                raw_bytes = base64.b64decode(raw_data, validate=False)
+            except binascii.Error:
+                raw_bytes = b""
+            decoded = _decode_presented_form_bytes(raw_bytes, charset=charset)
             if decoded:
                 return _cleanup_text(decoded)
 
@@ -462,6 +489,78 @@ def _extract_presented_form_text(value: object) -> str:
             return _cleanup_text(inline_text)
 
     return ""
+
+
+def _parse_attachment_content_type(value: str | None) -> tuple[str, str | None]:
+    if not value:
+        return "", None
+
+    parts = [item.strip() for item in value.split(";") if item.strip()]
+    if not parts:
+        return "", None
+
+    media_type = parts[0].lower()
+    charset = None
+    for item in parts[1:]:
+        if "=" not in item:
+            continue
+        key, raw_value = item.split("=", 1)
+        if key.strip().lower() != "charset":
+            continue
+        charset = raw_value.strip().strip('"').lower() or None
+        break
+
+    return media_type, charset
+
+
+def _is_supported_presented_form_media_type(media_type: str) -> bool:
+    return media_type.startswith("text/") or media_type in _FHIR_PRESENTED_FORM_TEXT_MEDIA_TYPES
+
+
+def _decode_presented_form_bytes(raw_bytes: bytes, *, charset: str | None) -> str:
+    if not raw_bytes:
+        return ""
+
+    encodings: list[str] = []
+    if charset:
+        encodings.append(charset)
+    encodings.extend(_FHIR_PRESENTED_FORM_TEXT_ENCODINGS)
+
+    seen: set[str] = set()
+    for encoding in encodings:
+        if not encoding or encoding in seen:
+            continue
+        seen.add(encoding)
+        try:
+            decoded = raw_bytes.decode(encoding)
+        except (LookupError, UnicodeDecodeError):
+            continue
+        cleaned = _cleanup_text(decoded)
+        if _looks_like_text(cleaned):
+            return decoded
+
+    return ""
+
+
+def _looks_like_text(value: str) -> bool:
+    if not value:
+        return False
+
+    control_characters = sum(1 for char in value if ord(char) < 32 and char not in "\n\r\t")
+    if control_characters / max(len(value), 1) > 0.05:
+        return False
+
+    return any(char.isalnum() for char in value)
+
+
+def _looks_like_sectioned_report(value: str) -> bool:
+    return bool(_REPORT_SECTION_RE.search(value))
+
+
+def _text_matches(left: str | None, right: str | None) -> bool:
+    if not left or not right:
+        return False
+    return _cleanup_text(left).casefold() == _cleanup_text(right).casefold()
 
 
 def _reference_display(value: object, *, resource_index: dict[str, dict[str, Any]]) -> str | None:

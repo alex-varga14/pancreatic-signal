@@ -181,7 +181,8 @@ Import FHIR `DiagnosticReport` JSON directly into the existing triage pipeline.
 Behavior:
 - Accepts either a single `DiagnosticReport` resource or a FHIR `Bundle` containing `DiagnosticReport` entries.
 - Initial adapter maps one `DiagnosticReport` to one triaged case using the report identifier as both `report_id` and `case_id`.
-- Pulls report text from `presentedForm`, `conclusion`, and referenced `Observation` resources when present.
+- Pulls report text from supported text-like `presentedForm` attachments, `conclusion`, and referenced `Observation` resources when present.
+- Uses sectioned attachment narratives directly when available; otherwise unsectioned attachment text can be merged with `conclusion` as findings-level narrative so the conclusion is not dropped.
 - Derives site scope from `performer` / `resultsInterpreter` / referenced `Organization` resources.
 - Derives modality heuristically from report category / code text.
 - Preserves structured import metadata when present, including patient identifier, encounter identifier, accession number, ordering provider, source system, source format, and import source identifier.

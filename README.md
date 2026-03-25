@@ -11,7 +11,7 @@ Pancreatic Signal is no longer a scaffold. As of 2026-03-20, this repository inc
 - deterministic, evidence-backed report triage with rationale codes and auditability
 - a reviewer worklist with case detail, review actions, and research-safe views
 - evaluation and export paths for retrospective benchmarking
-- CSV, JSON, JSONL, FHIR `DiagnosticReport`, and HL7 ORU import paths
+- CSV, JSON, JSONL, attachment-backed FHIR `DiagnosticReport`, and HL7 ORU import paths
 - persisted import-run audit records with stable failure buckets and visibility rules
 - a dedicated `/imports` web workspace for uploads and audit inspection
 - pilot-ready Docker overlays for trusted-proxy auth and header-auth demos
@@ -149,6 +149,8 @@ curl -F "file=@data/examples/reports.jsonl" http://localhost:8000/api/v1/imports
 ```
 
 FHIR `DiagnosticReport` input is supported:
+
+The same path now accepts supported text-like `presentedForm` attachments, including plain-text and XHTML narrative payloads, without changing the downstream triage or audit flow.
 
 ```bash
 curl http://localhost:8000/api/v1/imports/fhir/diagnostic-reports \
