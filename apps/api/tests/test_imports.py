@@ -231,6 +231,278 @@ def test_import_fhir_diagnostic_report_bundle_resolves_references() -> None:
     assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
 
 
+def test_import_fhir_diagnostic_report_extracts_observation_component_findings() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = {
+        "resourceType": "Bundle",
+        "type": "collection",
+        "entry": [
+            {
+                "resource": {
+                    "resourceType": "Organization",
+                    "id": "org-component-1",
+                    "name": "Component Hospital",
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "Observation",
+                    "id": "obs-component-1",
+                    "code": {"text": "Pancreatic observations"},
+                    "component": [
+                        {
+                            "code": {"text": "Pancreatic duct"},
+                            "valueString": "Abrupt cutoff of the pancreatic duct with upstream dilation",
+                        },
+                        {
+                            "code": {"text": "Pancreatic head lesion"},
+                            "valueString": "Ill-defined pancreatic head lesion",
+                        },
+                    ],
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "DiagnosticReport",
+                    "id": "dr-component-1",
+                    "effectiveDateTime": "2026-03-19T10:30:00Z",
+                    "category": [{"text": "MRI abdomen"}],
+                    "performer": [{"reference": "Organization/org-component-1"}],
+                    "result": [{"reference": "Observation/obs-component-1"}],
+                    "conclusion": "Suspicious for pancreatic neoplasm. Recommend EUS.",
+                },
+            },
+        ],
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-component-1").json()
+    assert case_detail["site"] == "Component Hospital"
+    assert (
+        "Pancreatic duct: Abrupt cutoff of the pancreatic duct with upstream dilation."
+        in case_detail["report_text"]
+    )
+    assert "Pancreatic head lesion: Ill-defined pancreatic head lesion." in case_detail["report_text"]
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
+def test_import_fhir_diagnostic_report_extracts_grouped_observation_member_findings() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = {
+        "resourceType": "Bundle",
+        "type": "collection",
+        "entry": [
+            {
+                "resource": {
+                    "resourceType": "Organization",
+                    "id": "org-member-1",
+                    "name": "Member Hospital",
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "Observation",
+                    "id": "obs-member-duct-1",
+                    "code": {"text": "Pancreatic duct"},
+                    "valueString": "Abrupt cutoff of the pancreatic duct with upstream dilation",
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "Observation",
+                    "id": "obs-member-lesion-1",
+                    "code": {"text": "Pancreatic head lesion"},
+                    "valueString": "Ill-defined pancreatic head lesion",
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "Observation",
+                    "id": "obs-member-panel-1",
+                    "code": {"text": "Pancreatic findings panel"},
+                    "hasMember": [
+                        {"reference": "Observation/obs-member-duct-1"},
+                        {"reference": "Observation/obs-member-lesion-1"},
+                    ],
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "DiagnosticReport",
+                    "id": "dr-member-1",
+                    "effectiveDateTime": "2026-03-19T10:35:00Z",
+                    "category": [{"text": "MRI abdomen"}],
+                    "performer": [{"reference": "Organization/org-member-1"}],
+                    "result": [{"reference": "Observation/obs-member-panel-1"}],
+                    "conclusion": "Suspicious for pancreatic neoplasm. Recommend EUS.",
+                },
+            },
+        ],
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-member-1").json()
+    assert case_detail["site"] == "Member Hospital"
+    assert (
+        "Pancreatic duct: Abrupt cutoff of the pancreatic duct with upstream dilation."
+        in case_detail["report_text"]
+    )
+    assert "Pancreatic head lesion: Ill-defined pancreatic head lesion." in case_detail["report_text"]
+    assert "Pancreatic findings panel." not in case_detail["report_text"]
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
+def test_import_fhir_diagnostic_report_avoids_cycles_in_grouped_observation_members() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = {
+        "resourceType": "Bundle",
+        "type": "collection",
+        "entry": [
+            {
+                "resource": {
+                    "resourceType": "Organization",
+                    "id": "org-member-cycle-1",
+                    "name": "Member Cycle Hospital",
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "Observation",
+                    "id": "obs-member-cycle-a",
+                    "code": {"text": "Pancreatic findings panel"},
+                    "hasMember": [
+                        {"reference": "Observation/obs-member-cycle-b"},
+                    ],
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "Observation",
+                    "id": "obs-member-cycle-b",
+                    "code": {"text": "Pancreatic duct"},
+                    "valueString": "Abrupt cutoff of the pancreatic duct with upstream dilation",
+                    "hasMember": [
+                        {"reference": "Observation/obs-member-cycle-a"},
+                    ],
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "DiagnosticReport",
+                    "id": "dr-member-cycle-1",
+                    "effectiveDateTime": "2026-03-19T10:37:00Z",
+                    "category": [{"text": "MRI abdomen"}],
+                    "performer": [{"reference": "Organization/org-member-cycle-1"}],
+                    "result": [{"reference": "Observation/obs-member-cycle-a"}],
+                    "conclusion": "Suspicious for pancreatic neoplasm. Recommend EUS.",
+                },
+            },
+        ],
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-member-cycle-1").json()
+    assert case_detail["site"] == "Member Cycle Hospital"
+    assert case_detail["report_text"].count("Abrupt cutoff of the pancreatic duct with upstream dilation.") == 1
+    assert "Pancreatic findings panel." not in case_detail["report_text"]
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
+def test_import_fhir_diagnostic_report_preserves_observation_interpretation_and_reference_range() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = {
+        "resourceType": "Bundle",
+        "type": "collection",
+        "entry": [
+            {
+                "resource": {
+                    "resourceType": "Organization",
+                    "id": "org-measurement-1",
+                    "name": "Measurement Hospital",
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "Observation",
+                    "id": "obs-measurement-1",
+                    "code": {"text": "Pancreatic duct diameter"},
+                    "valueQuantity": {"value": 6, "unit": "mm"},
+                    "interpretation": [{"text": "High"}],
+                    "referenceRange": [{"high": {"value": 3, "unit": "mm"}}],
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "DiagnosticReport",
+                    "id": "dr-measurement-1",
+                    "effectiveDateTime": "2026-03-19T10:38:00Z",
+                    "category": [{"text": "CT abdomen"}],
+                    "performer": [{"reference": "Organization/org-measurement-1"}],
+                    "result": [{"reference": "Observation/obs-measurement-1"}],
+                    "conclusion": "Suspicious for pancreatic neoplasm. Recommend biopsy.",
+                },
+            },
+        ],
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-measurement-1").json()
+    assert case_detail["site"] == "Measurement Hospital"
+    assert "Pancreatic duct diameter: 6 mm." in case_detail["report_text"]
+    assert "Interpretation: High." in case_detail["report_text"]
+    assert "Reference range: up to 3 mm." in case_detail["report_text"]
+    assert case_detail["score"] >= 0.3
+
+
+def test_import_fhir_diagnostic_report_falls_back_to_conclusion_code_text() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = {
+        "resourceType": "DiagnosticReport",
+        "id": "dr-conclusion-code-1",
+        "effectiveDateTime": "2026-03-19T10:40:00Z",
+        "category": [{"text": "CT abdomen"}],
+        "performer": [{"display": "Conclusion Code Hospital"}],
+        "conclusionCode": [
+            {
+                "coding": [
+                    {
+                        "display": "Suspicious for pancreatic neoplasm. Recommend biopsy.",
+                    }
+                ]
+            }
+        ],
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["processed"] == 1
+    assert body["flagged"] == 1
+
+    case_detail = client.get("/api/v1/cases/dr-conclusion-code-1").json()
+    assert case_detail["site"] == "Conclusion Code Hospital"
+    assert "Suspicious for pancreatic neoplasm. Recommend biopsy." in case_detail["report_text"]
+    assert case_detail["score"] >= 0.3
+
+
 def test_import_fhir_diagnostic_report_decodes_presented_form_attachment_bundle() -> None:
     CASE_STORE.reset()
     client = TestClient(app)
@@ -332,6 +604,105 @@ def test_import_fhir_diagnostic_report_decodes_presented_form_attachment_bundle(
     assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
 
 
+def test_import_fhir_diagnostic_report_decodes_presented_form_binary_url_from_bundle() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    attachment_html = (
+        '<div xmlns="http://www.w3.org/1999/xhtml">'
+        "<p><strong>Findings:</strong> Abrupt cutoff of the pancreatic duct with upstream dilation.</p>"
+        "<p><strong>Impression:</strong> Suspicious for pancreatic neoplasm. Recommend EUS.</p>"
+        "</div>"
+    )
+
+    payload = {
+        "resourceType": "Bundle",
+        "type": "collection",
+        "entry": [
+            {
+                "resource": {
+                    "resourceType": "Organization",
+                    "id": "org-binary-attachment-1",
+                    "name": "Binary Attachment Hospital",
+                },
+            },
+            {
+                "fullUrl": "urn:uuid:binary-attachment-1",
+                "resource": {
+                    "resourceType": "Binary",
+                    "id": "binary-attachment-1",
+                    "contentType": "application/xhtml+xml; charset=utf-8",
+                    "data": base64.b64encode(attachment_html.encode("utf-8")).decode("ascii"),
+                },
+            },
+            {
+                "resource": {
+                    "resourceType": "DiagnosticReport",
+                    "id": "dr-binary-attachment-1",
+                    "effectiveDateTime": "2026-03-19T11:16:00Z",
+                    "category": [{"text": "MRI abdomen"}],
+                    "performer": [{"reference": "Organization/org-binary-attachment-1"}],
+                    "presentedForm": [
+                        {
+                            "url": "urn:uuid:binary-attachment-1",
+                        }
+                    ],
+                },
+            },
+        ],
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-binary-attachment-1").json()
+    assert case_detail["site"] == "Binary Attachment Hospital"
+    assert case_detail["report_text"] == (
+        "Findings: Abrupt cutoff of the pancreatic duct with upstream dilation. "
+        "Impression: Suspicious for pancreatic neoplasm. Recommend EUS."
+    )
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
+def test_import_fhir_diagnostic_report_decodes_presented_form_binary_url_from_contained_resource() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    attachment_text = "Abrupt cutoff of the pancreatic duct with ill-defined pancreatic head lesion."
+    payload = {
+        "resourceType": "DiagnosticReport",
+        "id": "dr-contained-binary-attachment-1",
+        "effectiveDateTime": "2026-03-19T11:18:00Z",
+        "category": [{"text": "CT abdomen"}],
+        "performer": [{"display": "Contained Binary Hospital"}],
+        "contained": [
+            {
+                "resourceType": "Binary",
+                "id": "binary-contained-1",
+                "contentType": "text/plain; charset=utf-8",
+                "data": base64.b64encode(attachment_text.encode("utf-8")).decode("ascii"),
+            }
+        ],
+        "presentedForm": [
+            {
+                "url": "#binary-contained-1",
+            }
+        ],
+        "conclusion": "Suspicious for pancreatic neoplasm. Recommend biopsy.",
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-contained-binary-attachment-1").json()
+    assert case_detail["site"] == "Contained Binary Hospital"
+    assert case_detail["report_text"] == (
+        "Findings: Abrupt cutoff of the pancreatic duct with ill-defined pancreatic head lesion. "
+        "Impression: Suspicious for pancreatic neoplasm. Recommend biopsy."
+    )
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
 def test_import_fhir_diagnostic_report_merges_unstructured_presented_form_with_conclusion() -> None:
     CASE_STORE.reset()
     client = TestClient(app)
@@ -361,6 +732,85 @@ def test_import_fhir_diagnostic_report_merges_unstructured_presented_form_with_c
         "Findings: Abrupt cutoff of the pancreatic duct with ill-defined pancreatic head lesion. "
         "Impression: Suspicious for pancreatic neoplasm. Recommend biopsy."
     )
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
+def test_import_fhir_diagnostic_report_combines_split_presented_form_attachments() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    payload = {
+        "resourceType": "DiagnosticReport",
+        "id": "dr-attachment-split-1",
+        "effectiveDateTime": "2026-03-19T11:22:00Z",
+        "category": [{"text": "CT abdomen"}],
+        "performer": [{"display": "Split Hospital"}],
+        "presentedForm": [
+            {
+                "contentType": "text/plain; charset=utf-8",
+                "data": base64.b64encode(
+                    b"Findings: Abrupt cutoff of the pancreatic duct with ill-defined pancreatic head lesion."
+                ).decode("ascii"),
+            },
+            {
+                "contentType": "text/plain; charset=utf-8",
+                "data": base64.b64encode(
+                    b"Impression: Suspicious for pancreatic neoplasm. Recommend EUS."
+                ).decode("ascii"),
+            },
+        ],
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-attachment-split-1").json()
+    assert case_detail["site"] == "Split Hospital"
+    assert case_detail["report_text"] == (
+        "Findings: Abrupt cutoff of the pancreatic duct with ill-defined pancreatic head lesion. "
+        "Impression: Suspicious for pancreatic neoplasm. Recommend EUS."
+    )
+    assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
+
+
+def test_import_fhir_diagnostic_report_prefers_richer_presented_form_attachment_when_overlapping() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    sectioned_attachment = (
+        '<div xmlns="http://www.w3.org/1999/xhtml">'
+        "<p><strong>Findings:</strong> Abrupt cutoff of the pancreatic duct with upstream dilation.</p>"
+        "<p><strong>Impression:</strong> Suspicious for pancreatic neoplasm. Recommend EUS.</p>"
+        "</div>"
+    )
+    payload = {
+        "resourceType": "DiagnosticReport",
+        "id": "dr-attachment-overlap-1",
+        "effectiveDateTime": "2026-03-19T11:24:00Z",
+        "category": [{"text": "MRI abdomen"}],
+        "performer": [{"display": "Overlap Hospital"}],
+        "presentedForm": [
+            {
+                "contentType": "text/plain; charset=utf-8",
+                "data": base64.b64encode(b"Suspicious for pancreatic neoplasm.").decode("ascii"),
+            },
+            {
+                "contentType": "application/xhtml+xml; charset=utf-8",
+                "data": base64.b64encode(sectioned_attachment.encode("utf-8")).decode("ascii"),
+            },
+        ],
+    }
+
+    response = client.post("/api/v1/imports/fhir/diagnostic-reports", json=payload)
+    assert response.status_code == 200
+
+    case_detail = client.get("/api/v1/cases/dr-attachment-overlap-1").json()
+    assert case_detail["site"] == "Overlap Hospital"
+    assert case_detail["report_text"] == (
+        "Findings: Abrupt cutoff of the pancreatic duct with upstream dilation. "
+        "Impression: Suspicious for pancreatic neoplasm. Recommend EUS."
+    )
+    assert case_detail["report_text"].count("Suspicious for pancreatic neoplasm.") == 1
     assert any(item["code"] == "DUCT_CUTOFF" for item in case_detail["evidence"])
 
 

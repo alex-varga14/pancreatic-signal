@@ -181,8 +181,12 @@ Import FHIR `DiagnosticReport` JSON directly into the existing triage pipeline.
 Behavior:
 - Accepts either a single `DiagnosticReport` resource or a FHIR `Bundle` containing `DiagnosticReport` entries.
 - Initial adapter maps one `DiagnosticReport` to one triaged case using the report identifier as both `report_id` and `case_id`.
-- Pulls report text from supported text-like `presentedForm` attachments, `conclusion`, and referenced `Observation` resources when present.
-- Uses sectioned attachment narratives directly when available; otherwise unsectioned attachment text can be merged with `conclusion` as findings-level narrative so the conclusion is not dropped.
+- Pulls report text from one or more supported text-like `presentedForm` attachments, `conclusion` or `conclusionCode`, and referenced `Observation` resources when present.
+- When a referenced `Observation` carries component-level findings or grouped `hasMember` child observations instead of a single direct value, those structured findings are expanded into reviewer-visible report text rather than collapsing to a generic panel or observation label.
+- Preserves structured measurement context from referenced `Observation` values, including `interpretation` and `referenceRange`, so abnormal pancreatic measurements remain reviewer-visible in the assembled report text.
+- Uses sectioned attachment narratives directly when available; complementary supported attachments are merged in order, and overlapping shorter fragments are dropped when a richer attachment already contains them.
+- Supports attachment `data`, inline `text`, and `url` values that resolve to bundled or contained FHIR `Binary` resources with supported text-like content types.
+- Otherwise unsectioned attachment text can be merged with `conclusion` as findings-level narrative so the conclusion is not dropped.
 - Derives site scope from `performer` / `resultsInterpreter` / referenced `Organization` resources.
 - Derives modality heuristically from report category / code text.
 - Preserves structured import metadata when present, including patient identifier, encounter identifier, accession number, ordering provider, source system, source format, and import source identifier.
