@@ -17,7 +17,7 @@ Do not tag a release that blurs those boundaries.
 
 - deterministic triage remains the primary explainability path
 - reviewer workflow works end to end
-- imports work across generic report, FHIR, and HL7 paths
+- imports work across generic report, FHIR, and HL7 paths, including supported text-backed FHIR `presentedForm` attachments
 - import-run audit summaries and detail views are available
 - de-identified research surfaces still behave as documented
 - current handoff docs match the actual implementation state

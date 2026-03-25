@@ -14,7 +14,8 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 - The repo also now includes a public benchmark pack: `docs/LABELING_GUIDE.md`, `docs/BENCHMARK_SUBMISSIONS.md`, checked-in label and submission templates, a Pydantic benchmark submission schema, and a validator entrypoint through `make validate-benchmark-submission SUBMISSION=...`.
 - The repo now also includes a comparable external evaluation bundle writer through `scripts/run_external_eval.py` plus `make benchmark-external`, producing JSON, Markdown, and validator-compatible submission-draft artifacts from label and prediction JSONL inputs.
 - FHIR `DiagnosticReport` imports now preserve patient, encounter, and accession metadata from inline `Reference.identifier` values when upstream payloads omit fully resolved `Patient`, `Encounter`, or `ServiceRequest` resources.
-- HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component plus repetition separators, and normalize common HL7 escape sequences before the existing report-text assembly flows into triage and audit persistence.
+- FHIR `DiagnosticReport` imports now also decode supported text-like `presentedForm` attachments, including base64 XHTML narratives with explicit charsets, and keep unsectioned attachment findings merged with `conclusion` text when that preserves a more reviewer-usable report shape.
+- HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component plus repetition separators, normalize common HL7 escape sequences, and clean composite metadata fields with subcomponent-aware extraction before the existing report-text assembly flows into triage and audit persistence.
 - Top-level repo docs now reflect the implemented platform instead of the earlier scaffold framing, and the repository includes checked-in contributor, security, and code-of-conduct docs appropriate for a near-1.0 open-source handoff.
 - The repo still includes checked-in GitHub Actions workflows for strict validation plus hosted base, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage, but that hosted/manual smoke split is now supporting operational context rather than the primary roadmap driver.
 - The highest-value remaining work is not bootstrapping. It is deeper FHIR and HL7 interoperability coverage first, then broader pilot operability, without breaking explainability.
@@ -25,7 +26,7 @@ Confirmed on 2026-03-24:
 
 - `make validate-strict` passes
 - Summary: `9 pass, 0 warn, 0 fail`
-- API tests: `117 passed`
+- API tests: `123 passed`
 - Web checks: `npm run lint` and `npm run build` now both pass through `make validate-strict`
 - Demo evaluation compare and sweep both run through the validation script
 - `make refresh-demo-proof` succeeded and refreshed the checked-in benchmark snapshot that powers `/proof`
@@ -33,7 +34,7 @@ Confirmed on 2026-03-24:
 - `cd apps/api && .venv/bin/python -m pytest tests/test_benchmark_submission.py -q` passed
 - `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl OUT_DIR=/tmp/pancreatic-signal-external-eval BASENAME=template-external TOP_K=2` passed and wrote JSON, Markdown, and submission-draft artifacts
 - `make validate-benchmark-submission SUBMISSION=/tmp/pancreatic-signal-external-eval/template-external-submission.json` passed against the generated draft
-- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py apps/api/tests/test_import_runs.py -q` passed with `40 passed`, including inline `Reference.identifier` extraction coverage plus custom `MSH-2` delimiter, escape-sequence, and audit-visibility coverage
+- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py apps/api/tests/test_import_runs.py -q` passed with `46 passed`, including inline `Reference.identifier` extraction coverage, attachment-backed `presentedForm` decoding and audit coverage, plus custom `MSH-2` delimiter, escape-sequence, subcomponent, and audit-visibility coverage
 - Targeted import / de-identification / export coverage also passes for the new import metadata surface
 - Import-run audit coverage now passes for success, update counts, validation failures, unsupported payloads, site-scope rejection, and audit-route access control
 - Config-override coverage now passes for one FHIR field-preference override and one HL7 field-preference override while preserving defaults
@@ -312,52 +313,48 @@ Additional note from this slice:
 
 ## Recommended Next Slice
 
-Proceed with HL7 subcomponent-aware metadata extraction from composite fields.
+Proceed with live pilot smoke coverage for attachment-backed FHIR `DiagnosticReport.presentedForm` imports.
 
 ### Why this is next
 
-- The current HL7 parser now respects `MSH-2` separators and normalizes common escape sequences, but it still treats subcomponents as opaque strings inside composite identifiers and location/provider fields.
-- That is a real interoperability risk because many interface engines place assigning authority, facility, and provider context into subcomponents even when the top-level component layout is otherwise valid.
-- Making the parser subcomponent-aware would strengthen patient, encounter, site, and provider extraction across the same explainable import path without introducing a new parser family.
-- The hosted/manual smoke split is already a useful operational guardrail, so the next agent can keep focusing on adapter robustness rather than expanding benchmark packaging again.
+- The parser and API tests now cover attachment-backed `presentedForm` narratives, including XHTML plus charset-aware decoding and fallback ordering with `conclusion`.
+- The remaining gap is operational confidence: the current proxy and header demo smokes still prove only the older structured FHIR success path, not the new attachment-backed one.
+- Adding one attachment-backed pilot path would tighten the link between interoperability tests and deployable demo evidence without introducing a new adapter family or persistence path.
 
 ### Target outcome
 
-Add one meaningful HL7 subcomponent-aware slice that:
-- reads relevant nested values using the `MSH-2` subcomponent separator instead of treating composite components as opaque strings
-- preserves import metadata extraction, audit visibility, and site-scope behavior across subcomponent-heavy messages
-- documents any parser assumptions or fixture expectations introduced by the change
-- does not introduce a new HL7 parser, a second persistence path, or opaque inference in this slice
+Add one pilot-validation slice that:
+- exercises an attachment-backed FHIR `DiagnosticReport` through the existing smoke helper and one or both pilot overlays
+- preserves run ID capture, audit visibility, and site-scope behavior for that attachment-backed path
+- documents the new fixture shape so contributors understand which attachment content types are intentionally supported
+- leaves the current benchmark, reviewer, and import workspace surfaces unchanged
 
 ### Suggested implementation shape
 
-1. Start from `apps/api/app/services/hl7_imports.py` and the existing import tests rather than creating new adapter entrypoints.
+1. Reuse the current smoke helper and Make targets instead of adding a parallel validation path.
 
-2. Reuse and extend the current structured import coverage:
-   - `apps/api/tests/test_imports.py`
-   - `apps/api/tests/test_import_runs.py`
-   - the current smoke helper and pilot overlay targets only if escape normalization changes live behavior materially
+2. Extend the existing structured FHIR success fixture first:
+   - `scripts/smoke_proxy_auth.py`
+   - `apps/api/tests/test_smoke_proxy_auth.py`
+   - any affected Make targets only if the new fixture needs an explicit mode
 
-3. Focus on additive subcomponent-aware parsing:
-   - patient and encounter identifier extraction from composite identifier fields
-   - site or location extraction where HD or PL values carry useful subcomponents
-   - provider display cleanup that still preserves the current finding versus impression section assembly and audit semantics
+3. Keep the attachment scope narrow and explainable:
+   - one supported text-like `presentedForm` attachment fixture
+   - no PDF parsing, OCR, or remote fetch behavior
+   - no changes to the import persistence model
 
 4. Preserve the current operational baseline:
-   - do not regress the current pilot smoke matrix
+   - do not regress the existing proxy or header success and failure smokes
    - do not regress import-run audit semantics
    - do not regress reviewer workflow, `/imports`, `/proof`, or the external benchmark bundle path
 
-5. Prefer additive parser, fixture, and docs work over new runtime abstractions.
-
 ### Acceptance criteria
 
-- At least one meaningful subcomponent-heavy HL7 ORU fixture is covered end to end in tests.
-- The adapter behavior remains explainable and preserves import metadata and audit expectations.
-- Contributor docs call out any new parser expectations introduced by the change.
-- The current benchmark proof and external evaluation bundle path remain intact.
+- At least one live or smoke-level attachment-backed FHIR import path is covered end to end.
+- The attachment-backed path still proves persisted run IDs plus expected audit visibility behavior.
+- Contributor docs call out the attachment fixture expectations clearly.
 - `make validate-strict` passes after the implementation change.
-- If the new slice changes release posture materially, update the release-facing docs in the same change set.
+- If live smoke targets are rerun, the exact overlay or Make target is recorded in this handoff.
 
 ## Good First Commands For The Next Agent
 
@@ -369,9 +366,10 @@ sed -n '1,260p' docs/DEPLOYMENT.md
 sed -n '1,260p' docs/OPEN_SOURCE_STRATEGY.md
 sed -n '1,260p' README.md
 sed -n '1,260p' docs/RELEASE_READINESS.md
-sed -n '1,260p' apps/api/app/services/hl7_imports.py
+sed -n '1,260p' apps/api/app/services/fhir_imports.py
 sed -n '1,260p' apps/api/tests/test_imports.py
 sed -n '1,260p' apps/api/tests/test_import_runs.py
+sed -n '1,260p' apps/api/tests/test_smoke_proxy_auth.py
 sed -n '1,260p' scripts/smoke_proxy_auth.py
 sed -n '1,220p' .github/workflows/pilot-smoke.yml
 make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl
@@ -380,4 +378,4 @@ make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission
 
 ## Handoff Summary
 
-This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base plus report-path and structured adapter site-rejection smoke automation, a sharper public landing experience, a checked-in benchmark proof surface, a machine-validated public benchmark submission pack, a reproducible external evaluation bundle writer, FHIR inline `Reference.identifier` fallback coverage, and HL7 `ED`, repeated-`OBX-5`, custom-`MSH-2` delimiter, plus escape-sequence support are complete. The next agent should focus on HL7 subcomponent-aware metadata extraction while preserving the new benchmark surfaces and import audit behavior, rather than spending the next slice on more benchmark packaging or hosted smoke expansion.
+This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base plus report-path and structured adapter site-rejection smoke automation, a sharper public landing experience, a checked-in benchmark proof surface, a machine-validated public benchmark submission pack, a reproducible external evaluation bundle writer, FHIR inline `Reference.identifier` fallback coverage, FHIR `presentedForm` attachment-backed narrative decoding, and HL7 `ED`, repeated-`OBX-5`, custom-`MSH-2` delimiter, escape-sequence, plus subcomponent-aware metadata support are complete. The next agent should focus on attachment-backed FHIR pilot smoke coverage while preserving the benchmark surfaces and import audit behavior, rather than reopening parser work that is now already covered in tests.
