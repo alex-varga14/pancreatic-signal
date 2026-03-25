@@ -6,7 +6,7 @@ Open-source, research-first triage software for identifying radiology reports su
 
 ## Current Status
 
-Pancreatic Signal is no longer a scaffold. As of 2026-03-20, this repository includes:
+Pancreatic Signal is no longer a scaffold. As of 2026-03-25, this repository includes:
 
 - deterministic, evidence-backed report triage with rationale codes and auditability
 - a reviewer worklist with case detail, review actions, and research-safe views
@@ -59,11 +59,12 @@ It is not:
 │   ├── DATA_MODEL.md
 │   ├── EVALUATION.md
 │   ├── DEPLOYMENT.md
+│   ├── RELEASE_RUNBOOK.md
 │   ├── RELEASE_READINESS.md
+│   ├── RELEASE_NOTES_TEMPLATE.md
 │   ├── SAFETY_AND_COMPLIANCE.md
 │   ├── OPEN_SOURCE_STRATEGY.md
-│   ├── CODEX_HANDOFF.md
-│   └── NEXT_AGENT_PROMPT.md
+│   └── CODEX_HANDOFF.md
 ├── apps/
 │   ├── api/
 │   └── web/
@@ -138,6 +139,7 @@ make validate-strict
 
 `make validate` is tolerant of missing local prerequisites and reports readiness gaps as warnings. `make validate-strict` upgrades those same gaps to failures and is the preferred pre-handoff or pre-release check.
 GitHub Actions now runs the same `make validate-strict` gate on pull requests, on `main`, and via manual workflow dispatch. A separate hosted smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) reuses the base proxy and header pilot smokes plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule. The broader shared-visibility, audit-denial, and non-site structured failure matrix in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) remains a manual validation path.
+For the release-facing evidence path that ties validation, hosted smoke artifacts, and docs updates together, use [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md).
 For a concise outside-collaborator path, see [docs/QUICKSTART.md](docs/QUICKSTART.md).
 
 ### Demo Imports
@@ -208,6 +210,7 @@ make pilot-header-demo-adapter-audit-visibility-smoke
 These smoke paths now exercise real import endpoints plus persisted import-run audit checks, including same-site visibility checks for successful runs, non-site failed runs, and denial checks for structured site-scope rejection runs. The full overlay and smoke matrix lives in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 For hosted smoke automation, GitHub Actions now reuses `make pilot-proxy-demo-smoke`, `make pilot-proxy-demo-site-rejection-smoke`, `make pilot-proxy-demo-adapter-site-rejection-smoke`, `make pilot-header-demo-smoke`, `make pilot-header-demo-site-rejection-smoke`, and `make pilot-header-demo-adapter-site-rejection-smoke` through [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml). That workflow is intentionally narrower than the full local smoke matrix and is meant to complement, not replace, the still-manual shared-visibility, audit-denial, and non-site structured failure checks.
+Manual dispatch now also supports `smoke_scope=fhir-success-only` and `smoke_scope=hl7-success-only`, with `pilot-smoke-summary.json` and `pilot-smoke-summary.md` artifacts intended for release and handoff capture.
 
 ## Documentation Map
 
@@ -216,9 +219,9 @@ For hosted smoke automation, GitHub Actions now reuses `make pilot-proxy-demo-sm
 - Architecture and roadmap: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/PHASES.md](docs/PHASES.md)
 - API and data model: [docs/API_SPEC.md](docs/API_SPEC.md), [docs/DATA_MODEL.md](docs/DATA_MODEL.md)
 - Evaluation and deployment: [docs/EVALUATION.md](docs/EVALUATION.md), [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
-- Release posture: [CHANGELOG.md](CHANGELOG.md), [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md)
+- Release posture: [CHANGELOG.md](CHANGELOG.md), [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md), [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md), [docs/RELEASE_NOTES_TEMPLATE.md](docs/RELEASE_NOTES_TEMPLATE.md)
 - Safety and project posture: [docs/SAFETY_AND_COMPLIANCE.md](docs/SAFETY_AND_COMPLIANCE.md), [docs/OPEN_SOURCE_STRATEGY.md](docs/OPEN_SOURCE_STRATEGY.md)
-- Agent handoff context: [docs/CODEX_HANDOFF.md](docs/CODEX_HANDOFF.md), [docs/NEXT_AGENT_PROMPT.md](docs/NEXT_AGENT_PROMPT.md)
+- Agent handoff context: [docs/CODEX_HANDOFF.md](docs/CODEX_HANDOFF.md)
 
 ## Contributing And Security
 

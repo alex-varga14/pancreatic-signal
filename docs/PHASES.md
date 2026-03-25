@@ -1,6 +1,6 @@
 # Phase status and next slices
 
-This repository has already completed the early foundation and MVP-oriented phases. The current work is late Phase 6 interoperability and pilot hardening, not initial product construction.
+This repository has already completed the early foundation and MVP-oriented phases. The current work is late Phase 6 hosted smoke evidence capture and pilot closeout, not initial product construction.
 
 ## Completed phases
 
@@ -69,6 +69,7 @@ Already completed in this phase:
 - persisted import-run audit records
 - pilot Docker overlays and smoke coverage
 - hosted GitHub smoke coverage for the narrower supported matrix
+- repo-side Phase 6D release-facing polish across quickstart, deployment, release-readiness, and handoff docs
 
 ## Current next slices
 
@@ -83,12 +84,6 @@ Goal:
 Goal:
 
 - decide whether HL7 success-path smoke should join the hosted matrix or remain operator-triggered based on reliability and maintenance cost
-
-### Phase 6D — Release-facing polish
-
-Goal:
-
-- keep deployment, readiness, benchmark, and handoff docs aligned with the shipping implementation so contributors and operators can work without private context
 
 ## What is not a current phase target
 

@@ -1,6 +1,6 @@
 # Platform Snapshot And Near-Term Plan
 
-This repository is no longer in MVP planning mode. The core research-first triage platform is implemented, validated, and in late Phase 6 interoperability and pilot-hardening work.
+This repository is no longer in MVP planning mode. The core research-first triage platform is implemented, validated, and in late Phase 6 hosted smoke evidence capture and pilot-closeout work.
 
 This document keeps the old filename for continuity, but it now serves as the current-state snapshot plus the near-term execution plan for the next few slices.
 
@@ -78,7 +78,7 @@ The next work is not foundation work. It is targeted late-Phase-6 execution:
 
 1. Record the first green GitHub-hosted FHIR-only pilot smoke run.
 2. Decide whether HL7 success smoke should join the hosted workflow matrix or remain operator-triggered.
-3. Continue interoperability hardening around structured edge cases and pilot failure visibility.
+3. Keep release-facing docs and release evidence aligned as hosted smoke evidence lands.
 4. Expand real benchmark and retrospective evaluation inputs beyond the synthetic/demo set.
 5. Keep improving reviewer ergonomics and feedback loops without weakening explainability.
 

@@ -2,7 +2,7 @@
 
 Updated: 2026-03-25
 
-This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, and the best next work is now hosted Phase 6 smoke evidence capture plus release-facing polish on top of the existing pilot packaging, proof surfaces, public benchmark pack, and external evaluation bundle writer.
+This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, and the best next work is now hosted Phase 6 smoke evidence capture on top of the existing pilot packaging, proof surfaces, public benchmark pack, and external evaluation bundle writer.
 
 ## Current State
 
@@ -13,12 +13,13 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 - The repo now includes an adoption-facing quickstart, checked-in benchmark snapshots in `docs/examples/demo-benchmark-current.json` and `docs/examples/demo-benchmark-current.md`, and a refresh path through `make benchmark-demo` plus `make refresh-demo-proof`.
 - The repo also now includes a public benchmark pack: `docs/LABELING_GUIDE.md`, `docs/BENCHMARK_SUBMISSIONS.md`, checked-in label and submission templates, a Pydantic benchmark submission schema, and a validator entrypoint through `make validate-benchmark-submission SUBMISSION=...`.
 - The repo now also includes a comparable external evaluation bundle writer through `scripts/run_external_eval.py` plus `make benchmark-external`, producing JSON, Markdown, and validator-compatible submission-draft artifacts from label and prediction JSONL inputs.
+- The release-facing docs now also include a concrete operator runbook in `docs/RELEASE_RUNBOOK.md` plus a reusable `docs/RELEASE_NOTES_TEMPLATE.md` so the remaining hosted smoke evidence path is explicit rather than tribal.
 - FHIR `DiagnosticReport` imports now preserve patient, encounter, and accession metadata from inline `Reference.identifier` values when upstream payloads omit fully resolved `Patient`, `Encounter`, or `ServiceRequest` resources.
 - FHIR `DiagnosticReport` imports now also decode supported text-like `presentedForm` attachments, including base64 XHTML narratives with explicit charsets, bundled or contained `Binary`-backed attachment URLs, merge multiple supported attachments in order, suppress shorter overlapping fragments when a richer attachment already contains them, expand referenced `Observation.component` plus grouped `Observation.hasMember` findings into reviewer-visible report text, preserve `interpretation` plus `referenceRange` measurement context, fall back to `conclusionCode` text when free-text `conclusion` is absent, avoid duplicate or cyclic grouped-member expansion, and keep unsectioned attachment findings merged with `conclusion` text when that preserves a more reviewer-usable report shape.
 - HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component plus repetition separators, normalize common HL7 escape sequences, and clean composite metadata fields with subcomponent-aware extraction before the existing report-text assembly flows into triage and audit persistence.
 - Top-level repo docs now reflect the implemented platform instead of the earlier scaffold framing, and the repository includes checked-in contributor, security, and code-of-conduct docs appropriate for a near-1.0 open-source handoff.
 - The repo still includes checked-in GitHub Actions workflows for strict validation plus hosted base, attachment-backed FHIR success-path, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage, and the hosted pilot workflow now supports narrower manual FHIR-only plus HL7-only dispatches with per-job raw-log and structured-summary artifacts, but that hosted/manual smoke split is still supporting operational context rather than the primary roadmap driver.
-- The highest-value remaining work is not bootstrapping or more repo-side parser depth. It is hosted smoke evidence capture for Phase 6A and 6B plus release-facing Phase 6D polish.
+- The highest-value remaining work is not bootstrapping or more repo-side parser depth. It is hosted smoke evidence capture for Phase 6A and 6B; the repo-side Phase 6D release polish is already in place.
 
 ## Fresh Validation Status
 

@@ -28,6 +28,7 @@ Do not tag a release that blurs those boundaries.
 - GitHub Actions PR validation is green for the release branch or merge commit when applicable
 - Hosted GitHub Actions pilot smoke is green for the release branch or release candidate when applicable
 - if a hosted smoke workflow was only added recently, its first GitHub-hosted run is either green or explicitly called out as pending
+- hosted smoke summaries are captured from `pilot-smoke-summary.json` and `pilot-smoke-summary.md` when those artifacts exist
 - the handoff and deployment docs accurately distinguish hosted base plus report-path and structured adapter site-rejection smoke coverage from the broader manual structured-failure and visibility matrix
 - latest API, web, and evaluation results are captured in the release notes or handoff
 - relevant pilot smoke targets have been rerun recently enough to be credible for the release
@@ -39,9 +40,11 @@ Do not tag a release that blurs those boundaries.
 
 - [README.md](../README.md) accurately describes current capabilities and limits
 - [CHANGELOG.md](../CHANGELOG.md) includes the release summary
+- [docs/RELEASE_RUNBOOK.md](./RELEASE_RUNBOOK.md) matches the actual release-evidence flow
 - [docs/DEPLOYMENT.md](./DEPLOYMENT.md) matches the current overlay and smoke matrix
 - [docs/API_SPEC.md](./API_SPEC.md) matches the current import, auth, and audit behavior
 - [docs/SAFETY_AND_COMPLIANCE.md](./SAFETY_AND_COMPLIANCE.md) remains aligned with release messaging
+- [docs/RELEASE_NOTES_TEMPLATE.md](./RELEASE_NOTES_TEMPLATE.md) still reflects the evidence you actually want maintainers to publish
 - [docs/CODEX_HANDOFF.md](./CODEX_HANDOFF.md) is current enough for the next implementation phase
 
 ## Open-Source Readiness
@@ -59,8 +62,11 @@ Include:
 - what the release enables for researchers and pilot collaborators
 - what is still explicitly out of scope
 - the exact validation date and headline results
+- the exact hosted smoke artifact path or the explicit reason hosted evidence is still pending
 - the most important setup path for first-time users
 - the highest-priority next implementation slice after release
+
+Use [docs/RELEASE_NOTES_TEMPLATE.md](./RELEASE_NOTES_TEMPLATE.md) rather than drafting this ad hoc.
 
 ## Recommended Final Gate
 

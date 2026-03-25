@@ -56,6 +56,13 @@ Use this when the demo benchmark changes and you want the landing page plus docs
 
 ## 4. Where To Look Next
 
+If you need release or pilot evidence rather than just a local walkthrough:
+
+- release operator path: [RELEASE_RUNBOOK.md](./RELEASE_RUNBOOK.md)
+- release checklist: [RELEASE_READINESS.md](./RELEASE_READINESS.md)
+
+Hosted pilot evidence currently flows through the `Pilot Smoke` workflow with manual `smoke_scope=fhir-success-only` and `smoke_scope=hl7-success-only` dispatches. Record the uploaded `pilot-smoke-summary.json` and `pilot-smoke-summary.md` artifacts in the handoff once those runs exist.
+
 - comparable external bundle:
 
 ```bash
