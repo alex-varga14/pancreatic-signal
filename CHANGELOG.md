@@ -19,6 +19,7 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - A hosted pilot smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) that reuses the base and FHIR proxy and header overlay smoke targets plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule
 - A narrower manual-dispatch path in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) for hosted attachment-backed FHIR confirmation, plus uploaded per-job smoke log artifacts for later run auditing
 - A structured hosted smoke summary generator in [`scripts/summarize_pilot_smoke.py`](scripts/summarize_pilot_smoke.py) plus workflow-uploaded JSON and Markdown summary artifacts for later handoff capture
+- A bundled hosted smoke evidence builder in [`scripts/build_pilot_smoke_evidence.py`](scripts/build_pilot_smoke_evidence.py) plus `make pilot-smoke-evidence` so downloaded hosted summary artifacts can be consolidated into release-ready JSON and Markdown evidence
 - A manual-only `hl7-success-only` dispatch path in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) so hosted HL7 success-path trials can be recorded without widening the default weekly matrix
 - Live failed-run shared-visibility smoke coverage for a persisted non-site `validation_error` import run in the proxy and header pilot overlays
 - Live structured adapter failed-run shared-visibility smoke coverage for persisted non-site FHIR `unsupported_payload` and HL7 `parse_error` runs in the proxy and header pilot overlays
@@ -39,7 +40,9 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 - `make validate-strict` now includes web lint alongside Python checks, API tests, evaluation checks, and the web build so local and hosted validation stay aligned
 - The validation and deployment docs now distinguish between hosted base plus report-path and structured adapter site-rejection automation and the broader manual overlay smoke matrix
 - Hosted pilot smoke jobs now generate machine-readable and Markdown summary artifacts from `pilot-smoke.log`, so the first green attachment-backed FHIR run can be recorded without manual log scraping
-- Hosted pilot smoke summaries now include smoke duration and exit code, and HL7 success-path coverage remains manual by default pending hosted trial evidence
+- Hosted pilot smoke summaries now also preserve absolute smoke start and finish timestamps, and downloaded artifact summaries can be consolidated into a single hosted evidence bundle for release and handoff capture
+- Hosted pilot smoke summaries now include smoke duration and exit code, and the recorded 2026-03-25 hosted HL7 trial keeps HL7 success-path coverage manual-only in the default matrix by explicit decision
+- The bind-mounted web service in `docker-compose.yml` now preserves `/app/node_modules`, so local and GitHub-hosted pilot stacks retain the Next.js CLI installed during image build
 - FHIR `DiagnosticReport` imports now merge multiple supported `presentedForm` attachments in order and suppress shorter overlapping fragments when a richer narrative attachment already contains them
 - FHIR `DiagnosticReport` imports now also decode supported `presentedForm.url` attachments when they resolve to bundled or contained FHIR `Binary` resources
 - FHIR `DiagnosticReport` imports now expand referenced `Observation.component` findings into report text so structured component-level pancreatic findings are preserved for triage
@@ -49,12 +52,15 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 ### Validated
 
 - `make validate-strict` passed on 2026-03-25 with `9 pass, 0 warn, 0 fail`
-- API validation reported `134 passed` on 2026-03-25
+- API validation reported `136 passed` on 2026-03-25
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py -q` passed on 2026-03-25 with `34 passed`, including split, overlapping, bundled or contained `Binary`-backed FHIR `presentedForm`, grouped and cycle-safe `Observation.hasMember`, `conclusionCode`, measurement `interpretation` plus `referenceRange`, and `Observation.component` coverage
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_summarize_pilot_smoke.py apps/api/tests/test_smoke_proxy_auth.py -q` passed on 2026-03-25 with `23 passed`, covering the hosted smoke summary parser plus the attachment-backed FHIR smoke fixture shape
+- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_summarize_pilot_smoke.py apps/api/tests/test_build_pilot_smoke_evidence.py -q` passed on 2026-03-25, covering timestamped hosted smoke summaries plus bundled evidence generation from downloaded hosted artifacts
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_smoke_proxy_auth.py -q` passed on 2026-03-25 with `21 passed`, covering the attachment-backed FHIR smoke fixture shape
-- API-only local reruns of the attachment-backed FHIR smoke path passed on 2026-03-25 in proxy mode and header-auth mode, recording persisted import runs `48` and `49` plus visible-case and reviewer round-trip verification
-- The public GitHub Actions API reported `0` `Pilot Smoke` workflow runs on 2026-03-25, so hosted attachment-backed FHIR evidence is still pending even though the workflow is active
+- Unsandboxed local reruns of `make pilot-proxy-demo-fhir-smoke` and `make pilot-header-demo-fhir-smoke` passed end to end on 2026-03-25, recording persisted import runs `50` and `51` plus visible-case and reviewer round-trip verification
+- GitHub-hosted `Pilot Smoke (fhir-success-only)` run [`#23563902873`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23563902873) passed on 2026-03-25 with summary artifacts `pilot-smoke-summary-header-demo-fhir-smoke` and `pilot-smoke-summary-proxy-demo-fhir-smoke`, both showing one visible case and a reviewer round-trip
+- GitHub-hosted `Pilot Smoke (hl7-success-only)` run [`#23564057337`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23564057337) passed on 2026-03-25 with summary artifacts `pilot-smoke-summary-header-demo-hl7-smoke` and `pilot-smoke-summary-proxy-demo-hl7-smoke`, both showing one visible case and a reviewer round-trip
+- `make pilot-smoke-evidence SUMMARY_DIR=... HL7_DECISION=keep-manual` produced a complete hosted evidence bundle on 2026-03-25 and recorded the explicit decision to keep HL7 manual-only in the default hosted matrix to limit recurring runtime and maintenance cost
 - `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl OUT_DIR=/tmp/pancreatic-signal-external-eval BASENAME=template-external TOP_K=2` wrote JSON, Markdown, and submission-draft artifacts on 2026-03-24
 - `make validate-benchmark-submission SUBMISSION=/tmp/pancreatic-signal-external-eval/template-external-submission.json` passed on 2026-03-24
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py apps/api/tests/test_import_runs.py -q` passed on 2026-03-24 with `46 passed`, including inline `Reference.identifier` FHIR coverage, attachment-backed `presentedForm` decoding and audit coverage, plus custom `MSH-2` HL7 delimiter, escape-sequence, subcomponent, and audit-visibility coverage

@@ -58,6 +58,7 @@ services:
         condition: service_healthy
     volumes:
       - ./apps/web:/app
+      - /app/node_modules
     command: npm run dev
     healthcheck:
       test:

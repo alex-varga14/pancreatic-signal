@@ -30,6 +30,8 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      SMOKE_WAIT_SECONDS: "180"
     strategy:
       fail-fast: false
       matrix:
@@ -173,11 +175,15 @@ jobs:
         run: |
           set -o pipefail
           start_epoch="$(date +%s)"
+          start_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           ${{ matrix.smoke }} 2>&1 | tee pilot-smoke.log
           status="${PIPESTATUS[0]}"
           end_epoch="$(date +%s)"
+          end_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           echo "smoke_exit_code=${status}" >> "$GITHUB_OUTPUT"
           echo "smoke_duration_seconds=$((end_epoch - start_epoch))" >> "$GITHUB_OUTPUT"
+          echo "smoke_started_at=${start_iso}" >> "$GITHUB_OUTPUT"
+          echo "smoke_finished_at=${end_iso}" >> "$GITHUB_OUTPUT"
           exit "${status}"
 
       - name: Upload pilot smoke log
@@ -206,6 +212,9 @@ jobs:
             --outcome "${{ steps.run_pilot_smoke.outcome }}" \
             --exit-code "${{ steps.run_pilot_smoke.outputs.smoke_exit_code }}" \
             --duration-seconds "${{ steps.run_pilot_smoke.outputs.smoke_duration_seconds }}" \
+            --started-at "${{ steps.run_pilot_smoke.outputs.smoke_started_at }}" \
+            --finished-at "${{ steps.run_pilot_smoke.outputs.smoke_finished_at }}" \
+            --summary-generated-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --run-id "${{ github.run_id }}" \
             --run-attempt "${{ github.run_attempt }}" \
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \

@@ -89,6 +89,9 @@ Review round-trip verified for case dr-fhir-smoke-20260325180000.
             "outcome": "success",
             "exit_code": "0",
             "duration_seconds": "187",
+            "started_at": "2026-03-25T19:10:00Z",
+            "finished_at": "2026-03-25T19:13:07Z",
+            "summary_generated_at": "2026-03-25T19:13:10Z",
             "run_id": "123456789",
             "run_attempt": "1",
             "run_url": "https://github.com/example/repo/actions/runs/123456789",
@@ -127,6 +130,8 @@ Review round-trip verified for case dr-fhir-smoke-20260325180000.
     assert "[#123456789](https://github.com/example/repo/actions/runs/123456789)" in markdown
     assert "`pilot-smoke-summary-proxy-demo-fhir-smoke`" in markdown
     assert "- Duration seconds: `187`" in markdown
+    assert "- Started at: `2026-03-25T19:10:00Z`" in markdown
+    assert "- Finished at: `2026-03-25T19:13:07Z`" in markdown
     assert "run `#88` status `completed` format `fhir-diagnostic-report`" in markdown
 
 

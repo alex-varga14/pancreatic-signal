@@ -55,22 +55,34 @@ The hosted workflow is:
 
 - [`.github/workflows/pilot-smoke.yml`](../.github/workflows/pilot-smoke.yml)
 
-The minimum hosted evidence path is:
+The minimum hosted evidence path, already satisfied by the recorded March 25, 2026 runs below, is:
 
 1. Manually dispatch `Pilot Smoke` with `smoke_scope=fhir-success-only`.
 2. Download or inspect:
    - `pilot-smoke.log`
    - `pilot-smoke-summary.json`
    - `pilot-smoke-summary.md`
-3. Record the exact run date, run URL, duration, outcome, and visible-case summary in:
+3. Build a bundled hosted evidence record from the downloaded summary artifacts:
+   - `make pilot-smoke-evidence SUMMARY_DIR=/path/to/downloaded/pilot-smoke-artifacts HL7_DECISION=pending`
+   - This writes `pilot-smoke-evidence.json` and `pilot-smoke-evidence.md` next to the downloaded artifacts unless you override `OUT_DIR`, `OUT_JSON`, or `OUT_MARKDOWN`.
+4. Record the exact run date, run URL, duration, outcome, and visible-case summary in:
    - [docs/CODEX_HANDOFF.md](./CODEX_HANDOFF.md)
    - [CHANGELOG.md](../CHANGELOG.md) if the run materially changes release confidence
+
+Historical failed workflow executions without jobs or uploaded artifacts do not count as hosted evidence. Treat the first usable hosted checkpoint as the first green run that actually produces `pilot-smoke-summary.json` and `pilot-smoke-summary.md`.
+
+Current recorded baseline:
+
+- FHIR-only hosted confirmation: [`#23563902873`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23563902873) succeeded on 2026-03-25 with summary artifacts `pilot-smoke-summary-header-demo-fhir-smoke` and `pilot-smoke-summary-proxy-demo-fhir-smoke`
+- HL7-only hosted trial: [`#23564057337`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23564057337) succeeded on 2026-03-25 with summary artifacts `pilot-smoke-summary-header-demo-hl7-smoke` and `pilot-smoke-summary-proxy-demo-hl7-smoke`
+- Current HL7 decision: keep HL7 manual-only in the default hosted matrix because the trial proved operability, but the weekly hosted matrix remains intentionally narrower to control recurring runtime and maintenance cost
 
 If you are making the HL7 hosting decision for Phase 6B, also dispatch:
 
 1. `smoke_scope=hl7-success-only`
 2. compare its duration and stability to the FHIR-only hosted path
-3. record whether HL7 should stay manual or join the default hosted matrix
+3. rerun `make pilot-smoke-evidence SUMMARY_DIR=/path/to/downloaded/pilot-smoke-artifacts HL7_DECISION=keep-manual` or `HL7_DECISION=promote-default`
+4. record whether HL7 should stay manual or join the default hosted matrix
 
 ## 5. Refresh Local Manual Evidence When Needed
 
@@ -130,6 +142,5 @@ Treat a release candidate as credible only if all of the following are true:
 As of the current Phase 6 state:
 
 - repo-side interoperability hardening is already in place
-- the highest-value remaining work is hosted smoke evidence capture for Phase 6A and 6B
+- the hosted smoke evidence boundary is now recorded and should be carried forward intentionally unless a newer rerun supersedes it
 - release-facing docs should help contributors understand that boundary without private context
-

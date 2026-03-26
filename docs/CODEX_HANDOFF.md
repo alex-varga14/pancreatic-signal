@@ -2,7 +2,7 @@
 
 Updated: 2026-03-25
 
-This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, and the best next work is now hosted Phase 6 smoke evidence capture on top of the existing pilot packaging, proof surfaces, public benchmark pack, and external evaluation bundle writer.
+This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, Phase 6 hosted smoke evidence capture is now complete, and the best next work should move toward deeper benchmark realism and reviewer-proof surfaces on top of the existing pilot packaging, proof surfaces, public benchmark pack, and external evaluation bundle writer.
 
 ## Current State
 
@@ -18,8 +18,8 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 - FHIR `DiagnosticReport` imports now also decode supported text-like `presentedForm` attachments, including base64 XHTML narratives with explicit charsets, bundled or contained `Binary`-backed attachment URLs, merge multiple supported attachments in order, suppress shorter overlapping fragments when a richer attachment already contains them, expand referenced `Observation.component` plus grouped `Observation.hasMember` findings into reviewer-visible report text, preserve `interpretation` plus `referenceRange` measurement context, fall back to `conclusionCode` text when free-text `conclusion` is absent, avoid duplicate or cyclic grouped-member expansion, and keep unsectioned attachment findings merged with `conclusion` text when that preserves a more reviewer-usable report shape.
 - HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component plus repetition separators, normalize common HL7 escape sequences, and clean composite metadata fields with subcomponent-aware extraction before the existing report-text assembly flows into triage and audit persistence.
 - Top-level repo docs now reflect the implemented platform instead of the earlier scaffold framing, and the repository includes checked-in contributor, security, and code-of-conduct docs appropriate for a near-1.0 open-source handoff.
-- The repo still includes checked-in GitHub Actions workflows for strict validation plus hosted base, attachment-backed FHIR success-path, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage, and the hosted pilot workflow now supports narrower manual FHIR-only plus HL7-only dispatches with per-job raw-log and structured-summary artifacts, but that hosted/manual smoke split is still supporting operational context rather than the primary roadmap driver.
-- The highest-value remaining work is not bootstrapping or more repo-side parser depth. It is hosted smoke evidence capture for Phase 6A and 6B; the repo-side Phase 6D release polish is already in place.
+- The repo still includes checked-in GitHub Actions workflows for strict validation plus hosted base, attachment-backed FHIR success-path, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage, and the hosted pilot workflow now supports narrower manual FHIR-only plus HL7-only dispatches with per-job raw-log and structured-summary artifacts. Those hosted slices are now verified with green March 25, 2026 runs for FHIR and HL7, while HL7 remains manual-only in the default weekly matrix by explicit decision.
+- The highest-value remaining work is no longer bootstrapping or late-Phase-6 smoke capture. The repo-side Phase 6D release polish is already in place, so the next work should move toward benchmark realism and reviewer ergonomics instead of reopening parser or smoke-baseline work.
 
 ## Fresh Validation Status
 
@@ -27,13 +27,11 @@ Confirmed on 2026-03-25:
 
 - `make validate-strict` passes
 - Summary: `9 pass, 0 warn, 0 fail`
-- API tests: `134 passed`
+- API tests: `136 passed`
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py -q` passed with `34 passed`, including split, overlapping, bundled or contained `Binary`-backed FHIR `presentedForm`, grouped and cycle-safe `Observation.hasMember`, `conclusionCode`, measurement `interpretation` plus `referenceRange`, and `Observation.component` coverage
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_summarize_pilot_smoke.py apps/api/tests/test_smoke_proxy_auth.py -q` passed with `23 passed`, covering the hosted smoke summary parser plus the attachment-backed FHIR smoke fixture and its expected `presentedForm` payload shape
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_smoke_proxy_auth.py -q` passed with `21 passed`, covering the attachment-backed FHIR smoke fixture and its expected `presentedForm` payload shape
-- An API-only local rerun of the proxy attachment-backed FHIR smoke passed on 2026-03-25, recording import run `48` completed at `2026-03-25T17:13:02.907406Z` with one visible case plus a successful reviewer round-trip
-- An API-only local rerun of the header-auth attachment-backed FHIR smoke passed on 2026-03-25, recording import run `49` completed at `2026-03-25T17:14:13.069507Z` with one visible case plus a successful reviewer round-trip
-- Those two reruns intentionally booted only the pilot `db` and `api` services because an unrelated local Next dev server was already bound to host port `3000`, so the full web checks from `make pilot-*-fhir-smoke` were not repeated in this slice
+- Unsandboxed full local reruns of `make pilot-proxy-demo-fhir-smoke` and `make pilot-header-demo-fhir-smoke` both passed on 2026-03-25 after the compose fix, recording persisted import runs `50` and `51` plus web, `/imports`, visible-case, and reviewer round-trip verification
 - Web checks: `npm run lint` and `npm run build` now both pass through `make validate-strict`
 - Demo evaluation compare and sweep both run through the validation script
 - `make refresh-demo-proof` succeeded and refreshed the checked-in benchmark snapshot that powers `/proof`
@@ -64,8 +62,11 @@ Confirmed on 2026-03-25:
 - GitHub Actions now runs `make validate-strict` on pull requests, on `main`, and through manual workflow dispatch using a checked-in workflow under `.github/workflows/validate.yml`
 - The smoke helper's FHIR demo path now uses an attachment-backed `DiagnosticReport.presentedForm` XHTML narrative encoded as base64 UTF-16, so the existing `pilot-*-fhir-smoke` targets exercise the same supported text-like attachment decode path covered by API tests
 - A checked-in workflow under `.github/workflows/pilot-smoke.yml` now reuses `make pilot-proxy-demo-smoke`, `make pilot-proxy-demo-fhir-smoke`, `make pilot-proxy-demo-site-rejection-smoke`, `make pilot-proxy-demo-adapter-site-rejection-smoke`, `make pilot-header-demo-smoke`, `make pilot-header-demo-fhir-smoke`, `make pilot-header-demo-site-rejection-smoke`, and `make pilot-header-demo-adapter-site-rejection-smoke` on manual dispatch plus a weekly Monday schedule; it remains intentionally narrower than the full manual visibility and failure-path overlay matrix
-- That hosted pilot workflow now also supports `workflow_dispatch` with `smoke_scope=fhir-success-only` plus a trial-only `smoke_scope=hl7-success-only`, and every hosted matrix job uploads both its `pilot-smoke.log` output and generated `pilot-smoke-summary.json` plus `pilot-smoke-summary.md` artifacts, including duration and exit code, to preserve exact run context once hosted execution starts
-- The public GitHub Actions API currently reports zero `Pilot Smoke` workflow runs, so hosted attachment-backed FHIR confirmation remains pending rather than hidden in an unknown GitHub state
+- That hosted pilot workflow now also supports `workflow_dispatch` with `smoke_scope=fhir-success-only` plus a manual-dispatch `smoke_scope=hl7-success-only`, and every hosted matrix job uploads both its `pilot-smoke.log` output and generated `pilot-smoke-summary.json` plus `pilot-smoke-summary.md` artifacts, including duration, absolute smoke timestamps, and exit code, to preserve exact run context once hosted execution starts
+- A bundled evidence builder now exists as `make pilot-smoke-evidence SUMMARY_DIR=/path/to/downloaded/pilot-smoke-artifacts HL7_DECISION=pending|keep-manual|promote-default`, producing `pilot-smoke-evidence.json` plus `pilot-smoke-evidence.md` from downloaded hosted summary artifacts so release notes and handoff updates do not depend on manual copy-paste
+- GitHub-hosted `Pilot Smoke (fhir-success-only)` run [`#23563902873`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23563902873) passed on 2026-03-25 across proxy and header auth, with summary artifacts `pilot-smoke-summary-proxy-demo-fhir-smoke` and `pilot-smoke-summary-header-demo-fhir-smoke`
+- GitHub-hosted `Pilot Smoke (hl7-success-only)` run [`#23564057337`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23564057337) passed on 2026-03-25 across proxy and header auth, with summary artifacts `pilot-smoke-summary-proxy-demo-hl7-smoke` and `pilot-smoke-summary-header-demo-hl7-smoke`
+- Bundled hosted evidence now records `phase_complete: true` plus `hl7_hosting_mode: manual_only`, with the explicit rationale that HL7 proved operable in GitHub Actions but still stays out of the default weekly matrix to limit recurring runtime and maintenance cost
 - Release-facing documentation now includes `CHANGELOG.md` and `docs/RELEASE_READINESS.md`
 
 Last known good live deployment check:
@@ -160,7 +161,14 @@ Additional note from this slice:
 - Unsandboxed runs of `make pilot-proxy-demo-adapter-audit-visibility-smoke` and `make pilot-header-demo-adapter-audit-visibility-smoke` both passed end to end on 2026-03-20 local time, producing persisted run IDs `36`, `37`, `38`, and `39` with UTC timestamps `2026-03-21T05:19:26Z`, `2026-03-21T05:19:26Z`, `2026-03-21T05:21:57Z`, and `2026-03-21T05:21:57Z`
 - A new hosted pilot smoke workflow now reuses the existing base proxy and header Make targets on manual dispatch and a weekly schedule
 - Unsandboxed reruns of `make pilot-proxy-demo-smoke` and `make pilot-header-demo-smoke` both passed end to end on 2026-03-20 local time, producing persisted run IDs `40` and `41` with UTC timestamps `2026-03-21T05:46:27Z` and `2026-03-21T05:47:33Z`
-- The checked-in hosted workflow under `.github/workflows/pilot-smoke.yml` now also reuses the report-path site-rejection targets, installs API dependencies, and then runs those same overlay targets in GitHub Actions, but its first GitHub-hosted execution is still pending
+- The checked-in hosted workflow under `.github/workflows/pilot-smoke.yml` now also reuses the report-path site-rejection targets, installs API dependencies, and runs those same overlay targets in GitHub Actions with recorded green hosted FHIR and HL7 success-path evidence on 2026-03-25
+
+## Hosted Phase 6 Evidence
+
+- Hosted FHIR confirmation: [`#23563902873`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23563902873) succeeded on 2026-03-25 with dispatch scope `fhir-success-only`, total job duration `53` seconds, max job duration `27` seconds, and summary artifacts `pilot-smoke-summary-header-demo-fhir-smoke` plus `pilot-smoke-summary-proxy-demo-fhir-smoke`
+- Hosted HL7 trial: [`#23564057337`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23564057337) succeeded on 2026-03-25 with dispatch scope `hl7-success-only`, total job duration `52` seconds, max job duration `26` seconds, and summary artifacts `pilot-smoke-summary-header-demo-hl7-smoke` plus `pilot-smoke-summary-proxy-demo-hl7-smoke`
+- Hosted evidence bundle output is now produced by `make pilot-smoke-evidence SUMMARY_DIR=/path/to/downloaded/pilot-smoke-artifacts HL7_DECISION=keep-manual`, and the current copyable outcome is: hosted FHIR confirmed, hosted HL7 trial recorded, HL7 hosting mode `manual_only`, phase complete `True`
+- The compose-side root cause behind the earlier hosted failures was the bind-mounted web service losing image-installed `node_modules`; the fix is the anonymous `/app/node_modules` volume now checked into `docker-compose.yml`
 - Unsandboxed reruns of `make pilot-proxy-demo-site-rejection-smoke` and `make pilot-header-demo-site-rejection-smoke` both passed end to end on 2026-03-22 local time, producing persisted run IDs `42` and `43` with UTC timestamps `2026-03-23T05:05:47Z` and `2026-03-23T05:06:23Z`
 
 ## What Is Implemented By Phase
@@ -323,39 +331,36 @@ Additional note from this slice:
 
 ## Recommended Next Slice
 
-Manually dispatch the hosted `Pilot Smoke` workflow with `smoke_scope=fhir-success-only`, then record the first green attachment-backed FHIR success run and decide whether the hosted pilot matrix should expand to HL7 success-path coverage.
+Deepen benchmark realism and reviewer-proof surfaces now that the hosted/manual smoke boundary is closed out.
 
 ### Why this is next
 
-- The attachment-backed FHIR `presentedForm` path is now covered in parser tests, the smoke helper fixture, the hosted workflow definition, fresh local proxy plus header-auth reruns, and a narrower manual-dispatch path for hosted FHIR-only confirmation.
-- What is still missing is a recorded GitHub-hosted execution of that FHIR-only hosted slice so the repo has both local and hosted evidence for the new fixture.
-- HL7 success-path hosting is still manual, and that decision should be made with actual hosted runtime and stability information from the widened FHIR matrix rather than guesswork.
+- Phase 6 exit criteria are now met: the hosted/manual smoke boundary is verified, the hosted evidence is recorded, and the release-facing docs reflect the real product state.
+- The repo already has strong infrastructure for benchmark proof and external evaluation, but the checked-in benchmark surface is still smaller and less realistic than the implementation deserves.
+- More parser or smoke-baseline work would now deliver less value than improving the public proof quality and the reviewer-facing explanation story.
 
 ### Target outcome
 
-Add one hosted-operability slice that:
-- records the first green GitHub-hosted attachment-backed FHIR success-path run with its exact workflow date or link
-- keeps HL7 success-path coverage manual in the default weekly hosted matrix until hosted trial evidence justifies promotion, with a manual-only `hl7-success-only` dispatch available for that comparison
-- uses the uploaded hosted `pilot-smoke-summary.json` and `pilot-smoke-summary.md` artifacts, with `pilot-smoke.log` still available as the raw source, to capture the exact run IDs and smoke output without manual log scraping
-- updates the handoff and deployment-facing notes with that hosted decision
-- leaves the benchmark, reviewer, and import audit surfaces unchanged
+Add one post-Phase-6 proof slice that:
+- broadens the checked-in benchmark or demo proof set with more realistic labeled cases
+- refreshes `/proof`, release notes inputs, and benchmark-facing docs from that stronger evidence base
+- sharpens reviewer-facing explanation examples without weakening the existing deterministic and auditable path
+- leaves the now-recorded hosted smoke baseline intact rather than reopening it unnecessarily
 
 ### Suggested implementation shape
 
-1. Start with the existing `.github/workflows/pilot-smoke.yml` matrix and manually dispatch it with `smoke_scope=fhir-success-only` rather than creating a second hosted workflow.
+1. Start from the existing benchmark proof surfaces under `docs/examples/`, `/proof`, and the external evaluation tooling rather than adding new infrastructure.
 
-2. Once a green hosted FHIR run exists, record that exact run plus its uploaded `pilot-smoke-summary.md` and `pilot-smoke-summary.json` artifacts in this handoff and compare its duration and stability to the current weekly smoke budget.
+2. Pick one narrow realism upgrade, such as a richer labeled demo set or better error-bucket examples, and refresh the checked-in proof artifacts from reproducible commands.
 
-3. Use the manual-only `smoke_scope=hl7-success-only` dispatch to collect comparable hosted HL7 run artifacts before deciding whether `pilot-proxy-demo-hl7-smoke` and `pilot-header-demo-hl7-smoke` should join the default hosted matrix.
-
-4. If hosted runtime or flakiness becomes a concern, keep HL7 manual on purpose and use the uploaded summary artifacts to show why.
+3. Make sure the updated proof still matches the current release-facing narrative and the now-explicit hosted/manual smoke boundary.
 
 ### Acceptance criteria
 
-- The handoff includes at least one exact GitHub-hosted attachment-backed FHIR success run.
-- The hosted-versus-manual HL7 decision is documented, even if the answer is to defer it.
-- Any workflow-matrix change still leaves `make validate-strict` green.
-- The handoff distinguishes the new hosted evidence from the local API-only reruns already captured above.
+- The next slice improves public proof quality rather than just re-stating existing smoke evidence.
+- Any refreshed benchmark or reviewer-facing artifact is reproducible from checked-in commands.
+- `make validate-strict` stays green.
+- The hosted Phase 6 evidence recorded above remains accurate and unchanged unless a newer deliberate rerun supersedes it.
 
 ## Good First Commands For The Next Agent
 
@@ -378,4 +383,4 @@ make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission
 
 ## Handoff Summary
 
-This is a clean checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base plus attachment-backed FHIR success-path plus report-path and structured adapter site-rejection smoke automation, a sharper public landing experience, a checked-in benchmark proof surface, a machine-validated public benchmark submission pack, a reproducible external evaluation bundle writer, FHIR inline `Reference.identifier` fallback coverage, FHIR `presentedForm` attachment-backed narrative decoding, and HL7 `ED`, repeated-`OBX-5`, custom-`MSH-2` delimiter, escape-sequence, plus subcomponent-aware metadata support are complete. Fresh local proxy and header-auth reruns now also confirm the attachment-backed FHIR smoke path operationally with persisted runs `48` and `49`, and the hosted workflow now has narrower FHIR-only plus HL7-only manual-dispatch paths with uploaded raw-log and structured-summary artifacts ready for the first public GitHub run. The next agent should focus on recording that first green hosted FHIR success run, then using the same workflow's HL7-only dispatch to make an explicit hosted/manual HL7 decision, rather than reopening parser work that is now already covered in tests.
+This is a clean post-Phase-6 checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base plus attachment-backed FHIR success-path plus report-path and structured adapter site-rejection smoke automation, a sharper public landing experience, a checked-in benchmark proof surface, a machine-validated public benchmark submission pack, a reproducible external evaluation bundle writer, FHIR inline `Reference.identifier` fallback coverage, FHIR `presentedForm` attachment-backed narrative decoding, and HL7 `ED`, repeated-`OBX-5`, custom-`MSH-2` delimiter, escape-sequence, plus subcomponent-aware metadata support are complete. Fresh unsandboxed local proxy and header-auth reruns now also confirm the attachment-backed FHIR smoke path operationally with persisted runs `50` and `51`, GitHub-hosted FHIR run [`#23563902873`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23563902873) is green, GitHub-hosted HL7 trial [`#23564057337`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23564057337) is green, and the bundled hosted evidence now records an intentional `manual_only` HL7 decision to keep the default weekly matrix narrow. The next agent should focus on benchmark realism and reviewer-proof depth rather than reopening hosted smoke capture or parser work that is already covered in tests.
