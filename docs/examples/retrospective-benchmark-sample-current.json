@@ -1,0 +1,532 @@
+{
+  "generated_at": "2026-03-26T04:49:06.513673Z",
+  "dataset": {
+    "dataset_name": "deidentified-retrospective-sample",
+    "dataset_split": "validation",
+    "deidentified": true,
+    "label_schema_version": "pancreatic-signal-eval-v1",
+    "labels_path": "docs/examples/retrospective-benchmark-sample-labels.jsonl",
+    "predictions_path": "docs/examples/retrospective-benchmark-sample-predictions.jsonl"
+  },
+  "dataset_summary": {
+    "report_count": 7,
+    "positive_count": 5,
+    "escalation_count": 3,
+    "bucket_counts": [
+      {
+        "bucket": "explicit malignancy",
+        "case_count": 2,
+        "positive_count": 2,
+        "escalation_count": 2
+      },
+      {
+        "bucket": "follow-up only",
+        "case_count": 2,
+        "positive_count": 2,
+        "escalation_count": 0
+      },
+      {
+        "bucket": "negative control",
+        "case_count": 1,
+        "positive_count": 0,
+        "escalation_count": 0
+      },
+      {
+        "bucket": "pancreatitis confounder",
+        "case_count": 1,
+        "positive_count": 0,
+        "escalation_count": 0
+      },
+      {
+        "bucket": "secondary signs",
+        "case_count": 1,
+        "positive_count": 1,
+        "escalation_count": 1
+      }
+    ]
+  },
+  "queue_preview": {
+    "top_k": 4,
+    "external": [
+      {
+        "case_id": "C-RETRO-001",
+        "report_id": "R-RETRO-001",
+        "benchmark_bucket": "explicit malignancy",
+        "score": 0.94,
+        "outcome": "true_positive"
+      },
+      {
+        "case_id": "C-RETRO-006",
+        "report_id": "R-RETRO-006",
+        "benchmark_bucket": "explicit malignancy",
+        "score": 0.79,
+        "outcome": "true_positive"
+      },
+      {
+        "case_id": "C-RETRO-002",
+        "report_id": "R-RETRO-002",
+        "benchmark_bucket": "secondary signs",
+        "score": 0.68,
+        "outcome": "true_positive"
+      },
+      {
+        "case_id": "C-RETRO-003",
+        "report_id": "R-RETRO-003",
+        "benchmark_bucket": "follow-up only",
+        "score": 0.31,
+        "outcome": "true_positive"
+      }
+    ]
+  },
+  "evaluation": {
+    "score_mode": "external",
+    "threshold": 0.3,
+    "top_k": 4,
+    "processed": 7,
+    "positives": 5,
+    "flagged": 4,
+    "true_positives": 4,
+    "false_positives": 0,
+    "true_negatives": 2,
+    "false_negatives": 1,
+    "precision": 1.0,
+    "recall": 0.8,
+    "f1": 0.8889,
+    "precision_at_top_k": 1.0,
+    "sensitivity_at_top_k": 0.8,
+    "reviewer_yield_at_top_k": 1.0,
+    "false_negative_buckets": {
+      "recommendation_language_missed": 1
+    },
+    "cases": [
+      {
+        "report_id": "R-RETRO-001",
+        "case_id": "C-RETRO-001",
+        "score": 0.94,
+        "base_score": 0.94,
+        "hybrid_score": 0.94,
+        "urgency": "external",
+        "flagged": true,
+        "expected_positive": true,
+        "expected_escalation": true,
+        "rationale_codes": [
+          "PDAC_EXPLICIT_SUSPICION",
+          "PANCREATIC_MASS",
+          "DUCT_CUTOFF",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "label_notes": "Pancreatic head mass with abrupt duct cutoff and same-report tissue recommendation.",
+        "report_excerpt": "CT abdomen with contrast: Ill-defined pancreatic head mass with abrupt cutoff of the pancreatic duct and upstream biliary dilatation. Impression: Findings highly concerning for pancreatic adenocarcinoma; endoscopic tissue sampling recommended.",
+        "benchmark_bucket": "explicit malignancy",
+        "reviewer_focus": "Confirm the mass, duct cutoff, and same-report escalation language remain visible together after de-identification.",
+        "expected_rationale_codes": [
+          "PDAC_EXPLICIT_SUSPICION",
+          "PANCREATIC_MASS",
+          "DUCT_CUTOFF",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      {
+        "report_id": "R-RETRO-006",
+        "case_id": "C-RETRO-006",
+        "score": 0.79,
+        "base_score": 0.79,
+        "hybrid_score": 0.79,
+        "urgency": "external",
+        "flagged": true,
+        "expected_positive": true,
+        "expected_escalation": true,
+        "rationale_codes": [
+          "PANCREATIC_MASS",
+          "DUCT_CUTOFF",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "label_notes": "Less formulaic malignancy wording with uncinate hypoenhancement, duct interruption, and biopsy recommendation.",
+        "report_excerpt": "Pancreas protocol CT: Focal hypoenhancement in the uncinate process with interruption of the downstream pancreatic duct raises concern for an underlying neoplastic process. Tissue diagnosis is advised.",
+        "benchmark_bucket": "explicit malignancy",
+        "reviewer_focus": "Do not miss less formulaic neoplastic wording when it still pairs a focal abnormality with duct interruption and biopsy advice.",
+        "expected_rationale_codes": [
+          "PANCREATIC_MASS",
+          "DUCT_CUTOFF",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      {
+        "report_id": "R-RETRO-002",
+        "case_id": "C-RETRO-002",
+        "score": 0.68,
+        "base_score": 0.68,
+        "hybrid_score": 0.68,
+        "urgency": "external",
+        "flagged": true,
+        "expected_positive": true,
+        "expected_escalation": true,
+        "rationale_codes": [
+          "DOUBLE_DUCT_SIGN",
+          "FOCAL_ATROPHY",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "label_notes": "Double-duct obstruction with distal atrophy and EUS recommendation but no discretely measurable mass.",
+        "report_excerpt": "MRI/MRCP: Double duct sign is present with distal pancreatic atrophy. No discretely measurable mass is seen; recommend EUS to exclude occult pancreatic malignancy.",
+        "benchmark_bucket": "secondary signs",
+        "reviewer_focus": "Escalate the obstructive secondary-sign cluster even though the report stops short of naming a definite mass.",
+        "expected_rationale_codes": [
+          "DOUBLE_DUCT_SIGN",
+          "FOCAL_ATROPHY",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      {
+        "report_id": "R-RETRO-003",
+        "case_id": "C-RETRO-003",
+        "score": 0.31,
+        "base_score": 0.31,
+        "hybrid_score": 0.31,
+        "urgency": "external",
+        "flagged": true,
+        "expected_positive": true,
+        "expected_escalation": false,
+        "rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "label_notes": "Follow-up-worthy side-branch cyst surveillance case that should stay visible to a reviewer.",
+        "report_excerpt": "Pancreas protocol MRI: Stable 1.8 cm side-branch IPMN at the pancreatic neck without enhancing mural nodularity. Impression: Follow-up pancreas MRI in 6 months recommended.",
+        "benchmark_bucket": "follow-up only",
+        "reviewer_focus": "Keep non-malignant but action-worthy cyst surveillance recommendations in the queue.",
+        "expected_rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      {
+        "report_id": "R-RETRO-004",
+        "case_id": "C-RETRO-004",
+        "score": 0.29,
+        "base_score": 0.29,
+        "hybrid_score": 0.29,
+        "urgency": "external",
+        "flagged": false,
+        "expected_positive": false,
+        "expected_escalation": false,
+        "rationale_codes": [],
+        "label_notes": "Inflammatory pancreatitis confounder with explicit negation of a mass or duct cutoff.",
+        "report_excerpt": "CT abdomen: Peripancreatic edema and fluid track along the pancreatic tail, compatible with acute pancreatitis. No focal pancreatic mass or abrupt duct cutoff identified.",
+        "benchmark_bucket": "pancreatitis confounder",
+        "reviewer_focus": "Preserve specificity when inflammatory change is present but suspicious pancreatic morphology is explicitly denied.",
+        "expected_rationale_codes": []
+      },
+      {
+        "report_id": "R-RETRO-007",
+        "case_id": "C-RETRO-007",
+        "score": 0.17,
+        "base_score": 0.17,
+        "hybrid_score": 0.17,
+        "urgency": "external",
+        "flagged": false,
+        "expected_positive": true,
+        "expected_escalation": false,
+        "rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "label_notes": "Follow-up-only cyst case with interval growth language that is easy to underrank.",
+        "report_excerpt": "MRI abdomen: Clustered pancreatic tail cysts are again seen, the largest slightly increased in size. Impression: Likely branch duct IPMN; short-interval MR follow-up suggested.",
+        "benchmark_bucket": "follow-up only",
+        "reviewer_focus": "Surface interval-growth surveillance recommendations even when malignancy language is absent.",
+        "expected_rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      {
+        "report_id": "R-RETRO-005",
+        "case_id": "C-RETRO-005",
+        "score": 0.04,
+        "base_score": 0.04,
+        "hybrid_score": 0.04,
+        "urgency": "external",
+        "flagged": false,
+        "expected_positive": false,
+        "expected_escalation": false,
+        "rationale_codes": [],
+        "label_notes": "Clean negative control with normal pancreas and no follow-up recommendation.",
+        "report_excerpt": "CT abdomen and pelvis: Pancreas enhances normally. No focal pancreatic lesion, no ductal dilatation, and no peripancreatic inflammatory change.",
+        "benchmark_bucket": "negative control",
+        "reviewer_focus": "Keep clearly normal pancreatic reports out of the flagged queue.",
+        "expected_rationale_codes": []
+      }
+    ]
+  },
+  "sweep": {
+    "score_mode": "external",
+    "top_k": 4,
+    "thresholds": [
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6
+    ],
+    "points": [
+      {
+        "threshold": 0.2,
+        "f1": 0.8,
+        "recall": 0.8,
+        "flagged": 5,
+        "precision": 0.8,
+        "precision_at_top_k": 1.0,
+        "sensitivity_at_top_k": 0.8
+      },
+      {
+        "threshold": 0.3,
+        "f1": 0.8889,
+        "recall": 0.8,
+        "flagged": 4,
+        "precision": 1.0,
+        "precision_at_top_k": 1.0,
+        "sensitivity_at_top_k": 0.8
+      },
+      {
+        "threshold": 0.4,
+        "f1": 0.75,
+        "recall": 0.6,
+        "flagged": 3,
+        "precision": 1.0,
+        "precision_at_top_k": 1.0,
+        "sensitivity_at_top_k": 0.8
+      },
+      {
+        "threshold": 0.5,
+        "f1": 0.75,
+        "recall": 0.6,
+        "flagged": 3,
+        "precision": 1.0,
+        "precision_at_top_k": 1.0,
+        "sensitivity_at_top_k": 0.8
+      },
+      {
+        "threshold": 0.6,
+        "f1": 0.75,
+        "recall": 0.6,
+        "flagged": 3,
+        "precision": 1.0,
+        "precision_at_top_k": 1.0,
+        "sensitivity_at_top_k": 0.8
+      }
+    ],
+    "recommendation": {
+      "score_mode": "external",
+      "recommended_threshold": 0.3,
+      "rationale": "Selected threshold 0.30 because it maximizes F1 (0.89) while preserving recall 0.80 with 4 flagged case(s).",
+      "f1": 0.8889,
+      "recall": 0.8,
+      "flagged": 4
+    }
+  },
+  "casebook": [
+    {
+      "case_id": "C-RETRO-001",
+      "report_id": "R-RETRO-001",
+      "report_excerpt": "CT abdomen with contrast: Ill-defined pancreatic head mass with abrupt cutoff of the pancreatic duct and upstream biliary dilatation. Impression: Findings highly concerning for pancreatic adenocarcinoma; endoscopic tissue sampling recommended.",
+      "benchmark_bucket": "explicit malignancy",
+      "reviewer_focus": "Confirm the mass, duct cutoff, and same-report escalation language remain visible together after de-identification.",
+      "label_notes": "Pancreatic head mass with abrupt duct cutoff and same-report tissue recommendation.",
+      "expected_positive": true,
+      "expected_escalation": true,
+      "expected_rationale_codes": [
+        "PDAC_EXPLICIT_SUSPICION",
+        "PANCREATIC_MASS",
+        "DUCT_CUTOFF",
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "external": {
+        "score": 0.94,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "PDAC_EXPLICIT_SUSPICION",
+          "PANCREATIC_MASS",
+          "DUCT_CUTOFF",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-RETRO-002",
+      "report_id": "R-RETRO-002",
+      "report_excerpt": "MRI/MRCP: Double duct sign is present with distal pancreatic atrophy. No discretely measurable mass is seen; recommend EUS to exclude occult pancreatic malignancy.",
+      "benchmark_bucket": "secondary signs",
+      "reviewer_focus": "Escalate the obstructive secondary-sign cluster even though the report stops short of naming a definite mass.",
+      "label_notes": "Double-duct obstruction with distal atrophy and EUS recommendation but no discretely measurable mass.",
+      "expected_positive": true,
+      "expected_escalation": true,
+      "expected_rationale_codes": [
+        "DOUBLE_DUCT_SIGN",
+        "FOCAL_ATROPHY",
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "external": {
+        "score": 0.68,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "DOUBLE_DUCT_SIGN",
+          "FOCAL_ATROPHY",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-RETRO-003",
+      "report_id": "R-RETRO-003",
+      "report_excerpt": "Pancreas protocol MRI: Stable 1.8 cm side-branch IPMN at the pancreatic neck without enhancing mural nodularity. Impression: Follow-up pancreas MRI in 6 months recommended.",
+      "benchmark_bucket": "follow-up only",
+      "reviewer_focus": "Keep non-malignant but action-worthy cyst surveillance recommendations in the queue.",
+      "label_notes": "Follow-up-worthy side-branch cyst surveillance case that should stay visible to a reviewer.",
+      "expected_positive": true,
+      "expected_escalation": false,
+      "expected_rationale_codes": [
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "external": {
+        "score": 0.31,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-RETRO-004",
+      "report_id": "R-RETRO-004",
+      "report_excerpt": "CT abdomen: Peripancreatic edema and fluid track along the pancreatic tail, compatible with acute pancreatitis. No focal pancreatic mass or abrupt duct cutoff identified.",
+      "benchmark_bucket": "pancreatitis confounder",
+      "reviewer_focus": "Preserve specificity when inflammatory change is present but suspicious pancreatic morphology is explicitly denied.",
+      "label_notes": "Inflammatory pancreatitis confounder with explicit negation of a mass or duct cutoff.",
+      "expected_positive": false,
+      "expected_escalation": false,
+      "expected_rationale_codes": [],
+      "external": {
+        "score": 0.29,
+        "flagged": false,
+        "outcome": "true_negative",
+        "rationale_codes": [],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-RETRO-005",
+      "report_id": "R-RETRO-005",
+      "report_excerpt": "CT abdomen and pelvis: Pancreas enhances normally. No focal pancreatic lesion, no ductal dilatation, and no peripancreatic inflammatory change.",
+      "benchmark_bucket": "negative control",
+      "reviewer_focus": "Keep clearly normal pancreatic reports out of the flagged queue.",
+      "label_notes": "Clean negative control with normal pancreas and no follow-up recommendation.",
+      "expected_positive": false,
+      "expected_escalation": false,
+      "expected_rationale_codes": [],
+      "external": {
+        "score": 0.04,
+        "flagged": false,
+        "outcome": "true_negative",
+        "rationale_codes": [],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-RETRO-006",
+      "report_id": "R-RETRO-006",
+      "report_excerpt": "Pancreas protocol CT: Focal hypoenhancement in the uncinate process with interruption of the downstream pancreatic duct raises concern for an underlying neoplastic process. Tissue diagnosis is advised.",
+      "benchmark_bucket": "explicit malignancy",
+      "reviewer_focus": "Do not miss less formulaic neoplastic wording when it still pairs a focal abnormality with duct interruption and biopsy advice.",
+      "label_notes": "Less formulaic malignancy wording with uncinate hypoenhancement, duct interruption, and biopsy recommendation.",
+      "expected_positive": true,
+      "expected_escalation": true,
+      "expected_rationale_codes": [
+        "PANCREATIC_MASS",
+        "DUCT_CUTOFF",
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "external": {
+        "score": 0.79,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "PANCREATIC_MASS",
+          "DUCT_CUTOFF",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-RETRO-007",
+      "report_id": "R-RETRO-007",
+      "report_excerpt": "MRI abdomen: Clustered pancreatic tail cysts are again seen, the largest slightly increased in size. Impression: Likely branch duct IPMN; short-interval MR follow-up suggested.",
+      "benchmark_bucket": "follow-up only",
+      "reviewer_focus": "Surface interval-growth surveillance recommendations even when malignancy language is absent.",
+      "label_notes": "Follow-up-only cyst case with interval growth language that is easy to underrank.",
+      "expected_positive": true,
+      "expected_escalation": false,
+      "expected_rationale_codes": [
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "external": {
+        "score": 0.17,
+        "flagged": false,
+        "outcome": "missed_positive",
+        "rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "false_negative_bucket": "recommendation_language_missed"
+      }
+    }
+  ],
+  "submission": {
+    "submission_version": "1.0",
+    "submission_name": "external-deidentified-retrospective-sample",
+    "project_name": "Pancreatic Signal",
+    "repository_url": null,
+    "commit_sha": null,
+    "dataset_name": "deidentified-retrospective-sample",
+    "dataset_split": "validation",
+    "report_count": 7,
+    "deidentified": true,
+    "label_schema_version": "pancreatic-signal-eval-v1",
+    "score_mode": "external",
+    "threshold": 0.3,
+    "top_k": 4,
+    "evaluation_command": "python scripts/run_external_eval.py --labels docs/examples/retrospective-benchmark-sample-labels.jsonl --predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl --threshold 0.30 --top-k 4 --out-dir docs/examples --basename retrospective-benchmark-sample-current --dataset-name deidentified-retrospective-sample --dataset-split validation --project-name \"Pancreatic Signal\" --strength \"High-confidence positives concentrate near the top of the review queue.\" --strength \"Reviewer-facing label cues remain visible in the generated casebook.\" --limitation \"Sample remains small and deidentified for repository use.\" --limitation \"One follow-up-only cyst surveillance case remains below threshold.\"",
+    "artifact_paths": [
+      "docs/examples/retrospective-benchmark-sample-current.json",
+      "docs/examples/retrospective-benchmark-sample-current.md"
+    ],
+    "metrics": {
+      "processed": 7,
+      "positives": 5,
+      "flagged": 4,
+      "true_positives": 4,
+      "false_positives": 0,
+      "true_negatives": 2,
+      "false_negatives": 1,
+      "precision": 1.0,
+      "recall": 0.8,
+      "f1": 0.8889,
+      "precision_at_top_k": 1.0,
+      "sensitivity_at_top_k": 0.8,
+      "reviewer_yield_at_top_k": 1.0,
+      "false_negative_buckets": {
+        "recommendation_language_missed": 1
+      }
+    },
+    "notable_strengths": [
+      "High-confidence positives concentrate near the top of the review queue.",
+      "Reviewer-facing label cues remain visible in the generated casebook."
+    ],
+    "known_limitations": [
+      "Sample remains small and deidentified for repository use.",
+      "One follow-up-only cyst surveillance case remains below threshold."
+    ],
+    "notes": "Generated draft from scripts/run_external_eval.py. Replace placeholder strengths and limitations before public submission if you did not pass them explicitly."
+  }
+}

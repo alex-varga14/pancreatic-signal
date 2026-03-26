@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { getDemoBenchmarkSnapshot, PUBLISHED_DEMO_PROOF_PATH } from "../lib/demo-proof";
+import {
+  getDemoBenchmarkSnapshot,
+  getRetrospectiveBenchmarkSnapshot,
+  PUBLISHED_DEMO_PROOF_PATH,
+  PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH,
+} from "../lib/demo-proof";
 import styles from "./marketing.module.css";
 
 function formatPercent(value: number): string {
@@ -25,9 +30,12 @@ function formatGeneratedAt(value: string): string {
 
 export default async function HomePage() {
   const demoProof = await getDemoBenchmarkSnapshot();
+  const retrospectiveProof = await getRetrospectiveBenchmarkSnapshot();
   const datasetSummary = demoProof?.dataset_summary ?? null;
   const comparison = demoProof?.comparison ?? null;
   const sweep = demoProof?.sweep ?? null;
+  const retrospectiveSummary = retrospectiveProof?.dataset_summary ?? null;
+  const retrospectiveEvaluation = retrospectiveProof?.evaluation ?? null;
 
   return (
     <main className={styles.page}>
@@ -65,21 +73,31 @@ export default async function HomePage() {
 
           {comparison && sweep && datasetSummary ? (
             <div className={styles.heroProof}>
-              <p className={styles.heroProofLabel}>Current Demo Snapshot</p>
+              <p className={styles.heroProofLabel}>Current Published Proof</p>
               <p className={styles.heroProofMetric}>
-                Rules recall <strong>{formatPercent(comparison.rules.recall)}</strong>, hybrid recall{" "}
+                Demo snapshot: rules recall <strong>{formatPercent(comparison.rules.recall)}</strong>, hybrid recall{" "}
                 <strong>{formatPercent(comparison.hybrid.recall)}</strong>, with a hybrid recall lift of{" "}
                 <strong>{formatDelta(comparison.recall_delta)}</strong>.
               </p>
               <p className={styles.heroProofMetric}>
-                Recommended top-{sweep.top_k} thresholds: rules <strong>{sweep.rules_recommendation.recommended_threshold.toFixed(2)}</strong>{" "}
-                and hybrid <strong>{sweep.hybrid_recommendation.recommended_threshold.toFixed(2)}</strong>.
+                Demo thresholds: rules <strong>{sweep.rules_recommendation.recommended_threshold.toFixed(2)}</strong> and hybrid{" "}
+                <strong>{sweep.hybrid_recommendation.recommended_threshold.toFixed(2)}</strong>.
               </p>
               <p className={styles.heroProofMetric}>
-                Casebook covers <strong>{datasetSummary.report_count}</strong> labeled reports across{" "}
+                Demo casebook covers <strong>{datasetSummary.report_count}</strong> labeled reports across{" "}
                 <strong>{datasetSummary.bucket_counts.length}</strong> benchmark buckets.
               </p>
-              <p className={styles.heroProofMetric}>Published snapshot: <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span></p>
+              {retrospectiveEvaluation && retrospectiveSummary ? (
+                <p className={styles.heroProofMetric}>
+                  Retrospective sample: external recall <strong>{formatPercent(retrospectiveEvaluation.recall)}</strong> and F1{" "}
+                  <strong>{formatPercent(retrospectiveEvaluation.f1)}</strong> across{" "}
+                  <strong>{retrospectiveSummary.report_count}</strong> deidentified reports.
+                </p>
+              ) : null}
+              <p className={styles.heroProofMetric}>
+                Published snapshots: <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span> and{" "}
+                <span className={styles.inlineCode}>{PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH}</span>.
+              </p>
             </div>
           ) : null}
         </section>
@@ -107,6 +125,31 @@ export default async function HomePage() {
               <p className={styles.statLabel}>Published Snapshot</p>
               <p className={styles.statValue}>{formatGeneratedAt(demoProof!.generated_at)}</p>
               <p className={styles.statNote}>Refresh with <span className={styles.inlineCode}>make refresh-demo-proof</span>.</p>
+            </article>
+          </section>
+        ) : null}
+
+        {retrospectiveEvaluation && retrospectiveSummary ? (
+          <section className={`${styles.section} ${styles.grid} ${styles.gridFour}`}>
+            <article className={styles.card}>
+              <p className={styles.statLabel}>Retro Reports</p>
+              <p className={styles.statValue}>{retrospectiveSummary.report_count}</p>
+              <p className={styles.statNote}>Checked-in deidentified retrospective-style sample on the proof page.</p>
+            </article>
+            <article className={styles.card}>
+              <p className={styles.statLabel}>Retro Recall</p>
+              <p className={styles.statValue}>{formatPercent(retrospectiveEvaluation.recall)}</p>
+              <p className={styles.statNote}>External recall at the current sample operating point.</p>
+            </article>
+            <article className={styles.card}>
+              <p className={styles.statLabel}>Retro F1</p>
+              <p className={styles.statValue}>{formatPercent(retrospectiveEvaluation.f1)}</p>
+              <p className={styles.statNote}>Reviewer-facing external sample summary, not just the synthetic demo.</p>
+            </article>
+            <article className={styles.card}>
+              <p className={styles.statLabel}>Retro Misses</p>
+              <p className={styles.statValue}>{retrospectiveEvaluation.false_negatives}</p>
+              <p className={styles.statNote}>Intentional misses stay visible for reviewer debate and future dataset growth.</p>
             </article>
           </section>
         ) : null}
@@ -159,11 +202,14 @@ export default async function HomePage() {
             <pre className={styles.codeBlock}>
 {`make validate-strict
 make benchmark-demo
+make benchmark-external-sample
+make refresh-external-sample-proof
 docker compose up --build`}
             </pre>
             <p className={styles.codeText}>
-              The ad hoc benchmark snapshot lands in <span className={styles.inlineCode}>artifacts/benchmarks</span>. The
-              published snapshot used by this site lives at <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span>.
+              The ad hoc benchmark snapshots land in <span className={styles.inlineCode}>artifacts/benchmarks</span>. The
+              published proof used by this site lives at <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span> and{" "}
+              <span className={styles.inlineCode}>{PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH}</span>.
             </p>
           </div>
         </section>
@@ -183,8 +229,8 @@ docker compose up --build`}
                 <span className={styles.inlineCode}>/proof</span>
               </h3>
               <p className={styles.cardText}>
-                Review the current snapshot, threshold recommendations, and the exact commands used to reproduce the demo
-                benchmark story.
+                Review the checked-in demo comparison, the deidentified retrospective-style sample, and the exact commands
+                used to reproduce both proof stories.
               </p>
               <p className={styles.routeMeta}>Best first stop for outside collaborators</p>
             </Link>

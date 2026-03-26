@@ -1,9 +1,12 @@
 import Link from "next/link";
 import {
   getDemoBenchmarkSnapshot,
+  getRetrospectiveBenchmarkSnapshot,
   PUBLISHED_DEMO_PROOF_PATH,
+  PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH,
   type DemoBenchmarkCaseMode,
-  type DemoBenchmarkQueueEntry,
+  type ExternalBenchmarkCaseMode,
+  type PublishedBenchmarkQueueEntry,
 } from "../../lib/demo-proof";
 import styles from "../marketing.module.css";
 
@@ -51,26 +54,41 @@ function formatCodeList(values: string[]): string {
   return values.length ? values.join(", ") : "none";
 }
 
+function formatBooleanLabel(value: boolean): string {
+  return value ? "yes" : "no";
+}
+
+function formatFalseNegativeBuckets(buckets: Record<string, number>): string {
+  const entries = Object.entries(buckets);
+  return entries.length ? entries.map(([bucket, count]) => `${bucket}: ${count}`).join(", ") : "none";
+}
+
 function renderModeSummary(mode: DemoBenchmarkCaseMode): string {
   return `${formatOutcomeLabel(mode.outcome)} at ${formatScore(mode.score)} with cues ${formatCodeList(mode.rationale_codes)}`;
 }
 
-function renderQueueSummary(entry: DemoBenchmarkQueueEntry): string {
+function renderExternalModeSummary(mode: ExternalBenchmarkCaseMode): string {
+  const missBucket = mode.false_negative_bucket ? `; miss bucket ${mode.false_negative_bucket}` : "";
+  return `${formatOutcomeLabel(mode.outcome)} at ${formatScore(mode.score)} with cues ${formatCodeList(mode.rationale_codes)}${missBucket}`;
+}
+
+function renderQueueSummary(entry: PublishedBenchmarkQueueEntry): string {
   return `${entry.case_id} • ${entry.benchmark_bucket || "unbucketed"} • ${formatOutcomeLabel(entry.outcome)}`;
 }
 
 export default async function ProofPage() {
-  const snapshot = await getDemoBenchmarkSnapshot();
+  const demoSnapshot = await getDemoBenchmarkSnapshot();
+  const retrospectiveSnapshot = await getRetrospectiveBenchmarkSnapshot();
 
-  if (!snapshot) {
+  if (!demoSnapshot && !retrospectiveSnapshot) {
     return (
       <main className={styles.page}>
         <div className={styles.shell}>
           <section className={styles.warningCard}>
-            <h1 className={styles.warningTitle}>Published benchmark snapshot not found</h1>
+            <h1 className={styles.warningTitle}>Published benchmark snapshots not found</h1>
             <p className={styles.warningText}>
-              Generate the checked-in proof artifact with <span className={styles.inlineCode}>make refresh-demo-proof</span>,
-              then reload this page.
+              Generate the checked-in proof artifacts with <span className={styles.inlineCode}>make refresh-demo-proof</span> and{" "}
+              <span className={styles.inlineCode}>make refresh-external-sample-proof</span>, then reload this page.
             </p>
           </section>
         </div>
@@ -78,7 +96,10 @@ export default async function ProofPage() {
     );
   }
 
-  const { comparison, dataset_summary: datasetSummary, queue_preview: queuePreview, sweep, casebook } = snapshot;
+  const missingArtifacts = [
+    !demoSnapshot ? PUBLISHED_DEMO_PROOF_PATH : null,
+    !retrospectiveSnapshot ? PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH : null,
+  ].filter((value): value is string => Boolean(value));
 
   return (
     <main className={styles.page}>
@@ -87,9 +108,15 @@ export default async function ProofPage() {
           <p className={styles.eyebrow}>Benchmark Proof</p>
           <h1 className={styles.title}>A reproducible proof surface, not a hand-wavy claim.</h1>
           <p className={styles.subtitle}>
-            This page renders the current checked-in demo benchmark snapshot. It exists so new collaborators can see concrete
-            evaluation deltas, queue behavior, reviewer-facing benchmark cases, and the commands required to reproduce them.
+            This page renders two checked-in benchmark stories: the synthetic demo comparison and the deidentified
+            retrospective-style external sample. It exists so collaborators can inspect concrete evaluation deltas, queue
+            behavior, reviewer-facing casebooks, and the exact commands needed to reproduce them.
           </p>
+          <div className={styles.chipRow}>
+            <span className={styles.chip}>Synthetic demo comparison</span>
+            <span className={styles.chip}>Deidentified retrospective sample</span>
+            <span className={styles.chip}>Reproducible reviewer casebooks</span>
+          </div>
           <div className={styles.ctaRow}>
             <Link href="/" className={styles.secondaryLink}>
               Back Home
@@ -100,295 +127,571 @@ export default async function ProofPage() {
           </div>
         </section>
 
-        <section className={`${styles.section} ${styles.grid} ${styles.gridFour}`}>
-          <article className={styles.card}>
-            <p className={styles.statLabel}>Rules F1</p>
-            <p className={styles.statValue}>{formatPercent(comparison.rules.f1)}</p>
-            <p className={styles.statNote}>Baseline deterministic score at threshold {comparison.threshold.toFixed(2)}.</p>
-          </article>
-          <article className={styles.card}>
-            <p className={styles.statLabel}>Hybrid F1</p>
-            <p className={styles.statValue}>{formatPercent(comparison.hybrid.f1)}</p>
-            <p className={styles.statNote}>Explainable hybrid score at the same operating point.</p>
-          </article>
-          <article className={styles.card}>
-            <p className={styles.statLabel}>Recall Lift</p>
-            <p className={styles.statValue}>{formatDelta(comparison.recall_delta)}</p>
-            <p className={styles.statNote}>Resolved false negatives: {comparison.resolved_false_negatives.join(", ") || "none"}.</p>
-          </article>
-          <article className={styles.card}>
-            <p className={styles.statLabel}>Published</p>
-            <p className={styles.statValue}>{formatGeneratedAt(snapshot.generated_at)}</p>
-            <p className={styles.statNote}>Snapshot file: <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span>.</p>
-          </article>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <div>
-              <p className={styles.eyebrow}>Dataset Coverage</p>
-              <h2 className={styles.sectionTitle}>The proof surface now shows what kinds of cases it covers.</h2>
-              <p className={styles.sectionText}>
-                This is still a small synthetic set, but it now carries explicit benchmark buckets and reviewer cues so the
-                proof page reads like a casebook rather than only a metric summary.
+        {missingArtifacts.length ? (
+          <section className={styles.section}>
+            <div className={styles.warningCard}>
+              <h2 className={styles.warningTitle}>One published proof artifact is missing</h2>
+              <p className={styles.warningText}>
+                Missing artifact{missingArtifacts.length > 1 ? "s" : ""}:{" "}
+                <span className={styles.inlineCode}>{missingArtifacts.join(", ")}</span>. Regenerate the demo proof with{" "}
+                <span className={styles.inlineCode}>make refresh-demo-proof</span> and the retrospective sample with{" "}
+                <span className={styles.inlineCode}>make refresh-external-sample-proof</span>.
               </p>
             </div>
-          </div>
+          </section>
+        ) : null}
 
-          <div className={`${styles.grid} ${styles.gridFour}`}>
-            <article className={styles.card}>
-              <p className={styles.statLabel}>Reports</p>
-              <p className={styles.statValue}>{datasetSummary.report_count}</p>
-              <p className={styles.statNote}>Total labeled benchmark cases in the published casebook.</p>
-            </article>
-            <article className={styles.card}>
-              <p className={styles.statLabel}>Positive Labels</p>
-              <p className={styles.statValue}>{datasetSummary.positive_count}</p>
-              <p className={styles.statNote}>Cases that should still surface for human review.</p>
-            </article>
-            <article className={styles.card}>
-              <p className={styles.statLabel}>Escalations</p>
-              <p className={styles.statValue}>{datasetSummary.escalation_count}</p>
-              <p className={styles.statNote}>Cases expected to warrant escalation, not just passive follow-up.</p>
-            </article>
-            <article className={styles.card}>
-              <p className={styles.statLabel}>Buckets</p>
-              <p className={styles.statValue}>{datasetSummary.bucket_counts.length}</p>
-              <p className={styles.statNote}>Benchmark buckets represented in the current demo snapshot.</p>
-            </article>
-          </div>
-
-          <div className={styles.chipRow}>
-            {datasetSummary.bucket_counts.map((bucket) => (
-              <span key={bucket.bucket} className={styles.chip}>
-                {bucket.bucket}: {bucket.case_count}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <div>
-              <p className={styles.eyebrow}>Comparison</p>
-              <h2 className={styles.sectionTitle}>Rules and hybrid side by side.</h2>
-              <p className={styles.sectionText}>
-                The demo benchmark is about triage usefulness, not vanity metrics. These numbers come from the checked-in
-                synthetic dataset and label file referenced below.
-              </p>
-            </div>
-          </div>
-
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Mode</th>
-                  <th>Precision</th>
-                  <th>Recall</th>
-                  <th>F1</th>
-                  <th>Flagged</th>
-                  <th>Top-{comparison.top_k} Precision</th>
-                  <th>Top-{comparison.top_k} Sensitivity</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Rules</td>
-                  <td>{formatPercent(comparison.rules.precision)}</td>
-                  <td>{formatPercent(comparison.rules.recall)}</td>
-                  <td>{formatPercent(comparison.rules.f1)}</td>
-                  <td>{comparison.rules.flagged}</td>
-                  <td>{formatPercent(comparison.rules.precision_at_top_k)}</td>
-                  <td>{formatPercent(comparison.rules.sensitivity_at_top_k)}</td>
-                </tr>
-                <tr>
-                  <td>Hybrid</td>
-                  <td>{formatPercent(comparison.hybrid.precision)}</td>
-                  <td>{formatPercent(comparison.hybrid.recall)}</td>
-                  <td>{formatPercent(comparison.hybrid.f1)}</td>
-                  <td>{comparison.hybrid.flagged}</td>
-                  <td>{formatPercent(comparison.hybrid.precision_at_top_k)}</td>
-                  <td>{formatPercent(comparison.hybrid.sensitivity_at_top_k)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={`${styles.grid} ${styles.gridThree}`}>
-            <article className={styles.card}>
-              <h3 className={styles.cardTitle}>Newly surfaced by hybrid</h3>
-              <p className={styles.cardText}>{comparison.newly_flagged_cases.join(", ") || "none"}</p>
-            </article>
-            <article className={styles.card}>
-              <h3 className={styles.cardTitle}>Recommended rules threshold</h3>
-              <p className={styles.cardText}>
-                {sweep.rules_recommendation.recommended_threshold.toFixed(2)} with {formatPercent(sweep.rules_recommendation.recall)} recall
-                and {formatPercent(sweep.rules_recommendation.f1)} F1.
-              </p>
-            </article>
-            <article className={styles.card}>
-              <h3 className={styles.cardTitle}>Recommended hybrid threshold</h3>
-              <p className={styles.cardText}>
-                {sweep.hybrid_recommendation.recommended_threshold.toFixed(2)} with {formatPercent(sweep.hybrid_recommendation.recall)} recall
-                and {formatPercent(sweep.hybrid_recommendation.f1)} F1.
-              </p>
-            </article>
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <div>
-              <p className={styles.eyebrow}>Queue Preview</p>
-              <h2 className={styles.sectionTitle}>Reviewer-visible ranking matters as much as aggregate metrics.</h2>
-              <p className={styles.sectionText}>
-                These are the current top-{queuePreview.top_k} queues for rules and hybrid scoring, which makes it easy to
-                see when hybrid is surfacing a follow-up-worthy case that rules leave behind.
-              </p>
-            </div>
-          </div>
-
-          <div className={`${styles.grid} ${styles.gridTwo}`}>
-            <article className={styles.card}>
-              <h3 className={styles.cardTitle}>Rules Queue</h3>
-              <div className={styles.queueList}>
-                {queuePreview.rules.map((entry) => (
-                  <div key={`rules-${entry.case_id}`} className={styles.queueItem}>
-                    <div>
-                      <p className={styles.queueItemTitle}>{renderQueueSummary(entry)}</p>
-                      <p className={styles.queueItemMeta}>{entry.report_id}</p>
-                    </div>
-                    <p className={styles.queueItemScore}>{formatScore(entry.score)}</p>
-                  </div>
-                ))}
-              </div>
-            </article>
-            <article className={styles.card}>
-              <h3 className={styles.cardTitle}>Hybrid Queue</h3>
-              <div className={styles.queueList}>
-                {queuePreview.hybrid.map((entry) => (
-                  <div key={`hybrid-${entry.case_id}`} className={styles.queueItem}>
-                    <div>
-                      <p className={styles.queueItemTitle}>{renderQueueSummary(entry)}</p>
-                      <p className={styles.queueItemMeta}>{entry.report_id}</p>
-                    </div>
-                    <p className={styles.queueItemScore}>{formatScore(entry.score)}</p>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <div>
-              <p className={styles.eyebrow}>Threshold Sweep</p>
-              <h2 className={styles.sectionTitle}>Operating points should be explicit.</h2>
-            </div>
-          </div>
-
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Threshold</th>
-                  <th>Rules F1</th>
-                  <th>Hybrid F1</th>
-                  <th>Rules Recall</th>
-                  <th>Hybrid Recall</th>
-                  <th>Flagged Delta</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sweep.points.map((point) => (
-                  <tr key={point.threshold}>
-                    <td>{point.threshold.toFixed(2)}</td>
-                    <td>{formatPercent(point.rules_f1)}</td>
-                    <td>{formatPercent(point.hybrid_f1)}</td>
-                    <td>{formatPercent(point.rules_recall)}</td>
-                    <td>{formatPercent(point.hybrid_recall)}</td>
-                    <td>{point.flagged_delta >= 0 ? "+" : ""}{point.flagged_delta}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <div>
-              <p className={styles.eyebrow}>Reviewer Casebook</p>
-              <h2 className={styles.sectionTitle}>Each benchmark case now carries a reviewer cue, not just a label.</h2>
-              <p className={styles.sectionText}>
-                This is the layer that turns the benchmark from a scoreboard into an explainable proof surface. You can see
-                what kind of case each example represents, what the reviewer should notice, and how rules versus hybrid
-                treat it.
-              </p>
-            </div>
-          </div>
-
-          <div className={styles.casebookGrid}>
-            {casebook.map((entry) => (
-              <article key={entry.case_id} className={styles.casebookCard}>
-                <div className={styles.casebookHeader}>
-                  <div>
-                    <p className={styles.casebookMeta}>{entry.report_id}</p>
-                    <h3 className={styles.cardTitle}>{entry.case_id}</h3>
-                  </div>
-                  <span className={styles.casebookTag}>{entry.benchmark_bucket || "unbucketed"}</span>
-                </div>
-
-                <p className={styles.casebookFocus}>{entry.reviewer_focus || "No reviewer cue recorded."}</p>
-                <p className={styles.casebookMeta}>{entry.label_notes || "No label note recorded."}</p>
-
-                <div className={styles.miniChipRow}>
-                  <span className={styles.miniChip}>Expected positive: {String(entry.expected_positive)}</span>
-                  <span className={styles.miniChip}>Expected escalation: {String(entry.expected_escalation)}</span>
-                  <span className={styles.miniChip}>Hybrid lift: {entry.hybrid_lift >= 0 ? "+" : ""}{entry.hybrid_lift.toFixed(2)}</span>
-                </div>
-
-                <p className={styles.casebookMeta}>
-                  Expected rationale cues: <span className={styles.inlineCode}>{formatCodeList(entry.expected_rationale_codes)}</span>
+        {demoSnapshot ? (
+          <>
+            <section className={`${styles.section} ${styles.grid} ${styles.gridFour}`}>
+              <article className={styles.card}>
+                <p className={styles.statLabel}>Rules F1</p>
+                <p className={styles.statValue}>{formatPercent(demoSnapshot.comparison.rules.f1)}</p>
+                <p className={styles.statNote}>
+                  Baseline deterministic score at threshold {demoSnapshot.comparison.threshold.toFixed(2)}.
                 </p>
-
-                <div className={styles.resultGrid}>
-                  <div className={styles.resultCard}>
-                    <p className={styles.resultLabel}>Rules</p>
-                    <p className={styles.resultValue}>{formatOutcomeLabel(entry.rules.outcome)}</p>
-                    <p className={styles.resultText}>{renderModeSummary(entry.rules)}</p>
-                  </div>
-                  <div className={styles.resultCard}>
-                    <p className={styles.resultLabel}>Hybrid</p>
-                    <p className={styles.resultValue}>{formatOutcomeLabel(entry.hybrid.outcome)}</p>
-                    <p className={styles.resultText}>{renderModeSummary(entry.hybrid)}</p>
-                  </div>
-                </div>
               </article>
-            ))}
-          </div>
-        </section>
+              <article className={styles.card}>
+                <p className={styles.statLabel}>Hybrid F1</p>
+                <p className={styles.statValue}>{formatPercent(demoSnapshot.comparison.hybrid.f1)}</p>
+                <p className={styles.statNote}>Explainable hybrid score at the same operating point.</p>
+              </article>
+              <article className={styles.card}>
+                <p className={styles.statLabel}>Recall Lift</p>
+                <p className={styles.statValue}>{formatDelta(demoSnapshot.comparison.recall_delta)}</p>
+                <p className={styles.statNote}>
+                  Resolved false negatives: {demoSnapshot.comparison.resolved_false_negatives.join(", ") || "none"}.
+                </p>
+              </article>
+              <article className={styles.card}>
+                <p className={styles.statLabel}>Published</p>
+                <p className={styles.statValue}>{formatGeneratedAt(demoSnapshot.generated_at)}</p>
+                <p className={styles.statNote}>
+                  Snapshot file: <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span>.
+                </p>
+              </article>
+            </section>
 
-        <section className={styles.section}>
-          <div className={styles.codePanel}>
-            <p className={styles.codeLabel}>Reproduce This</p>
-            <h2 className={styles.codeTitle}>The benchmark story should survive a clean checkout.</h2>
-            <pre className={styles.codeBlock}>
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.eyebrow}>Demo Coverage</p>
+                  <h2 className={styles.sectionTitle}>The synthetic proof still shows what kinds of cases it covers.</h2>
+                  <p className={styles.sectionText}>
+                    This is the intentionally controlled demo casebook. It stays useful because the checked-in corpus now
+                    includes benchmark buckets and reviewer cues instead of only a flat metric summary.
+                  </p>
+                </div>
+              </div>
+
+              <div className={`${styles.grid} ${styles.gridFour}`}>
+                <article className={styles.card}>
+                  <p className={styles.statLabel}>Reports</p>
+                  <p className={styles.statValue}>{demoSnapshot.dataset_summary.report_count}</p>
+                  <p className={styles.statNote}>Total labeled benchmark cases in the published demo casebook.</p>
+                </article>
+                <article className={styles.card}>
+                  <p className={styles.statLabel}>Positive Labels</p>
+                  <p className={styles.statValue}>{demoSnapshot.dataset_summary.positive_count}</p>
+                  <p className={styles.statNote}>Cases that should still surface for human review.</p>
+                </article>
+                <article className={styles.card}>
+                  <p className={styles.statLabel}>Escalations</p>
+                  <p className={styles.statValue}>{demoSnapshot.dataset_summary.escalation_count}</p>
+                  <p className={styles.statNote}>Cases expected to warrant escalation, not just passive follow-up.</p>
+                </article>
+                <article className={styles.card}>
+                  <p className={styles.statLabel}>Buckets</p>
+                  <p className={styles.statValue}>{demoSnapshot.dataset_summary.bucket_counts.length}</p>
+                  <p className={styles.statNote}>Benchmark buckets represented in the current demo snapshot.</p>
+                </article>
+              </div>
+
+              <div className={styles.chipRow}>
+                {demoSnapshot.dataset_summary.bucket_counts.map((bucket) => (
+                  <span key={bucket.bucket} className={styles.chip}>
+                    {bucket.bucket}: {bucket.case_count}
+                  </span>
+                ))}
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.eyebrow}>Comparison</p>
+                  <h2 className={styles.sectionTitle}>Rules and hybrid side by side.</h2>
+                  <p className={styles.sectionText}>
+                    The demo benchmark is about triage usefulness, not vanity metrics. These numbers come from the checked-in
+                    synthetic dataset and label file referenced below.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Mode</th>
+                      <th>Precision</th>
+                      <th>Recall</th>
+                      <th>F1</th>
+                      <th>Flagged</th>
+                      <th>Top-{demoSnapshot.comparison.top_k} Precision</th>
+                      <th>Top-{demoSnapshot.comparison.top_k} Sensitivity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Rules</td>
+                      <td>{formatPercent(demoSnapshot.comparison.rules.precision)}</td>
+                      <td>{formatPercent(demoSnapshot.comparison.rules.recall)}</td>
+                      <td>{formatPercent(demoSnapshot.comparison.rules.f1)}</td>
+                      <td>{demoSnapshot.comparison.rules.flagged}</td>
+                      <td>{formatPercent(demoSnapshot.comparison.rules.precision_at_top_k)}</td>
+                      <td>{formatPercent(demoSnapshot.comparison.rules.sensitivity_at_top_k)}</td>
+                    </tr>
+                    <tr>
+                      <td>Hybrid</td>
+                      <td>{formatPercent(demoSnapshot.comparison.hybrid.precision)}</td>
+                      <td>{formatPercent(demoSnapshot.comparison.hybrid.recall)}</td>
+                      <td>{formatPercent(demoSnapshot.comparison.hybrid.f1)}</td>
+                      <td>{demoSnapshot.comparison.hybrid.flagged}</td>
+                      <td>{formatPercent(demoSnapshot.comparison.hybrid.precision_at_top_k)}</td>
+                      <td>{formatPercent(demoSnapshot.comparison.hybrid.sensitivity_at_top_k)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <div className={`${styles.grid} ${styles.gridThree}`}>
+                <article className={styles.card}>
+                  <h3 className={styles.cardTitle}>Newly surfaced by hybrid</h3>
+                  <p className={styles.cardText}>{demoSnapshot.comparison.newly_flagged_cases.join(", ") || "none"}</p>
+                </article>
+                <article className={styles.card}>
+                  <h3 className={styles.cardTitle}>Recommended rules threshold</h3>
+                  <p className={styles.cardText}>
+                    {demoSnapshot.sweep.rules_recommendation.recommended_threshold.toFixed(2)} with{" "}
+                    {formatPercent(demoSnapshot.sweep.rules_recommendation.recall)} recall and{" "}
+                    {formatPercent(demoSnapshot.sweep.rules_recommendation.f1)} F1.
+                  </p>
+                </article>
+                <article className={styles.card}>
+                  <h3 className={styles.cardTitle}>Recommended hybrid threshold</h3>
+                  <p className={styles.cardText}>
+                    {demoSnapshot.sweep.hybrid_recommendation.recommended_threshold.toFixed(2)} with{" "}
+                    {formatPercent(demoSnapshot.sweep.hybrid_recommendation.recall)} recall and{" "}
+                    {formatPercent(demoSnapshot.sweep.hybrid_recommendation.f1)} F1.
+                  </p>
+                </article>
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.eyebrow}>Queue Preview</p>
+                  <h2 className={styles.sectionTitle}>Reviewer-visible ranking matters as much as aggregate metrics.</h2>
+                  <p className={styles.sectionText}>
+                    These are the current top-{demoSnapshot.queue_preview.top_k} queues for rules and hybrid scoring, which
+                    makes it easy to see when hybrid is surfacing a follow-up-worthy case that rules leave behind.
+                  </p>
+                </div>
+              </div>
+
+              <div className={`${styles.grid} ${styles.gridTwo}`}>
+                <article className={styles.card}>
+                  <h3 className={styles.cardTitle}>Rules Queue</h3>
+                  <div className={styles.queueList}>
+                    {demoSnapshot.queue_preview.rules.map((entry) => (
+                      <div key={`rules-${entry.case_id}`} className={styles.queueItem}>
+                        <div>
+                          <p className={styles.queueItemTitle}>{renderQueueSummary(entry)}</p>
+                          <p className={styles.queueItemMeta}>{entry.report_id}</p>
+                        </div>
+                        <p className={styles.queueItemScore}>{formatScore(entry.score)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+                <article className={styles.card}>
+                  <h3 className={styles.cardTitle}>Hybrid Queue</h3>
+                  <div className={styles.queueList}>
+                    {demoSnapshot.queue_preview.hybrid.map((entry) => (
+                      <div key={`hybrid-${entry.case_id}`} className={styles.queueItem}>
+                        <div>
+                          <p className={styles.queueItemTitle}>{renderQueueSummary(entry)}</p>
+                          <p className={styles.queueItemMeta}>{entry.report_id}</p>
+                        </div>
+                        <p className={styles.queueItemScore}>{formatScore(entry.score)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.eyebrow}>Threshold Sweep</p>
+                  <h2 className={styles.sectionTitle}>Operating points should be explicit.</h2>
+                </div>
+              </div>
+
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Threshold</th>
+                      <th>Rules F1</th>
+                      <th>Hybrid F1</th>
+                      <th>Rules Recall</th>
+                      <th>Hybrid Recall</th>
+                      <th>Flagged Delta</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {demoSnapshot.sweep.points.map((point) => (
+                      <tr key={point.threshold}>
+                        <td>{point.threshold.toFixed(2)}</td>
+                        <td>{formatPercent(point.rules_f1)}</td>
+                        <td>{formatPercent(point.hybrid_f1)}</td>
+                        <td>{formatPercent(point.rules_recall)}</td>
+                        <td>{formatPercent(point.hybrid_recall)}</td>
+                        <td>
+                          {point.flagged_delta >= 0 ? "+" : ""}
+                          {point.flagged_delta}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.eyebrow}>Reviewer Casebook</p>
+                  <h2 className={styles.sectionTitle}>Each demo case carries a reviewer cue, not just a label.</h2>
+                  <p className={styles.sectionText}>
+                    This is the layer that turns the benchmark from a scoreboard into an explainable proof surface. You can
+                    see what kind of case each example represents, what the reviewer should notice, and how rules versus
+                    hybrid treat it.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.casebookGrid}>
+                {demoSnapshot.casebook.map((entry) => (
+                  <article key={entry.case_id} className={styles.casebookCard}>
+                    <div className={styles.casebookHeader}>
+                      <div>
+                        <p className={styles.casebookMeta}>{entry.report_id}</p>
+                        <h3 className={styles.cardTitle}>{entry.case_id}</h3>
+                      </div>
+                      <span className={styles.casebookTag}>{entry.benchmark_bucket || "unbucketed"}</span>
+                    </div>
+
+                    <p className={styles.casebookFocus}>{entry.reviewer_focus || "No reviewer cue recorded."}</p>
+                    <p className={styles.casebookMeta}>{entry.label_notes || "No label note recorded."}</p>
+
+                    <div className={styles.miniChipRow}>
+                      <span className={styles.miniChip}>Expected positive: {formatBooleanLabel(entry.expected_positive)}</span>
+                      <span className={styles.miniChip}>
+                        Expected escalation: {formatBooleanLabel(entry.expected_escalation)}
+                      </span>
+                      <span className={styles.miniChip}>
+                        Hybrid lift: {entry.hybrid_lift >= 0 ? "+" : ""}
+                        {entry.hybrid_lift.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <p className={styles.casebookMeta}>
+                      Expected rationale cues: <span className={styles.inlineCode}>{formatCodeList(entry.expected_rationale_codes)}</span>
+                    </p>
+
+                    <div className={styles.resultGrid}>
+                      <div className={styles.resultCard}>
+                        <p className={styles.resultLabel}>Rules</p>
+                        <p className={styles.resultValue}>{formatOutcomeLabel(entry.rules.outcome)}</p>
+                        <p className={styles.resultText}>{renderModeSummary(entry.rules)}</p>
+                      </div>
+                      <div className={styles.resultCard}>
+                        <p className={styles.resultLabel}>Hybrid</p>
+                        <p className={styles.resultValue}>{formatOutcomeLabel(entry.hybrid.outcome)}</p>
+                        <p className={styles.resultText}>{renderModeSummary(entry.hybrid)}</p>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <div className={styles.codePanel}>
+                <p className={styles.codeLabel}>Reproduce This</p>
+                <h2 className={styles.codeTitle}>The demo benchmark story should survive a clean checkout.</h2>
+                <pre className={styles.codeBlock}>
 {`make validate-strict
 make benchmark-demo
 make refresh-demo-proof
 python scripts/run_demo_eval.py --compare --json`}
-            </pre>
-            <p className={styles.codeText}>
-              Dataset paths: <span className={styles.inlineCode}>{snapshot.dataset.reports_path}</span> and{" "}
-              <span className={styles.inlineCode}>{snapshot.dataset.labels_path}</span>.
-            </p>
-          </div>
-        </section>
+                </pre>
+                <p className={styles.codeText}>
+                  Dataset paths: <span className={styles.inlineCode}>{demoSnapshot.dataset.reports_path}</span> and{" "}
+                  <span className={styles.inlineCode}>{demoSnapshot.dataset.labels_path}</span>.
+                </p>
+              </div>
+            </section>
+          </>
+        ) : null}
+
+        {retrospectiveSnapshot ? (
+          <>
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.eyebrow}>Retrospective Sample</p>
+                  <h2 className={styles.sectionTitle}>A less-synthetic external casebook now sits beside the demo proof.</h2>
+                  <p className={styles.sectionText}>
+                    This sample is still intentionally small, but it shows the same proof shape on deidentified retrospective-style
+                    report excerpts instead of only the synthetic demo set.
+                  </p>
+                </div>
+              </div>
+
+              <div className={`${styles.grid} ${styles.gridFour}`}>
+                <article className={styles.card}>
+                  <p className={styles.statLabel}>External F1</p>
+                  <p className={styles.statValue}>{formatPercent(retrospectiveSnapshot.evaluation.f1)}</p>
+                  <p className={styles.statNote}>Current external casebook operating point.</p>
+                </article>
+                <article className={styles.card}>
+                  <p className={styles.statLabel}>External Recall</p>
+                  <p className={styles.statValue}>{formatPercent(retrospectiveSnapshot.evaluation.recall)}</p>
+                  <p className={styles.statNote}>Action-worthy retrospective-style cases still surfaced at threshold 0.30.</p>
+                </article>
+                <article className={styles.card}>
+                  <p className={styles.statLabel}>Recommended Threshold</p>
+                  <p className={styles.statValue}>{retrospectiveSnapshot.sweep.recommendation.recommended_threshold.toFixed(2)}</p>
+                  <p className={styles.statNote}>
+                    Miss buckets: {formatFalseNegativeBuckets(retrospectiveSnapshot.evaluation.false_negative_buckets)}.
+                  </p>
+                </article>
+                <article className={styles.card}>
+                  <p className={styles.statLabel}>Published</p>
+                  <p className={styles.statValue}>{formatGeneratedAt(retrospectiveSnapshot.generated_at)}</p>
+                  <p className={styles.statNote}>
+                    Snapshot file: <span className={styles.inlineCode}>{PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH}</span>.
+                  </p>
+                </article>
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.eyebrow}>Sample Coverage</p>
+                  <h2 className={styles.sectionTitle}>The external proof is small, deidentified, and reviewer-readable.</h2>
+                  <p className={styles.sectionText}>
+                    The checked-in sample keeps the same bucketed coverage and queue preview structure while adding report
+                    excerpts and one intentional follow-up miss that reviewers can inspect directly.
+                  </p>
+                </div>
+              </div>
+
+              <div className={`${styles.grid} ${styles.gridFour}`}>
+                <article className={styles.card}>
+                  <p className={styles.statLabel}>Reports</p>
+                  <p className={styles.statValue}>{retrospectiveSnapshot.dataset_summary.report_count}</p>
+                  <p className={styles.statNote}>Deidentified retrospective-style cases in the checked-in sample.</p>
+                </article>
+                <article className={styles.card}>
+                  <p className={styles.statLabel}>Positive Labels</p>
+                  <p className={styles.statValue}>{retrospectiveSnapshot.dataset_summary.positive_count}</p>
+                  <p className={styles.statNote}>Cases expected to stay visible for review or follow-up.</p>
+                </article>
+                <article className={styles.card}>
+                  <p className={styles.statLabel}>Escalations</p>
+                  <p className={styles.statValue}>{retrospectiveSnapshot.dataset_summary.escalation_count}</p>
+                  <p className={styles.statNote}>Cases expected to justify escalation rather than passive follow-up.</p>
+                </article>
+                <article className={styles.card}>
+                  <p className={styles.statLabel}>Profile</p>
+                  <p className={styles.statValue}>
+                    {retrospectiveSnapshot.dataset.deidentified ? "De-ID" : "Open"}
+                  </p>
+                  <p className={styles.statNote}>
+                    {retrospectiveSnapshot.dataset.dataset_name} on the {retrospectiveSnapshot.dataset.dataset_split} split.
+                  </p>
+                </article>
+              </div>
+
+              <div className={styles.chipRow}>
+                {retrospectiveSnapshot.dataset_summary.bucket_counts.map((bucket) => (
+                  <span key={bucket.bucket} className={styles.chip}>
+                    {bucket.bucket}: {bucket.case_count}
+                  </span>
+                ))}
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <div className={`${styles.grid} ${styles.gridTwo}`}>
+                <article className={styles.card}>
+                  <h3 className={styles.cardTitle}>External Queue</h3>
+                  <p className={styles.cardText}>
+                    Current top-{retrospectiveSnapshot.queue_preview.top_k} ranking for the deidentified retrospective sample.
+                  </p>
+                  <div className={styles.queueList}>
+                    {retrospectiveSnapshot.queue_preview.external.map((entry) => (
+                      <div key={`external-${entry.case_id}`} className={styles.queueItem}>
+                        <div>
+                          <p className={styles.queueItemTitle}>{renderQueueSummary(entry)}</p>
+                          <p className={styles.queueItemMeta}>{entry.report_id}</p>
+                        </div>
+                        <p className={styles.queueItemScore}>{formatScore(entry.score)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+                <article className={styles.card}>
+                  <h3 className={styles.cardTitle}>Submission Framing</h3>
+                  <p className={styles.cardText}>{retrospectiveSnapshot.sweep.recommendation.rationale}</p>
+                  {retrospectiveSnapshot.submission?.notable_strengths?.length ? (
+                    <>
+                      <p className={styles.casebookMeta}>Notable strengths</p>
+                      <ul className={styles.list}>
+                        {retrospectiveSnapshot.submission.notable_strengths.map((strength) => (
+                          <li key={strength}>{strength}</li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                  {retrospectiveSnapshot.submission?.known_limitations?.length ? (
+                    <>
+                      <p className={styles.casebookMeta}>Known limitations</p>
+                      <ul className={styles.list}>
+                        {retrospectiveSnapshot.submission.known_limitations.map((limitation) => (
+                          <li key={limitation}>{limitation}</li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                </article>
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.eyebrow}>External Threshold Sweep</p>
+                  <h2 className={styles.sectionTitle}>The external sample keeps its operating point explicit too.</h2>
+                </div>
+              </div>
+
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Threshold</th>
+                      <th>Precision</th>
+                      <th>Recall</th>
+                      <th>F1</th>
+                      <th>Flagged</th>
+                      <th>Top-{retrospectiveSnapshot.sweep.top_k} Sensitivity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {retrospectiveSnapshot.sweep.points.map((point) => (
+                      <tr key={point.threshold}>
+                        <td>{point.threshold.toFixed(2)}</td>
+                        <td>{formatPercent(point.precision)}</td>
+                        <td>{formatPercent(point.recall)}</td>
+                        <td>{formatPercent(point.f1)}</td>
+                        <td>{point.flagged}</td>
+                        <td>{formatPercent(point.sensitivity_at_top_k)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.eyebrow}>External Reviewer Casebook</p>
+                  <h2 className={styles.sectionTitle}>The same reviewer-facing proof shape now works on less-synthetic text.</h2>
+                  <p className={styles.sectionText}>
+                    Each entry keeps the deidentified report excerpt, reviewer focus, and the actual external scoring outcome
+                    so missed follow-up cases stay inspectable instead of disappearing into summary metrics.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.casebookGrid}>
+                {retrospectiveSnapshot.casebook.map((entry) => (
+                  <article key={entry.case_id} className={styles.casebookCard}>
+                    <div className={styles.casebookHeader}>
+                      <div>
+                        <p className={styles.casebookMeta}>{entry.report_id}</p>
+                        <h3 className={styles.cardTitle}>{entry.case_id}</h3>
+                      </div>
+                      <span className={styles.casebookTag}>{entry.benchmark_bucket || "unbucketed"}</span>
+                    </div>
+
+                    <p className={styles.casebookFocus}>{entry.reviewer_focus || "No reviewer cue recorded."}</p>
+                    {entry.report_excerpt ? <p className={styles.casebookMeta}>{entry.report_excerpt}</p> : null}
+                    <p className={styles.casebookMeta}>{entry.label_notes || "No label note recorded."}</p>
+
+                    <div className={styles.miniChipRow}>
+                      <span className={styles.miniChip}>Expected positive: {formatBooleanLabel(entry.expected_positive)}</span>
+                      <span className={styles.miniChip}>
+                        Expected escalation: {formatBooleanLabel(entry.expected_escalation)}
+                      </span>
+                      {entry.external.false_negative_bucket ? (
+                        <span className={styles.miniChip}>Miss bucket: {entry.external.false_negative_bucket}</span>
+                      ) : null}
+                    </div>
+
+                    <p className={styles.casebookMeta}>
+                      Expected rationale cues: <span className={styles.inlineCode}>{formatCodeList(entry.expected_rationale_codes)}</span>
+                    </p>
+
+                    <div className={styles.resultCard}>
+                      <p className={styles.resultLabel}>External</p>
+                      <p className={styles.resultValue}>{formatOutcomeLabel(entry.external.outcome)}</p>
+                      <p className={styles.resultText}>{renderExternalModeSummary(entry.external)}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <div className={styles.codePanel}>
+                <p className={styles.codeLabel}>Reproduce This</p>
+                <h2 className={styles.codeTitle}>The external sample proof should survive a clean checkout too.</h2>
+                <pre className={styles.codeBlock}>
+{`make benchmark-external-sample
+make refresh-external-sample-proof
+make validate-benchmark-submission \\
+  SUBMISSION=docs/examples/retrospective-benchmark-sample-current-submission.json`}
+                </pre>
+                <p className={styles.codeText}>
+                  Source files: <span className={styles.inlineCode}>{retrospectiveSnapshot.dataset.labels_path}</span> and{" "}
+                  <span className={styles.inlineCode}>{retrospectiveSnapshot.dataset.predictions_path}</span>.
+                </p>
+              </div>
+            </section>
+          </>
+        ) : null}
       </div>
     </main>
   );

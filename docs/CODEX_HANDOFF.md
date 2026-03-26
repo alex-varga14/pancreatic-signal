@@ -2,24 +2,25 @@
 
 Updated: 2026-03-25
 
-This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, Phase 6 hosted smoke evidence capture is now complete, and the first post-Phase-6 benchmark-realism slices are also in place. The best next work should now move from the expanded synthetic proof set and stronger external starter pack toward broader de-identified or externally supplied benchmark inputs on top of the existing pilot packaging, proof surfaces, public benchmark pack, and external evaluation bundle writer.
+This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, Phase 6 hosted smoke evidence capture is now complete, and the first post-Phase-6 benchmark-realism slices are also in place. The best next work should now move from the expanded synthetic proof set, stronger external starter pack, and checked-in retrospective-style sample toward broader de-identified or externally supplied benchmark inputs on top of the existing pilot packaging, proof surfaces, public benchmark pack, and external evaluation bundle writer.
 
 ## Current State
 
 - Deterministic pancreatic triage is implemented with section-aware sentence evidence, rationale codes, persistence, exports, and evaluation.
 - Reviewer workflow is implemented end to end with worklist filters, case detail, review actions, feedback capture, hybrid prioritization, and trial matching.
 - Phase 6 pilot work is materially in place: observability, readiness probes, trusted-proxy auth, site scoping, pilot Docker overlays, checked-in env bundles, de-identified research views, FHIR ingestion, HL7 ORU ingestion, structured import metadata persistence, persisted import-run audit records, env-driven field-preference overrides for upstream variability, a dedicated web import workspace with recent-run audit visibility, and live report/FHIR/HL7 success, successful shared-visibility, report-path failed shared-visibility for `validation_error`, structured failed shared-visibility for FHIR `unsupported_payload` plus HL7 `parse_error`, report-path and structured-adapter site-scope rejection, report-path parse/validation, adapter-specific malformed-import, and generic plus structured cross-actor audit denial smoke coverage in both the header-auth and trusted-proxy pilot paths.
-- The web app now has clearer outside-collaborator surfaces: the home and about pages frame the product as an explainable, benchmarkable workflow stack, and `/proof` publishes the checked-in demo benchmark snapshot as a public proof surface with dataset coverage, queue previews, and a reviewer-facing casebook.
+- The web app now has clearer outside-collaborator surfaces: the home and about pages frame the product as an explainable, benchmarkable workflow stack, and `/proof` now publishes both the checked-in demo benchmark snapshot and the checked-in retrospective-style external sample as a public proof surface with dataset coverage, queue previews, and reviewer-facing casebooks.
 - The repo now includes an adoption-facing quickstart, checked-in benchmark snapshots in `docs/examples/demo-benchmark-current.json` and `docs/examples/demo-benchmark-current.md`, and a refresh path through `make benchmark-demo` plus `make refresh-demo-proof`; that published proof now carries benchmark buckets, reviewer cues, expected rationale codes, per-case rules-versus-hybrid outcomes, and an expanded 10-report casebook spanning 5 recurring benchmark buckets.
 - The repo also now includes a public benchmark pack: `docs/LABELING_GUIDE.md`, `docs/BENCHMARK_SUBMISSIONS.md`, checked-in label and submission templates, a Pydantic benchmark submission schema, and a validator entrypoint through `make validate-benchmark-submission SUBMISSION=...`.
-- The repo now also includes a comparable external evaluation bundle writer through `scripts/run_external_eval.py` plus `make benchmark-external`, producing JSON, Markdown, and validator-compatible submission-draft artifacts from label and prediction JSONL inputs; that external path now also preserves benchmark buckets, reviewer focus, expected rationale cues, dataset coverage, queue previews, and a reviewer-facing casebook in its generated outputs.
+- The repo now also includes a comparable external evaluation bundle writer through `scripts/run_external_eval.py` plus `make benchmark-external`, producing JSON, Markdown, and validator-compatible submission-draft artifacts from label and prediction JSONL inputs; that external path now also preserves benchmark buckets, reviewer focus, expected rationale cues, optional deidentified report excerpts, dataset coverage, queue previews, and a reviewer-facing casebook in its generated outputs.
+- The repo now also carries a checked-in deidentified retrospective-style sample pack under `docs/examples/retrospective-benchmark-sample-*`, with reproducible JSON, Markdown, and submission outputs refreshed by `make refresh-external-sample-proof`.
 - The release-facing docs now also include a concrete operator runbook in `docs/RELEASE_RUNBOOK.md` plus a reusable `docs/RELEASE_NOTES_TEMPLATE.md` so the remaining hosted smoke evidence path is explicit rather than tribal.
 - FHIR `DiagnosticReport` imports now preserve patient, encounter, and accession metadata from inline `Reference.identifier` values when upstream payloads omit fully resolved `Patient`, `Encounter`, or `ServiceRequest` resources.
 - FHIR `DiagnosticReport` imports now also decode supported text-like `presentedForm` attachments, including base64 XHTML narratives with explicit charsets, bundled or contained `Binary`-backed attachment URLs, merge multiple supported attachments in order, suppress shorter overlapping fragments when a richer attachment already contains them, expand referenced `Observation.component` plus grouped `Observation.hasMember` findings into reviewer-visible report text, preserve `interpretation` plus `referenceRange` measurement context, fall back to `conclusionCode` text when free-text `conclusion` is absent, avoid duplicate or cyclic grouped-member expansion, and keep unsectioned attachment findings merged with `conclusion` text when that preserves a more reviewer-usable report shape.
 - HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component plus repetition separators, normalize common HL7 escape sequences, and clean composite metadata fields with subcomponent-aware extraction before the existing report-text assembly flows into triage and audit persistence.
 - Top-level repo docs now reflect the implemented platform instead of the earlier scaffold framing, and the repository includes checked-in contributor, security, and code-of-conduct docs appropriate for a near-1.0 open-source handoff.
 - The repo still includes checked-in GitHub Actions workflows for strict validation plus hosted base, attachment-backed FHIR success-path, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage, and the hosted pilot workflow now supports narrower manual FHIR-only plus HL7-only dispatches with per-job raw-log and structured-summary artifacts. Those hosted slices are now verified with green March 25, 2026 runs for FHIR and HL7, while HL7 remains manual-only in the default weekly matrix by explicit decision.
-- The highest-value remaining work is no longer bootstrapping or late-Phase-6 smoke capture. The repo-side Phase 6D release polish is already in place, the first benchmark-realism proof expansion is complete, and the external starter pack now matches that reviewer-facing proof shape, so the next work should move toward less-synthetic benchmark inputs and reviewer-evaluation depth instead of reopening parser or smoke-baseline work.
+- The highest-value remaining work is no longer bootstrapping or late-Phase-6 smoke capture. The repo-side Phase 6D release polish is already in place, the first benchmark-realism proof expansion is complete, the external starter pack matches that reviewer-facing proof shape, and the repo now includes a checked-in retrospective-style sample, so the next work should move toward broader collaborator-supplied or deidentified benchmark inputs and reviewer-evaluation depth instead of reopening parser or smoke-baseline work.
 
 ## Fresh Validation Status
 
@@ -27,7 +28,7 @@ Confirmed on 2026-03-25:
 
 - `make validate-strict` passes
 - Summary: `9 pass, 0 warn, 0 fail`
-- API tests: `137 passed`
+- API tests: `139 passed`
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py -q` passed with `34 passed`, including split, overlapping, bundled or contained `Binary`-backed FHIR `presentedForm`, grouped and cycle-safe `Observation.hasMember`, `conclusionCode`, measurement `interpretation` plus `referenceRange`, and `Observation.component` coverage
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_summarize_pilot_smoke.py apps/api/tests/test_smoke_proxy_auth.py -q` passed with `23 passed`, covering the hosted smoke summary parser plus the attachment-backed FHIR smoke fixture and its expected `presentedForm` payload shape
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_smoke_proxy_auth.py -q` passed with `21 passed`, covering the attachment-backed FHIR smoke fixture and its expected `presentedForm` payload shape
@@ -36,10 +37,12 @@ Confirmed on 2026-03-25:
 - Demo evaluation compare and sweep both run through the validation script
 - `make refresh-demo-proof` succeeded and refreshed the checked-in benchmark snapshot that powers `/proof`
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_demo_benchmark_snapshot.py apps/api/tests/test_exports_metrics.py -q` passed with `11 passed`, covering the casebook-backed proof snapshot and richer evaluation-case payload fields
-- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_external_evaluation.py -q` passed with `3 passed`, covering the richer external benchmark template plus casebook-shaped external bundle outputs
+- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_external_evaluation.py apps/api/tests/test_benchmark_submission.py -q` passed with `9 passed`, covering the richer external benchmark template, optional report excerpts, and retrospective-style sample pack plus casebook-shaped external bundle outputs
 - `make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission-template.json` passed
 - `cd apps/api && .venv/bin/python -m pytest tests/test_benchmark_submission.py -q` passed
 - `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl OUT_DIR=/tmp/pancreatic-signal-external-eval BASENAME=template-external TOP_K=2` passed and wrote JSON, Markdown, and submission-draft artifacts
+- `make benchmark-external-sample` passed and wrote a retrospective-style external bundle from the checked-in sample pack
+- `make refresh-external-sample-proof` passed and refreshed the checked-in retrospective-style external benchmark proof under `docs/examples/`
 - `make validate-benchmark-submission SUBMISSION=/tmp/pancreatic-signal-external-eval/template-external-submission.json` passed against the generated draft
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py apps/api/tests/test_import_runs.py -q` passed with `46 passed`, including inline `Reference.identifier` extraction coverage, attachment-backed `presentedForm` decoding and audit coverage, plus custom `MSH-2` delimiter, escape-sequence, subcomponent, and audit-visibility coverage
 - Targeted import / de-identification / export coverage also passes for the new import metadata surface
@@ -48,6 +51,7 @@ Confirmed on 2026-03-25:
 - The new `/imports` workspace is included in the validated web build and uses persisted run IDs to deep-link failed submissions into their audit detail
 - The published demo proof currently includes a checked-in JSON plus Markdown benchmark summary for outside collaborators, and the web app reads that snapshot directly into dataset coverage cards, queue previews, and reviewer-facing casebook entries; the current checked-in corpus is 10 labeled reports across 5 recurring benchmark buckets, with hybrid-only recovery of the follow-up-only cases `C-005` and `C-008`
 - The public external benchmark starter pack now uses the same reviewer-facing fields and publishes a casebook-shaped JSON plus Markdown bundle, so collaborators can benchmark less-synthetic datasets without losing the coverage, queue, and reviewer-cue structure established by the demo proof
+- The repo now also includes a 7-case deidentified retrospective-style sample pack with report excerpts, reviewer cues, one intentional follow-up miss, and checked-in JSON plus Markdown outputs that demonstrate the same casebook structure on a less-synthetic external dataset; `/proof` now renders that sample alongside the demo comparison instead of leaving it docs-only
 - Both pilot demo overlays resolve successfully through `docker compose config`
 - The smoke helper now supports both trusted-identity proxy mode and field-level header-auth mode, plus live verification against `/api/v1/imports/reports`, `/api/v1/imports/fhir/diagnostic-reports`, and `/api/v1/imports/hl7/oru`
 - The smoke helper now also supports live `site_scope_rejection` verification through `/api/v1/imports/reports`, including persisted failed run IDs and zero run-specific visible-case assertions
@@ -334,18 +338,18 @@ Additional note from this slice:
 
 ## Recommended Next Slice
 
-Introduce an actual less-synthetic benchmark input set, or a de-identified retrospective sample, using the now-stable reviewer-facing proof shape.
+Broaden from the checked-in retrospective-style sample to a larger de-identified or collaborator-supplied benchmark drop using the same reviewer-facing proof shape.
 
 ### Why this is next
 
 - Phase 6 exit criteria are now met: the hosted/manual smoke boundary is verified, the hosted evidence is recorded, and the release-facing docs reflect the real product state.
-- The proof surface now carries benchmark buckets, queue previews, reviewer cues, expected rationale codes, and a 10-report casebook across 5 recurring categories, while the public external benchmark helper now emits the same shape for collaborator datasets.
-- More parser or smoke-baseline work would now deliver less value than bringing an actual less-synthetic benchmark set into that established structure.
+- The proof surface now carries benchmark buckets, queue previews, reviewer cues, expected rationale codes, and a 10-report casebook across 5 recurring categories, while the public external benchmark helper now emits the same shape for collaborator datasets and the repo now includes a 7-case retrospective-style sample pack.
+- More parser or smoke-baseline work would now deliver less value than bringing a broader real-world benchmark drop into that established structure.
 
 ### Target outcome
 
 Add one post-Phase-6 proof slice that:
-- introduces a less-synthetic benchmark input set using the same published casebook fields
+- introduces a broader de-identified or collaborator-supplied benchmark input set using the same published casebook fields
 - keeps the existing reviewer-facing proof shape while improving data realism, provenance, or collaborator handoff quality
 - refreshes `/proof`, release notes inputs, and benchmark-facing docs from that stronger evidence base
 - leaves the now-recorded hosted smoke baseline intact rather than reopening it unnecessarily
@@ -354,7 +358,7 @@ Add one post-Phase-6 proof slice that:
 
 1. Start from the existing benchmark proof surfaces under `docs/examples/`, `/proof`, and the external evaluation tooling rather than adding new infrastructure.
 
-2. Use the current expanded casebook fields as the compatibility target for any de-identified retrospective sample or externally supplied benchmark set.
+2. Use the current expanded casebook fields, optional report excerpts, and checked-in retrospective sample as the compatibility target for any broader de-identified retrospective sample or externally supplied benchmark set.
 
 3. Refresh the published proof artifacts and make sure the updated benchmark narrative still matches the current release-facing docs and the now-explicit hosted/manual smoke boundary.
 
@@ -381,9 +385,11 @@ sed -n '1,260p' apps/api/tests/test_import_runs.py
 sed -n '1,260p' scripts/smoke_proxy_auth.py
 sed -n '1,220p' .github/workflows/pilot-smoke.yml
 make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl
+make benchmark-external-sample
+make refresh-external-sample-proof
 make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission-template.json
 ```
 
 ## Handoff Summary
 
-This is a clean post-Phase-6 checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base plus attachment-backed FHIR success-path plus report-path and structured adapter site-rejection smoke automation, a sharper public landing experience, a checked-in benchmark proof surface, a machine-validated public benchmark submission pack, a reproducible external evaluation bundle writer, FHIR inline `Reference.identifier` fallback coverage, FHIR `presentedForm` attachment-backed narrative decoding, and HL7 `ED`, repeated-`OBX-5`, custom-`MSH-2` delimiter, escape-sequence, plus subcomponent-aware metadata support are complete. The benchmark proof surface now also publishes dataset coverage, top-k queue previews, benchmark buckets, expected rationale cues, and reviewer-facing casebook notes from an expanded 10-report demo snapshot that covers 5 recurring benchmark buckets, and the public external benchmark starter pack now emits the same casebook-shaped structure for collaborator datasets. Fresh unsandboxed local proxy and header-auth reruns now also confirm the attachment-backed FHIR smoke path operationally with persisted runs `50` and `51`, GitHub-hosted FHIR run [`#23563902873`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23563902873) is green, GitHub-hosted HL7 trial [`#23564057337`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23564057337) is green, and the bundled hosted evidence now records an intentional `manual_only` HL7 decision to keep the default weekly matrix narrow. The next agent should focus on bringing in a genuinely less-synthetic benchmark input set rather than reopening hosted smoke capture or parser work that is already covered in tests.
+This is a clean post-Phase-6 checkpoint. The repo is runnable, validated, and already beyond MVP scaffolding. Import metadata preservation, import-run audit trails, config overrides, the web import workspace, concrete proxy plus header-auth pilot packaging, automatic PR and `main` validation, checked-in hosted base plus attachment-backed FHIR success-path plus report-path and structured adapter site-rejection smoke automation, a sharper public landing experience, a checked-in benchmark proof surface, a machine-validated public benchmark submission pack, a reproducible external evaluation bundle writer, FHIR inline `Reference.identifier` fallback coverage, FHIR `presentedForm` attachment-backed narrative decoding, and HL7 `ED`, repeated-`OBX-5`, custom-`MSH-2` delimiter, escape-sequence, plus subcomponent-aware metadata support are complete. The benchmark proof surface now also publishes dataset coverage, top-k queue previews, benchmark buckets, expected rationale cues, and reviewer-facing casebook notes from an expanded 10-report demo snapshot that covers 5 recurring benchmark buckets, the public external benchmark starter pack emits the same casebook-shaped structure for collaborator datasets, and the repo now includes a checked-in 7-case retrospective-style sample pack with deidentified report excerpts. Fresh unsandboxed local proxy and header-auth reruns now also confirm the attachment-backed FHIR smoke path operationally with persisted runs `50` and `51`, GitHub-hosted FHIR run [`#23563902873`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23563902873) is green, GitHub-hosted HL7 trial [`#23564057337`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23564057337) is green, and the bundled hosted evidence now records an intentional `manual_only` HL7 decision to keep the default weekly matrix narrow. The next agent should focus on bringing in a broader de-identified or collaborator-supplied benchmark drop rather than reopening hosted smoke capture or parser work that is already covered in tests.

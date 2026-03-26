@@ -325,6 +325,7 @@ def render_markdown(snapshot: dict[str, object], submission_path: Path) -> str:
                 f"### {entry['case_id']} — {entry['benchmark_bucket'] or 'unbucketed'}",
                 "",
                 f"- Report: `{entry['report_id']}`",
+                *([f"- Report excerpt: {entry['report_excerpt']}"] if entry.get("report_excerpt") else []),
                 f"- Reviewer focus: {entry['reviewer_focus'] or 'No reviewer cue recorded.'}",
                 f"- Label note: {entry['label_notes'] or 'No label note recorded.'}",
                 (
@@ -401,6 +402,7 @@ def build_casebook(summary) -> list[dict[str, object]]:
             {
                 "case_id": case.case_id,
                 "report_id": case.report_id,
+                "report_excerpt": case.report_excerpt,
                 "benchmark_bucket": case.benchmark_bucket,
                 "reviewer_focus": case.reviewer_focus,
                 "label_notes": case.label_notes,

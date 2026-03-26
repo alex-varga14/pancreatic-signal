@@ -1,22 +1,27 @@
 import { readFile } from "fs/promises";
 import path from "path";
-import type { EvaluationComparison, ThresholdSweepSummary } from "./api";
+import type {
+  EvaluationComparison,
+  EvaluationSummary,
+  ExternalThresholdSweepSummary,
+  ThresholdSweepSummary,
+} from "./api";
 
-export type DemoBenchmarkBucketSummary = {
+export type PublishedBenchmarkBucketSummary = {
   bucket: string;
   case_count: number;
   positive_count: number;
   escalation_count: number;
 };
 
-export type DemoBenchmarkDatasetSummary = {
+export type PublishedBenchmarkDatasetSummary = {
   report_count: number;
   positive_count: number;
   escalation_count: number;
-  bucket_counts: DemoBenchmarkBucketSummary[];
+  bucket_counts: PublishedBenchmarkBucketSummary[];
 };
 
-export type DemoBenchmarkQueueEntry = {
+export type PublishedBenchmarkQueueEntry = {
   case_id: string;
   report_id: string;
   benchmark_bucket?: string | null;
@@ -26,8 +31,8 @@ export type DemoBenchmarkQueueEntry = {
 
 export type DemoBenchmarkQueuePreview = {
   top_k: number;
-  rules: DemoBenchmarkQueueEntry[];
-  hybrid: DemoBenchmarkQueueEntry[];
+  rules: PublishedBenchmarkQueueEntry[];
+  hybrid: PublishedBenchmarkQueueEntry[];
 };
 
 export type DemoBenchmarkCaseMode = {
@@ -57,7 +62,7 @@ export type DemoBenchmarkSnapshot = {
     reports_path: string;
     labels_path: string;
   };
-  dataset_summary: DemoBenchmarkDatasetSummary;
+  dataset_summary: PublishedBenchmarkDatasetSummary;
   queue_preview: DemoBenchmarkQueuePreview;
   comparison: EvaluationComparison;
   sweep: ThresholdSweepSummary;
@@ -65,6 +70,58 @@ export type DemoBenchmarkSnapshot = {
 };
 
 export const PUBLISHED_DEMO_PROOF_PATH = "docs/examples/demo-benchmark-current.json";
+export const PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH =
+  "docs/examples/retrospective-benchmark-sample-current.json";
+
+export type ExternalBenchmarkQueuePreview = {
+  top_k: number;
+  external: PublishedBenchmarkQueueEntry[];
+};
+
+export type ExternalBenchmarkCaseMode = {
+  score: number;
+  flagged: boolean;
+  outcome: string;
+  rationale_codes: string[];
+  false_negative_bucket?: string | null;
+};
+
+export type ExternalBenchmarkCasebookEntry = {
+  case_id: string;
+  report_id: string;
+  report_excerpt?: string | null;
+  benchmark_bucket?: string | null;
+  reviewer_focus?: string | null;
+  label_notes?: string | null;
+  expected_positive: boolean;
+  expected_escalation: boolean;
+  expected_rationale_codes: string[];
+  external: ExternalBenchmarkCaseMode;
+};
+
+export type ExternalBenchmarkSubmission = {
+  evaluation_command: string;
+  notable_strengths: string[];
+  known_limitations: string[];
+};
+
+export type RetrospectiveBenchmarkSnapshot = {
+  generated_at: string;
+  dataset: {
+    dataset_name: string;
+    dataset_split: string;
+    deidentified: boolean;
+    label_schema_version: string;
+    labels_path: string;
+    predictions_path: string;
+  };
+  dataset_summary: PublishedBenchmarkDatasetSummary;
+  queue_preview: ExternalBenchmarkQueuePreview;
+  evaluation: EvaluationSummary;
+  sweep: ExternalThresholdSweepSummary;
+  casebook: ExternalBenchmarkCasebookEntry[];
+  submission?: ExternalBenchmarkSubmission | null;
+};
 
 function candidateRoots(): string[] {
   const cwd = process.cwd();
@@ -73,13 +130,13 @@ function candidateRoots(): string[] {
   );
 }
 
-export async function getDemoBenchmarkSnapshot(): Promise<DemoBenchmarkSnapshot | null> {
+async function readPublishedSnapshot<T>(publishedPath: string): Promise<T | null> {
   for (const root of candidateRoots()) {
-    const snapshotPath = path.join(root, PUBLISHED_DEMO_PROOF_PATH);
+    const snapshotPath = path.join(root, publishedPath);
 
     try {
       const raw = await readFile(snapshotPath, "utf8");
-      return JSON.parse(raw) as DemoBenchmarkSnapshot;
+      return JSON.parse(raw) as T;
     } catch (error) {
       const code = (error as NodeJS.ErrnoException).code;
       if (code === "ENOENT") {
@@ -89,4 +146,12 @@ export async function getDemoBenchmarkSnapshot(): Promise<DemoBenchmarkSnapshot 
   }
 
   return null;
+}
+
+export async function getDemoBenchmarkSnapshot(): Promise<DemoBenchmarkSnapshot | null> {
+  return readPublishedSnapshot<DemoBenchmarkSnapshot>(PUBLISHED_DEMO_PROOF_PATH);
+}
+
+export async function getRetrospectiveBenchmarkSnapshot(): Promise<RetrospectiveBenchmarkSnapshot | null> {
+  return readPublishedSnapshot<RetrospectiveBenchmarkSnapshot>(PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH);
 }

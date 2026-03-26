@@ -18,6 +18,7 @@ The repository already ships with:
 - threshold sweep helpers for review-depth tuning
 - generated benchmark proof artifacts in `docs/examples/`, including dataset coverage, top-k queue previews, and a reviewer-facing casebook
 - an external benchmark bundle writer and submission validator that now preserves the same reviewer-facing casebook fields for collaborator datasets
+- a checked-in deidentified retrospective-style external sample pack with reproducible JSON, Markdown, and submission outputs
 
 ## Datasets
 
@@ -25,6 +26,7 @@ Current datasets:
 
 - synthetic demo data in this repository, including explicit malignancy, secondary-sign, follow-up-only, negative-control, and pancreatitis-confounder slices
 - public benchmark templates in `docs/examples/`
+- a checked-in deidentified retrospective-style sample set in `docs/examples/retrospective-benchmark-sample-*.jsonl`
 
 Next datasets to prioritize:
 
@@ -96,6 +98,8 @@ Use these stable buckets when reviewing misses:
 
 - `python scripts/run_external_eval.py --labels docs/examples/benchmark-label-template.jsonl --predictions docs/examples/benchmark-prediction-template.jsonl`
 - `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl`
+- `make benchmark-external-sample`
+- `make refresh-external-sample-proof`
 - `make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission-template.json`
 
 ### Repo health gate
@@ -104,6 +108,7 @@ Use these stable buckets when reviewing misses:
 
 ## Published proof surfaces
 
+- the `/proof` web route, which now renders the checked-in demo comparison and the checked-in retrospective-style external sample together
 - `docs/examples/demo-benchmark-current.json` with dataset coverage, queue previews, and per-case casebook entries
 - `docs/examples/demo-benchmark-current.md` with the same publishable casebook summary in Markdown
 - `docs/LABELING_GUIDE.md`
@@ -112,6 +117,9 @@ Use these stable buckets when reviewing misses:
 - `docs/examples/benchmark-prediction-template.jsonl`
 - `docs/examples/benchmark-submission-template.json`
 - generated external benchmark JSON and Markdown bundles from `scripts/run_external_eval.py` with the same dataset coverage, queue preview, and casebook structure
+- `docs/examples/retrospective-benchmark-sample-current.json`
+- `docs/examples/retrospective-benchmark-sample-current.md`
+- `docs/examples/retrospective-benchmark-sample-current-submission.json`
 
 ## Recommended reproducibility loop
 
@@ -130,7 +138,7 @@ Use these stable buckets when reviewing misses:
 
 ## Near-term evaluation work
 
-- expand beyond the current 10-case synthetic/demo casebook into de-identified retrospective sets
+- expand beyond the current 10-case synthetic/demo casebook and 7-case retrospective-style sample into broader de-identified retrospective sets
 - compare more structured-import edge cases under realistic site variability
 - use reviewer feedback and import audit outcomes to refine benchmarking priorities
 - keep public benchmark artifacts aligned with the current hybrid baseline and supported workflows

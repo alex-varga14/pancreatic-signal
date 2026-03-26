@@ -327,7 +327,7 @@ export type EvaluationCaseResult = {
 };
 
 export type EvaluationSummary = {
-  score_mode: "rules" | "hybrid";
+  score_mode: "rules" | "hybrid" | "external";
   threshold: number;
   top_k: number;
   processed: number;
@@ -390,6 +390,33 @@ export type ThresholdSweepSummary = {
   points: ThresholdSweepPoint[];
   rules_recommendation: ThresholdRecommendation;
   hybrid_recommendation: ThresholdRecommendation;
+};
+
+export type ExternalThresholdSweepPoint = {
+  threshold: number;
+  f1: number;
+  recall: number;
+  flagged: number;
+  precision: number;
+  precision_at_top_k: number;
+  sensitivity_at_top_k: number;
+};
+
+export type ExternalThresholdRecommendation = {
+  score_mode: "external";
+  recommended_threshold: number;
+  rationale: string;
+  f1: number;
+  recall: number;
+  flagged: number;
+};
+
+export type ExternalThresholdSweepSummary = {
+  score_mode: "external";
+  top_k: number;
+  thresholds: number[];
+  points: ExternalThresholdSweepPoint[];
+  recommendation: ExternalThresholdRecommendation;
 };
 
 export type FeedbackSummary = {
