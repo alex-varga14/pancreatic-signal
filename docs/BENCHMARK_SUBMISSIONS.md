@@ -40,11 +40,19 @@ See the minimal template in [`docs/examples/benchmark-prediction-template.jsonl`
 
 The public label template now also supports optional reviewer-facing fields:
 
+- `report_excerpt`
 - `benchmark_bucket`
 - `reviewer_focus`
 - `expected_rationale_codes`
 
 These fields are not required for metric validity, but they let the generated external bundle publish dataset coverage, queue previews, and a reviewer-facing casebook instead of only a score table.
+
+The repository also now includes a checked-in deidentified retrospective-style sample pack that uses those fields:
+
+- `docs/examples/retrospective-benchmark-sample-labels.jsonl`
+- `docs/examples/retrospective-benchmark-sample-predictions.jsonl`
+- `docs/examples/retrospective-benchmark-sample-current.json`
+- `docs/examples/retrospective-benchmark-sample-current.md`
 
 ## Generate the bundle
 
@@ -54,6 +62,13 @@ Use the built-in external evaluation helper:
 make benchmark-external \
   LABELS=docs/examples/benchmark-label-template.jsonl \
   PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl
+```
+
+For the checked-in less-synthetic sample pack:
+
+```bash
+make benchmark-external-sample
+make refresh-external-sample-proof
 ```
 
 This writes:

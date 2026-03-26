@@ -58,6 +58,38 @@ benchmark-external:
 		$(if $(COMMIT_SHA),--commit-sha "$(COMMIT_SHA)",) \
 		$(if $(NOTES),--notes "$(NOTES)",)
 
+benchmark-external-sample:
+	$(PYTHON) scripts/run_external_eval.py \
+		--labels docs/examples/retrospective-benchmark-sample-labels.jsonl \
+		--predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl \
+		--threshold 0.30 \
+		--top-k 4 \
+		--out-dir artifacts/benchmarks \
+		--basename retrospective-benchmark-sample \
+		--dataset-name deidentified-retrospective-sample \
+		--dataset-split validation \
+		--project-name "Pancreatic Signal" \
+		--strength "High-confidence positives concentrate near the top of the review queue." \
+		--strength "Reviewer-facing label cues remain visible in the generated casebook." \
+		--limitation "Sample remains small and deidentified for repository use." \
+		--limitation "One follow-up-only cyst surveillance case remains below threshold."
+
+refresh-external-sample-proof:
+	$(PYTHON) scripts/run_external_eval.py \
+		--labels docs/examples/retrospective-benchmark-sample-labels.jsonl \
+		--predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl \
+		--threshold 0.30 \
+		--top-k 4 \
+		--out-dir docs/examples \
+		--basename retrospective-benchmark-sample-current \
+		--dataset-name deidentified-retrospective-sample \
+		--dataset-split validation \
+		--project-name "Pancreatic Signal" \
+		--strength "High-confidence positives concentrate near the top of the review queue." \
+		--strength "Reviewer-facing label cues remain visible in the generated casebook." \
+		--limitation "Sample remains small and deidentified for repository use." \
+		--limitation "One follow-up-only cyst surveillance case remains below threshold."
+
 pilot-smoke-evidence:
 	@test -n "$(SUMMARY_DIR)" || (echo "Usage: make pilot-smoke-evidence SUMMARY_DIR=path/to/downloaded/pilot-smoke-artifacts [OUT_DIR=path] [HL7_DECISION=pending|keep-manual|promote-default] [HL7_RATIONALE='reason']" && exit 2)
 	$(PYTHON) scripts/build_pilot_smoke_evidence.py \

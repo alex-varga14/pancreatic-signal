@@ -1,0 +1,7 @@
+{"report_id":"R-RETRO-001","case_id":"C-RETRO-001","score":0.94,"rationale_codes":["PDAC_EXPLICIT_SUSPICION","PANCREATIC_MASS","DUCT_CUTOFF","FOLLOWUP_RECOMMENDED"],"notes":"High-confidence explicit malignancy prediction."}
+{"report_id":"R-RETRO-002","case_id":"C-RETRO-002","score":0.68,"rationale_codes":["DOUBLE_DUCT_SIGN","FOCAL_ATROPHY","FOLLOWUP_RECOMMENDED"],"notes":"Secondary-sign cluster remains above threshold despite absent discrete mass wording."}
+{"report_id":"R-RETRO-003","case_id":"C-RETRO-003","score":0.31,"rationale_codes":["FOLLOWUP_RECOMMENDED"],"notes":"Follow-up-only cyst surveillance case remains just above threshold."}
+{"report_id":"R-RETRO-004","case_id":"C-RETRO-004","score":0.29,"rationale_codes":[],"notes":"Borderline inflammatory confounder score that remains below the chosen operating point."}
+{"report_id":"R-RETRO-005","case_id":"C-RETRO-005","score":0.04,"rationale_codes":[],"notes":"Negative control prediction."}
+{"report_id":"R-RETRO-006","case_id":"C-RETRO-006","score":0.79,"rationale_codes":["PANCREATIC_MASS","DUCT_CUTOFF","FOLLOWUP_RECOMMENDED"],"notes":"High-confidence less-formulaic malignancy prediction."}
+{"report_id":"R-RETRO-007","case_id":"C-RETRO-007","score":0.17,"rationale_codes":["FOLLOWUP_RECOMMENDED"],"false_negative_bucket":"recommendation_language_missed","notes":"Interval-growth surveillance case remains undercalled at the selected threshold."}

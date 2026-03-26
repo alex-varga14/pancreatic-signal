@@ -16,6 +16,7 @@ Each line is one JSON object with these fields:
 
 Optional reviewer-facing fields:
 
+- `report_excerpt`
 - `benchmark_bucket`
 - `reviewer_focus`
 - `expected_rationale_codes`
@@ -38,6 +39,10 @@ Example:
 - an explicitly benign pancreas with no follow-up recommendation should keep all four fields `false`
 
 The optional reviewer-facing fields do not change metric calculations, but they do let both the demo proof and the external benchmark helper render a casebook-shaped bundle instead of only aggregate metrics.
+
+### `report_excerpt`
+
+Use this for a short deidentified report excerpt when you want the generated external casebook to read more like a reviewer packet than a label table. Keep it free of PHI and short enough to scan quickly.
 
 ## Field definitions
 

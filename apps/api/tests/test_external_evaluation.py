@@ -11,6 +11,8 @@ from app.services.evaluation import evaluate_external_dataset, sweep_external_th
 ROOT = Path(__file__).resolve().parents[3]
 LABEL_TEMPLATE_PATH = ROOT / "docs" / "examples" / "benchmark-label-template.jsonl"
 PREDICTION_TEMPLATE_PATH = ROOT / "docs" / "examples" / "benchmark-prediction-template.jsonl"
+RETRO_LABELS_PATH = ROOT / "docs" / "examples" / "retrospective-benchmark-sample-labels.jsonl"
+RETRO_PREDICTIONS_PATH = ROOT / "docs" / "examples" / "retrospective-benchmark-sample-predictions.jsonl"
 SCRIPT_PATH = ROOT / "scripts" / "run_external_eval.py"
 
 
@@ -60,6 +62,30 @@ def test_external_evaluation_requires_prediction_alignment(tmp_path: Path) -> No
             threshold=0.2,
             top_k=2,
         )
+
+
+def test_retrospective_external_sample_carries_casebook_context() -> None:
+    summary = evaluate_external_dataset(
+        labels_path=RETRO_LABELS_PATH,
+        predictions_path=RETRO_PREDICTIONS_PATH,
+        threshold=0.3,
+        top_k=4,
+    )
+
+    assert summary.processed == 7
+    assert summary.positives == 5
+    assert summary.flagged == 4
+    assert summary.true_positives == 4
+    assert summary.false_positives == 0
+    assert summary.false_negatives == 1
+    assert summary.precision == 1.0
+    assert summary.recall == 0.8
+    assert summary.f1 == 0.8889
+
+    case_by_id = {case.case_id: case for case in summary.cases}
+    assert case_by_id["C-RETRO-003"].report_excerpt.startswith("Pancreas protocol MRI")
+    assert case_by_id["C-RETRO-006"].benchmark_bucket == "explicit malignancy"
+    assert case_by_id["C-RETRO-007"].false_negative_bucket == "recommendation_language_missed"
 
 
 def test_run_external_eval_writes_valid_bundle(tmp_path: Path) -> None:
@@ -123,3 +149,48 @@ def test_run_external_eval_writes_valid_bundle(tmp_path: Path) -> None:
     assert "## Top-k Queue Preview" in markdown
     assert "## Reviewer Casebook" in markdown
     assert "### C-TEMPLATE-003 — follow-up only" in markdown
+
+
+def test_run_external_eval_sample_bundle_includes_report_excerpts(tmp_path: Path) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--labels",
+            str(RETRO_LABELS_PATH),
+            "--predictions",
+            str(RETRO_PREDICTIONS_PATH),
+            "--threshold",
+            "0.3",
+            "--top-k",
+            "4",
+            "--out-dir",
+            str(tmp_path),
+            "--basename",
+            "retrospective-sample",
+            "--dataset-name",
+            "deidentified-retrospective-sample",
+            "--dataset-split",
+            "validation",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=ROOT,
+    )
+
+    json_path = tmp_path / "retrospective-sample.json"
+    markdown_path = tmp_path / "retrospective-sample.md"
+
+    assert "Wrote" in result.stdout
+    snapshot = json.loads(json_path.read_text())
+    casebook_by_id = {entry["case_id"]: entry for entry in snapshot["casebook"]}
+
+    assert snapshot["dataset_summary"]["report_count"] == 7
+    assert snapshot["queue_preview"]["top_k"] == 4
+    assert casebook_by_id["C-RETRO-001"]["report_excerpt"].startswith("CT abdomen with contrast")
+    assert casebook_by_id["C-RETRO-007"]["external"]["outcome"] == "missed_positive"
+
+    markdown = markdown_path.read_text()
+    assert "### C-RETRO-007 — follow-up only" in markdown
+    assert "- Report excerpt: MRI abdomen:" in markdown
