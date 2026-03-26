@@ -79,6 +79,8 @@ make benchmark-external \
   PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl
 ```
 
+That external helper now emits a casebook-shaped JSON and Markdown bundle with dataset coverage, top-k queue previews, and reviewer-facing notes drawn from the optional label fields.
+
 - product framing: [README.md](../README.md)
 - benchmark philosophy: [EVALUATION.md](./EVALUATION.md)
 - deployment and smoke matrix: [DEPLOYMENT.md](./DEPLOYMENT.md)

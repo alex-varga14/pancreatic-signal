@@ -40,9 +40,12 @@ def test_benchmark_label_template_lines_match_evaluation_schema() -> None:
         if line.strip()
     ]
 
-    assert len(labels) == 2
+    assert len(labels) == 5
     assert labels[0].should_flag is True
-    assert labels[1].should_flag is False
+    assert labels[2].should_flag is True
+    assert labels[3].should_flag is False
+    assert labels[1].benchmark_bucket == "secondary signs"
+    assert labels[2].expected_rationale_codes == ["FOLLOWUP_RECOMMENDED"]
 
 
 def test_benchmark_prediction_template_lines_match_external_prediction_schema() -> None:
@@ -52,6 +55,7 @@ def test_benchmark_prediction_template_lines_match_external_prediction_schema() 
         if line.strip()
     ]
 
-    assert len(predictions) == 2
-    assert predictions[0].score > predictions[1].score
-    assert predictions[0].rationale_codes == ["PANCREATIC_MASS", "FOLLOW_UP_RECOMMENDED"]
+    assert len(predictions) == 5
+    assert predictions[0].score > predictions[1].score > predictions[2].score
+    assert predictions[2].false_negative_bucket == "recommendation_language_missed"
+    assert predictions[0].rationale_codes == ["PANCREATIC_MASS", "DUCT_CUTOFF", "FOLLOWUP_RECOMMENDED"]

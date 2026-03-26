@@ -17,7 +17,7 @@ The repository already ships with:
 - a deterministic-versus-hybrid comparison flow
 - threshold sweep helpers for review-depth tuning
 - generated benchmark proof artifacts in `docs/examples/`, including dataset coverage, top-k queue previews, and a reviewer-facing casebook
-- an external benchmark bundle writer and submission validator
+- an external benchmark bundle writer and submission validator that now preserves the same reviewer-facing casebook fields for collaborator datasets
 
 ## Datasets
 
@@ -43,6 +43,8 @@ The current benchmark logic supports labels for:
 For benchmark comparison, `should_flag` is derived from the logical OR of those labels so the evaluation can reward important non-malignancy follow-up cases as well as overtly suspicious lesions.
 
 The demo labels can also carry benchmark-bucket, reviewer-focus, and expected-rationale metadata so the published proof artifacts read like an explainable casebook rather than a flat score dump.
+
+Those same optional fields also now flow through the public external evaluation helper, so outside collaborators can generate a casebook-shaped bundle rather than only a flat metrics summary.
 
 ## Metrics
 
@@ -109,6 +111,7 @@ Use these stable buckets when reviewing misses:
 - `docs/examples/benchmark-label-template.jsonl`
 - `docs/examples/benchmark-prediction-template.jsonl`
 - `docs/examples/benchmark-submission-template.json`
+- generated external benchmark JSON and Markdown bundles from `scripts/run_external_eval.py` with the same dataset coverage, queue preview, and casebook structure
 
 ## Recommended reproducibility loop
 

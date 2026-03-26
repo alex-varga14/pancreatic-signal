@@ -1,2 +1,5 @@
-{"report_id":"R-TEMPLATE-001","case_id":"C-TEMPLATE-001","score":0.91,"rationale_codes":["PANCREATIC_MASS","FOLLOW_UP_RECOMMENDED"],"notes":"Example positive prediction with a high external score and supporting rationale hints."}
-{"report_id":"R-TEMPLATE-002","case_id":"C-TEMPLATE-002","score":0.07,"rationale_codes":[],"notes":"Example negative prediction with a low external score."}
+{"report_id":"R-TEMPLATE-001","case_id":"C-TEMPLATE-001","score":0.91,"rationale_codes":["PANCREATIC_MASS","DUCT_CUTOFF","FOLLOWUP_RECOMMENDED"],"notes":"Example explicit-malignancy prediction with a high external score and supporting rationale hints."}
+{"report_id":"R-TEMPLATE-002","case_id":"C-TEMPLATE-002","score":0.66,"rationale_codes":["DOUBLE_DUCT_SIGN","FOCAL_ATROPHY"],"notes":"Example secondary-sign prediction that stays above threshold without explicit mass language."}
+{"report_id":"R-TEMPLATE-003","case_id":"C-TEMPLATE-003","score":0.18,"rationale_codes":["FOLLOWUP_RECOMMENDED"],"false_negative_bucket":"recommendation_language_missed","notes":"Example follow-up-only miss that still carries reviewer-facing rationale hints."}
+{"report_id":"R-TEMPLATE-004","case_id":"C-TEMPLATE-004","score":0.08,"rationale_codes":[],"notes":"Example pancreatitis confounder prediction with a low external score."}
+{"report_id":"R-TEMPLATE-005","case_id":"C-TEMPLATE-005","score":0.03,"rationale_codes":[],"notes":"Example negative control prediction with a low external score."}
