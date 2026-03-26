@@ -14,6 +14,12 @@ Each line is one JSON object with these fields:
 - `should_escalate`
 - `notes`
 
+Optional reviewer-facing fields:
+
+- `benchmark_bucket`
+- `reviewer_focus`
+- `expected_rationale_codes`
+
 See the minimal template in [`docs/examples/benchmark-label-template.jsonl`](./examples/benchmark-label-template.jsonl). To run the new comparable external evaluation helper, pair that label file with a score file that follows [`docs/examples/benchmark-prediction-template.jsonl`](./examples/benchmark-prediction-template.jsonl).
 
 ## How the benchmark interprets labels
@@ -30,6 +36,8 @@ That means a case can still be benchmark-positive even when it is not labeled as
 Example:
 - a side-branch IPMN with a clear follow-up recommendation can be `action_worthy_followup=true`
 - an explicitly benign pancreas with no follow-up recommendation should keep all four fields `false`
+
+The optional reviewer-facing fields do not change metric calculations, but they do let both the demo proof and the external benchmark helper render a casebook-shaped bundle instead of only aggregate metrics.
 
 ## Field definitions
 
@@ -76,6 +84,28 @@ Typical examples:
 - explicit likely PDAC
 - combined mass plus duct cutoff plus urgent tissue recommendation
 - language that strongly suggests rapid coordination
+
+## Optional reviewer-facing fields
+
+### `benchmark_bucket`
+
+Use this to group cases into recurring benchmark slices such as:
+
+- `explicit malignancy`
+- `secondary signs`
+- `follow-up only`
+- `pancreatitis confounder`
+- `negative control`
+
+The generated external bundle uses this field for dataset coverage counts and queue-preview labels.
+
+### `reviewer_focus`
+
+Use this to record the one thing a reviewer should notice or verify when inspecting the case. The generated Markdown bundle prints this directly in the reviewer casebook section.
+
+### `expected_rationale_codes`
+
+Use this to record the deterministic or conceptual cues you expect a transparent system to surface for the case. This field is optional, but it makes the generated bundle more informative when collaborators compare rules, hybrid logic, or external scores.
 
 ## Recommended adjudication workflow
 

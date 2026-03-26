@@ -80,7 +80,7 @@ Already completed in this phase:
 
 Goal:
 
-- move beyond the now-expanded synthetic casebook toward de-identified or externally supplied benchmark inputs while preserving the reviewer-facing proof shape
+- move from the stronger external starter pack toward actual de-identified or externally supplied benchmark inputs while preserving the reviewer-facing proof shape
 
 ## What is not a current phase target
 

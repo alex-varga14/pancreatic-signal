@@ -19,25 +19,30 @@ def test_external_evaluation_template_metrics_are_comparable() -> None:
         labels_path=LABEL_TEMPLATE_PATH,
         predictions_path=PREDICTION_TEMPLATE_PATH,
         threshold=0.2,
-        top_k=2,
+        top_k=3,
     )
     sweep = sweep_external_thresholds(
         labels_path=LABEL_TEMPLATE_PATH,
         predictions_path=PREDICTION_TEMPLATE_PATH,
-        top_k=2,
+        top_k=3,
         thresholds=[0.2, 0.4, 0.6],
     )
 
     assert summary.score_mode == "external"
-    assert summary.processed == 2
-    assert summary.positives == 1
-    assert summary.flagged == 1
-    assert summary.true_positives == 1
+    assert summary.processed == 5
+    assert summary.positives == 3
+    assert summary.flagged == 2
+    assert summary.true_positives == 2
     assert summary.false_positives == 0
-    assert summary.false_negatives == 0
+    assert summary.false_negatives == 1
     assert summary.precision == 1.0
-    assert summary.recall == 1.0
-    assert summary.f1 == 1.0
+    assert summary.recall == 0.6667
+    assert summary.f1 == 0.8
+    case_by_id = {case.case_id: case for case in summary.cases}
+    assert case_by_id["C-TEMPLATE-002"].benchmark_bucket == "secondary signs"
+    assert case_by_id["C-TEMPLATE-003"].reviewer_focus.startswith("Keep pancreatic follow-up")
+    assert case_by_id["C-TEMPLATE-003"].false_negative_bucket == "recommendation_language_missed"
+    assert case_by_id["C-TEMPLATE-003"].expected_rationale_codes == ["FOLLOWUP_RECOMMENDED"]
     assert sweep.recommendation.recommended_threshold == 0.2
     assert len(sweep.points) == 3
 
@@ -69,7 +74,7 @@ def test_run_external_eval_writes_valid_bundle(tmp_path: Path) -> None:
             "--threshold",
             "0.2",
             "--top-k",
-            "2",
+            "3",
             "--out-dir",
             str(tmp_path),
             "--basename",
@@ -100,8 +105,21 @@ def test_run_external_eval_writes_valid_bundle(tmp_path: Path) -> None:
 
     snapshot = json.loads(json_path.read_text())
     submission = BenchmarkSubmission.model_validate(json.loads(submission_path.read_text()))
+    casebook_by_id = {entry["case_id"]: entry for entry in snapshot["casebook"]}
 
     assert snapshot["evaluation"]["score_mode"] == "external"
+    assert snapshot["dataset_summary"]["report_count"] == 5
+    assert snapshot["dataset_summary"]["positive_count"] == 3
+    assert snapshot["queue_preview"]["top_k"] == 3
+    assert any(bucket["bucket"] == "follow-up only" for bucket in snapshot["dataset_summary"]["bucket_counts"])
+    assert casebook_by_id["C-TEMPLATE-003"]["benchmark_bucket"] == "follow-up only"
+    assert casebook_by_id["C-TEMPLATE-003"]["external"]["outcome"] == "missed_positive"
+    assert casebook_by_id["C-TEMPLATE-003"]["external"]["false_negative_bucket"] == "recommendation_language_missed"
     assert snapshot["submission"]["submission_name"] == submission.submission_name
     assert submission.metrics.precision == 1.0
-    assert "External Benchmark Snapshot" in markdown_path.read_text()
+    markdown = markdown_path.read_text()
+    assert "External Benchmark Snapshot" in markdown
+    assert "## Dataset Coverage" in markdown
+    assert "## Top-k Queue Preview" in markdown
+    assert "## Reviewer Casebook" in markdown
+    assert "### C-TEMPLATE-003 — follow-up only" in markdown

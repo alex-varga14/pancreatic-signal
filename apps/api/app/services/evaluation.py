@@ -158,6 +158,9 @@ def build_external_case_results(
                 expected_escalation=label.should_escalate,
                 rationale_codes=prediction.rationale_codes,
                 label_notes=label.notes,
+                benchmark_bucket=label.benchmark_bucket,
+                reviewer_focus=label.reviewer_focus,
+                expected_rationale_codes=label.expected_rationale_codes,
                 false_negative_bucket=prediction.false_negative_bucket if label.should_flag and not flagged else None,
             )
         )

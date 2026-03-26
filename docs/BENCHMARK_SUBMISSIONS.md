@@ -19,7 +19,7 @@ At minimum, prepare:
 1. A label file that follows [LABELING_GUIDE.md](./LABELING_GUIDE.md)
 2. A prediction file that follows [`docs/examples/benchmark-prediction-template.jsonl`](./examples/benchmark-prediction-template.jsonl)
 3. A benchmark submission JSON that follows [`docs/examples/benchmark-submission-template.json`](./examples/benchmark-submission-template.json) or the generated `*-submission.json` draft from `scripts/run_external_eval.py`
-4. Any supporting benchmark artifacts you want others to inspect, such as confusion-matrix exports or case-level outputs
+4. Any supporting benchmark artifacts you want others to inspect, such as the generated external casebook bundle, confusion-matrix exports, or case-level outputs
 
 ## Prediction file format
 
@@ -36,6 +36,16 @@ Use `false_negative_bucket` only when you already reviewed a miss and want the g
 
 See the minimal template in [`docs/examples/benchmark-prediction-template.jsonl`](./examples/benchmark-prediction-template.jsonl).
 
+## Label file enhancements
+
+The public label template now also supports optional reviewer-facing fields:
+
+- `benchmark_bucket`
+- `reviewer_focus`
+- `expected_rationale_codes`
+
+These fields are not required for metric validity, but they let the generated external bundle publish dataset coverage, queue previews, and a reviewer-facing casebook instead of only a score table.
+
 ## Generate the bundle
 
 Use the built-in external evaluation helper:
@@ -51,6 +61,12 @@ This writes:
 - `artifacts/benchmarks/external-benchmark.json`
 - `artifacts/benchmarks/external-benchmark.md`
 - `artifacts/benchmarks/external-benchmark-submission.json`
+
+The JSON and Markdown outputs now include:
+
+- dataset coverage by benchmark bucket
+- top-k queue previews
+- a reviewer-facing external casebook with label notes, reviewer focus, expected rationale cues, and recorded miss buckets
 
 ## Validate the submission
 
@@ -94,10 +110,12 @@ The validator enforces:
 For a strong public comparison, include:
 
 - the prediction JSONL you evaluated
+- the label JSONL with reviewer-facing fields populated when available
 - the benchmark submission JSON
 - a short README with dataset framing and labeling policy
 - the exact evaluation command
 - a threshold sweep or operating-point rationale
+- the generated JSON or Markdown casebook bundle from `scripts/run_external_eval.py`
 - a small error analysis summary using the shared bucket names
 
 ## Safety requirements
