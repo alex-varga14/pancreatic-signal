@@ -16,6 +16,7 @@ What you get:
 - strict validation across API, web, and demo evaluation
 - a local benchmark snapshot in `artifacts/benchmarks/demo-benchmark.json`
 - a readable benchmark summary in `artifacts/benchmarks/demo-benchmark.md`
+- a casebook-style proof artifact with dataset coverage, top-k queue previews, and reviewer cues for each benchmark case in the current 10-report demo corpus
 
 ## 2. Local Product Walkthrough
 
@@ -46,6 +47,13 @@ The repo now carries a checked-in benchmark snapshot for outside collaborators:
 - JSON snapshot: `docs/examples/demo-benchmark-current.json`
 - Markdown summary: `docs/examples/demo-benchmark-current.md`
 
+Those published artifacts now include:
+
+- 10 labeled demo reports across 5 benchmark buckets
+- dataset coverage by benchmark bucket
+- current top-k queue previews for rules and hybrid scoring
+- reviewer-facing casebook notes plus expected rationale cues per case
+
 Maintain that published proof with:
 
 ```bash
@@ -61,7 +69,7 @@ If you need release or pilot evidence rather than just a local walkthrough:
 - release operator path: [RELEASE_RUNBOOK.md](./RELEASE_RUNBOOK.md)
 - release checklist: [RELEASE_READINESS.md](./RELEASE_READINESS.md)
 
-Hosted pilot evidence currently flows through the `Pilot Smoke` workflow with manual `smoke_scope=fhir-success-only` and `smoke_scope=hl7-success-only` dispatches. Record the uploaded `pilot-smoke-summary.json` and `pilot-smoke-summary.md` artifacts in the handoff once those runs exist.
+Hosted pilot evidence currently flows through the `Pilot Smoke` workflow with manual `smoke_scope=fhir-success-only` and `smoke_scope=hl7-success-only` dispatches. The current recorded baseline is hosted FHIR run [`#23563902873`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23563902873) plus hosted HL7 trial [`#23564057337`](https://github.com/alex-varga14/pancreatic-signal/actions/runs/23564057337).
 
 - comparable external bundle:
 

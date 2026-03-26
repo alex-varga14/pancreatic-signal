@@ -122,15 +122,18 @@ def test_demo_evaluation_metrics_endpoint_returns_summary() -> None:
 
     payload = response.json()
     assert payload["score_mode"] == "rules"
-    assert payload["processed"] == 5
-    assert payload["positives"] == 3
-    assert payload["flagged"] >= 2
+    assert payload["processed"] == 10
+    assert payload["positives"] == 7
+    assert payload["flagged"] == 5
     assert "precision" in payload
     assert "recall" in payload
     assert "precision_at_top_k" in payload
-    assert len(payload["cases"]) == 5
+    assert len(payload["cases"]) == 10
     assert "base_score" in payload["cases"][0]
     assert "hybrid_score" in payload["cases"][0]
+    assert "benchmark_bucket" in payload["cases"][0]
+    assert "reviewer_focus" in payload["cases"][0]
+    assert "expected_rationale_codes" in payload["cases"][0]
 
 
 def test_demo_evaluation_supports_hybrid_score_mode() -> None:
@@ -142,10 +145,16 @@ def test_demo_evaluation_supports_hybrid_score_mode() -> None:
 
     payload = response.json()
     assert payload["score_mode"] == "hybrid"
-    assert payload["processed"] == 5
-    assert payload["flagged"] >= 3
+    assert payload["processed"] == 10
+    assert payload["flagged"] == 7
     case_by_id = {case["case_id"]: case for case in payload["cases"]}
+    assert case_by_id["C-003"]["benchmark_bucket"] == "secondary signs"
+    assert "DOUBLE_DUCT_SIGN" in case_by_id["C-003"]["expected_rationale_codes"]
+    assert case_by_id["C-005"]["benchmark_bucket"] == "follow-up only"
     assert case_by_id["C-005"]["hybrid_score"] > case_by_id["C-005"]["base_score"]
+    assert case_by_id["C-008"]["benchmark_bucket"] == "follow-up only"
+    assert "FOLLOWUP_RECOMMENDED" in case_by_id["C-008"]["expected_rationale_codes"]
+    assert case_by_id["C-009"]["benchmark_bucket"] == "pancreatitis confounder"
 
 
 def test_demo_evaluation_compare_endpoint_returns_deltas() -> None:
@@ -158,10 +167,10 @@ def test_demo_evaluation_compare_endpoint_returns_deltas() -> None:
     payload = response.json()
     assert payload["rules"]["score_mode"] == "rules"
     assert payload["hybrid"]["score_mode"] == "hybrid"
-    assert payload["flagged_delta"] >= 0
+    assert payload["flagged_delta"] == 2
     assert payload["recall_delta"] >= 0
-    assert "C-005" in payload["newly_flagged_cases"]
-    assert "C-005" in payload["resolved_false_negatives"]
+    assert payload["newly_flagged_cases"] == ["C-005", "C-008"]
+    assert payload["resolved_false_negatives"] == ["C-005", "C-008"]
 
 
 def test_demo_evaluation_sweep_endpoint_returns_recommendations() -> None:
