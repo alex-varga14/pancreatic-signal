@@ -80,7 +80,7 @@ Already completed in this phase:
 
 Goal:
 
-- deepen benchmark realism and reviewer-facing proof surfaces now that the hosted/manual smoke boundary is documented and verified
+- move beyond the now-expanded synthetic casebook toward de-identified or externally supplied benchmark inputs while preserving the reviewer-facing proof shape
 
 ## What is not a current phase target
 

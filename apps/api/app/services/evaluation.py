@@ -83,6 +83,9 @@ def evaluate_demo_dataset(
                 expected_escalation=label.should_escalate,
                 rationale_codes=result.rationale_codes,
                 label_notes=label.notes,
+                benchmark_bucket=label.benchmark_bucket,
+                reviewer_focus=label.reviewer_focus,
+                expected_rationale_codes=label.expected_rationale_codes,
             )
         )
 

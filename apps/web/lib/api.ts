@@ -321,6 +321,9 @@ export type EvaluationCaseResult = {
   expected_escalation: boolean;
   rationale_codes: string[];
   label_notes?: string | null;
+  benchmark_bucket?: string | null;
+  reviewer_focus?: string | null;
+  expected_rationale_codes: string[];
 };
 
 export type EvaluationSummary = {

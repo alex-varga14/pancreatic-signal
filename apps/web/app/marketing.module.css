@@ -165,6 +165,10 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.gridTwo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .card {
   padding: 22px;
   border: 1px solid var(--border);
@@ -312,6 +316,150 @@
   font-weight: 700;
 }
 
+.queueList {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.queueItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(28, 46, 39, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.86);
+}
+
+.queueItemTitle {
+  margin: 0;
+  color: var(--ink-strong);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.queueItemMeta {
+  margin: 6px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.92rem;
+}
+
+.queueItemScore {
+  margin: 0;
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.casebookGrid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.casebookCard {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(250, 246, 239, 0.9)),
+    rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow-soft);
+}
+
+.casebookHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.casebookTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(13, 91, 83, 0.1);
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.casebookFocus {
+  margin: 0;
+  color: var(--ink-strong);
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.65;
+}
+
+.casebookMeta {
+  margin: 0;
+  color: var(--ink-muted);
+  line-height: 1.65;
+}
+
+.miniChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.miniChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(28, 46, 39, 0.06);
+  color: var(--ink-strong);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.resultGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.resultCard {
+  padding: 16px;
+  border: 1px solid rgba(28, 46, 39, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.resultLabel {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.resultValue {
+  margin: 10px 0 6px;
+  color: var(--ink-strong);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.resultText {
+  margin: 0;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
 .tableWrap {
   overflow-x: auto;
   margin-top: 18px;
@@ -387,6 +535,12 @@
   .gridThree {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .gridTwo,
+  .casebookGrid,
+  .resultGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -409,7 +563,8 @@
   }
 
   .gridFour,
-  .gridThree {
+  .gridThree,
+  .gridTwo {
     grid-template-columns: 1fr;
   }
 }

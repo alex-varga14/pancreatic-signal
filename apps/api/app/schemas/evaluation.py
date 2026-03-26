@@ -14,6 +14,9 @@ class EvaluationLabel(BaseModel):
     action_worthy_followup: bool
     should_escalate: bool
     notes: str | None = None
+    benchmark_bucket: str | None = None
+    reviewer_focus: str | None = None
+    expected_rationale_codes: list[str] = Field(default_factory=list)
 
     @property
     def should_flag(self) -> bool:
@@ -39,6 +42,9 @@ class EvaluationCaseResult(BaseModel):
     expected_escalation: bool
     rationale_codes: list[str]
     label_notes: str | None = None
+    benchmark_bucket: str | None = None
+    reviewer_focus: str | None = None
+    expected_rationale_codes: list[str] = Field(default_factory=list)
     false_negative_bucket: str | None = Field(default=None, exclude=True)
 
 

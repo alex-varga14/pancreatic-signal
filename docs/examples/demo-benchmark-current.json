@@ -1,8 +1,94 @@
 {
-  "generated_at": "2026-03-23T05:42:57.019090Z",
+  "generated_at": "2026-03-26T04:20:28.913152Z",
   "dataset": {
     "reports_path": "data/examples/reports.jsonl",
     "labels_path": "data/examples/report_labels.jsonl"
+  },
+  "dataset_summary": {
+    "report_count": 10,
+    "positive_count": 7,
+    "escalation_count": 5,
+    "bucket_counts": [
+      {
+        "bucket": "explicit malignancy",
+        "case_count": 2,
+        "positive_count": 2,
+        "escalation_count": 2
+      },
+      {
+        "bucket": "follow-up only",
+        "case_count": 2,
+        "positive_count": 2,
+        "escalation_count": 0
+      },
+      {
+        "bucket": "negative control",
+        "case_count": 1,
+        "positive_count": 0,
+        "escalation_count": 0
+      },
+      {
+        "bucket": "pancreatitis confounder",
+        "case_count": 2,
+        "positive_count": 0,
+        "escalation_count": 0
+      },
+      {
+        "bucket": "secondary signs",
+        "case_count": 3,
+        "positive_count": 3,
+        "escalation_count": 3
+      }
+    ]
+  },
+  "queue_preview": {
+    "top_k": 3,
+    "rules": [
+      {
+        "case_id": "C-001",
+        "report_id": "R-001",
+        "benchmark_bucket": "explicit malignancy",
+        "score": 1.0,
+        "outcome": "true_positive"
+      },
+      {
+        "case_id": "C-010",
+        "report_id": "R-010",
+        "benchmark_bucket": "secondary signs",
+        "score": 0.87,
+        "outcome": "true_positive"
+      },
+      {
+        "case_id": "C-003",
+        "report_id": "R-003",
+        "benchmark_bucket": "secondary signs",
+        "score": 0.53,
+        "outcome": "true_positive"
+      }
+    ],
+    "hybrid": [
+      {
+        "case_id": "C-001",
+        "report_id": "R-001",
+        "benchmark_bucket": "explicit malignancy",
+        "score": 1.0,
+        "outcome": "true_positive"
+      },
+      {
+        "case_id": "C-010",
+        "report_id": "R-010",
+        "benchmark_bucket": "secondary signs",
+        "score": 1.0,
+        "outcome": "true_positive"
+      },
+      {
+        "case_id": "C-003",
+        "report_id": "R-003",
+        "benchmark_bucket": "secondary signs",
+        "score": 0.901,
+        "outcome": "true_positive"
+      }
+    ]
   },
   "comparison": {
     "threshold": 0.3,
@@ -11,21 +97,22 @@
       "score_mode": "rules",
       "threshold": 0.3,
       "top_k": 3,
-      "processed": 5,
-      "positives": 3,
-      "flagged": 2,
-      "true_positives": 2,
+      "processed": 10,
+      "positives": 7,
+      "flagged": 5,
+      "true_positives": 5,
       "false_positives": 0,
-      "true_negatives": 2,
-      "false_negatives": 1,
+      "true_negatives": 3,
+      "false_negatives": 2,
       "precision": 1.0,
-      "recall": 0.6667,
-      "f1": 0.8,
-      "precision_at_top_k": 0.6667,
-      "sensitivity_at_top_k": 0.6667,
-      "reviewer_yield_at_top_k": 0.6667,
+      "recall": 0.7143,
+      "f1": 0.8333,
+      "precision_at_top_k": 1.0,
+      "sensitivity_at_top_k": 0.4286,
+      "reviewer_yield_at_top_k": 1.0,
       "false_negative_buckets": {
-        "NO_MATCHED_RATIONALE": 1
+        "NO_MATCHED_RATIONALE": 1,
+        "FOLLOWUP_RECOMMENDED": 1
       },
       "cases": [
         {
@@ -44,7 +131,41 @@
             "DUCT_CUTOFF",
             "FOLLOWUP_RECOMMENDED"
           ],
-          "label_notes": "Explicit lesion, duct cutoff, and EUS/tissue sampling recommendation."
+          "label_notes": "Explicit lesion, duct cutoff, and EUS/tissue sampling recommendation.",
+          "benchmark_bucket": "explicit malignancy",
+          "reviewer_focus": "Confirm the pancreatic head lesion, duct cutoff, and same-report escalation language stay visible together.",
+          "expected_rationale_codes": [
+            "PDAC_EXPLICIT_SUSPICION",
+            "PANCREATIC_MASS",
+            "DUCT_CUTOFF",
+            "FOLLOWUP_RECOMMENDED"
+          ]
+        },
+        {
+          "report_id": "R-010",
+          "case_id": "C-010",
+          "score": 0.87,
+          "base_score": 0.87,
+          "hybrid_score": 1.0,
+          "urgency": "critical",
+          "flagged": true,
+          "expected_positive": true,
+          "expected_escalation": true,
+          "rationale_codes": [
+            "DUCT_DILATION",
+            "DUCT_CUTOFF",
+            "FOCAL_ATROPHY",
+            "FOLLOWUP_RECOMMENDED"
+          ],
+          "label_notes": "Obstructive pattern cluster with duct cutoff, duct prominence, adjacent atrophy, and biopsy recommendation.",
+          "benchmark_bucket": "secondary signs",
+          "reviewer_focus": "Treat clustered obstructive secondary signs plus biopsy recommendation as reviewer-priority even before explicit malignancy wording appears.",
+          "expected_rationale_codes": [
+            "DUCT_CUTOFF",
+            "DUCT_DILATION",
+            "FOCAL_ATROPHY",
+            "FOLLOWUP_RECOMMENDED"
+          ]
         },
         {
           "report_id": "R-003",
@@ -60,7 +181,79 @@
             "DOUBLE_DUCT_SIGN",
             "FOCAL_ATROPHY"
           ],
-          "label_notes": "Double duct sign, focal atrophy, and EUS recommendation."
+          "label_notes": "Double duct sign, focal atrophy, and EUS recommendation.",
+          "benchmark_bucket": "secondary signs",
+          "reviewer_focus": "Treat double duct sign plus focal atrophy as escalation-worthy even without a measurable mass.",
+          "expected_rationale_codes": [
+            "DOUBLE_DUCT_SIGN",
+            "FOCAL_ATROPHY"
+          ]
+        },
+        {
+          "report_id": "R-007",
+          "case_id": "C-007",
+          "score": 0.52,
+          "base_score": 0.52,
+          "hybrid_score": 0.863,
+          "urgency": "medium",
+          "flagged": true,
+          "expected_positive": true,
+          "expected_escalation": true,
+          "rationale_codes": [
+            "DUCT_DILATION",
+            "FOCAL_ATROPHY",
+            "FOLLOWUP_RECOMMENDED"
+          ],
+          "label_notes": "Main duct dilation, distal atrophy, and EUS recommendation without a named mass.",
+          "benchmark_bucket": "secondary signs",
+          "reviewer_focus": "Escalate duct dilation plus distal atrophy even when the report frames the lesion as occult rather than measurable.",
+          "expected_rationale_codes": [
+            "DUCT_DILATION",
+            "FOCAL_ATROPHY",
+            "FOLLOWUP_RECOMMENDED"
+          ]
+        },
+        {
+          "report_id": "R-006",
+          "case_id": "C-006",
+          "score": 0.49,
+          "base_score": 0.49,
+          "hybrid_score": 0.72,
+          "urgency": "medium",
+          "flagged": true,
+          "expected_positive": true,
+          "expected_escalation": true,
+          "rationale_codes": [
+            "DOUBLE_DUCT_SIGN",
+            "FOLLOWUP_RECOMMENDED"
+          ],
+          "label_notes": "Double-duct obstruction plus worrisome malignancy wording with same-report tissue confirmation recommendation.",
+          "benchmark_bucket": "explicit malignancy",
+          "reviewer_focus": "Do not miss malignancy wording variance when the report couples double-duct obstruction with an immediate EUS/tissue-sampling recommendation.",
+          "expected_rationale_codes": [
+            "DOUBLE_DUCT_SIGN",
+            "FOLLOWUP_RECOMMENDED"
+          ]
+        },
+        {
+          "report_id": "R-008",
+          "case_id": "C-008",
+          "score": 0.14,
+          "base_score": 0.14,
+          "hybrid_score": 0.629,
+          "urgency": "low",
+          "flagged": false,
+          "expected_positive": true,
+          "expected_escalation": false,
+          "rationale_codes": [
+            "FOLLOWUP_RECOMMENDED"
+          ],
+          "label_notes": "Pancreatic cyst surveillance recommendation should remain reviewable in the benchmark queue.",
+          "benchmark_bucket": "follow-up only",
+          "reviewer_focus": "Keep follow-up-worthy pancreatic cyst recommendations visible even when only interval surveillance language is explicit.",
+          "expected_rationale_codes": [
+            "FOLLOWUP_RECOMMENDED"
+          ]
         },
         {
           "report_id": "R-002",
@@ -73,7 +266,10 @@
           "expected_positive": false,
           "expected_escalation": false,
           "rationale_codes": [],
-          "label_notes": "Pancreatitis without a discrete mass."
+          "label_notes": "Pancreatitis without a discrete mass.",
+          "benchmark_bucket": "pancreatitis confounder",
+          "reviewer_focus": "Avoid overcalling inflammatory change when the report explicitly says no discrete pancreatic mass.",
+          "expected_rationale_codes": []
         },
         {
           "report_id": "R-004",
@@ -86,7 +282,10 @@
           "expected_positive": false,
           "expected_escalation": false,
           "rationale_codes": [],
-          "label_notes": "Normal pancreas and no acute abnormality."
+          "label_notes": "Normal pancreas and no acute abnormality.",
+          "benchmark_bucket": "negative control",
+          "reviewer_focus": "Preserve specificity when the pancreas is described as unremarkable and there is no follow-up recommendation.",
+          "expected_rationale_codes": []
         },
         {
           "report_id": "R-005",
@@ -99,7 +298,28 @@
           "expected_positive": true,
           "expected_escalation": false,
           "rationale_codes": [],
-          "label_notes": "Side-branch IPMN follow-up recommendation should still be reviewable."
+          "label_notes": "Side-branch IPMN follow-up recommendation should still be reviewable.",
+          "benchmark_bucket": "follow-up only",
+          "reviewer_focus": "Keep action-worthy cyst surveillance recommendations reviewable even when malignancy language is absent.",
+          "expected_rationale_codes": [
+            "FOLLOWUP_RECOMMENDED"
+          ]
+        },
+        {
+          "report_id": "R-009",
+          "case_id": "C-009",
+          "score": 0.0,
+          "base_score": 0.0,
+          "hybrid_score": 0.0,
+          "urgency": "low",
+          "flagged": false,
+          "expected_positive": false,
+          "expected_escalation": false,
+          "rationale_codes": [],
+          "label_notes": "Chronic pancreatitis with explicit negation of mass and ductal interruption.",
+          "benchmark_bucket": "pancreatitis confounder",
+          "reviewer_focus": "Protect specificity when chronic pancreatitis language coexists with explicit negation of pancreatic mass and obstruction.",
+          "expected_rationale_codes": []
         }
       ]
     },
@@ -107,18 +327,18 @@
       "score_mode": "hybrid",
       "threshold": 0.3,
       "top_k": 3,
-      "processed": 5,
-      "positives": 3,
-      "flagged": 3,
-      "true_positives": 3,
+      "processed": 10,
+      "positives": 7,
+      "flagged": 7,
+      "true_positives": 7,
       "false_positives": 0,
-      "true_negatives": 2,
+      "true_negatives": 3,
       "false_negatives": 0,
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
       "precision_at_top_k": 1.0,
-      "sensitivity_at_top_k": 1.0,
+      "sensitivity_at_top_k": 0.4286,
       "reviewer_yield_at_top_k": 1.0,
       "false_negative_buckets": {},
       "cases": [
@@ -138,7 +358,41 @@
             "DUCT_CUTOFF",
             "FOLLOWUP_RECOMMENDED"
           ],
-          "label_notes": "Explicit lesion, duct cutoff, and EUS/tissue sampling recommendation."
+          "label_notes": "Explicit lesion, duct cutoff, and EUS/tissue sampling recommendation.",
+          "benchmark_bucket": "explicit malignancy",
+          "reviewer_focus": "Confirm the pancreatic head lesion, duct cutoff, and same-report escalation language stay visible together.",
+          "expected_rationale_codes": [
+            "PDAC_EXPLICIT_SUSPICION",
+            "PANCREATIC_MASS",
+            "DUCT_CUTOFF",
+            "FOLLOWUP_RECOMMENDED"
+          ]
+        },
+        {
+          "report_id": "R-010",
+          "case_id": "C-010",
+          "score": 1.0,
+          "base_score": 0.87,
+          "hybrid_score": 1.0,
+          "urgency": "critical",
+          "flagged": true,
+          "expected_positive": true,
+          "expected_escalation": true,
+          "rationale_codes": [
+            "DUCT_DILATION",
+            "DUCT_CUTOFF",
+            "FOCAL_ATROPHY",
+            "FOLLOWUP_RECOMMENDED"
+          ],
+          "label_notes": "Obstructive pattern cluster with duct cutoff, duct prominence, adjacent atrophy, and biopsy recommendation.",
+          "benchmark_bucket": "secondary signs",
+          "reviewer_focus": "Treat clustered obstructive secondary signs plus biopsy recommendation as reviewer-priority even before explicit malignancy wording appears.",
+          "expected_rationale_codes": [
+            "DUCT_CUTOFF",
+            "DUCT_DILATION",
+            "FOCAL_ATROPHY",
+            "FOLLOWUP_RECOMMENDED"
+          ]
         },
         {
           "report_id": "R-003",
@@ -154,7 +408,79 @@
             "DOUBLE_DUCT_SIGN",
             "FOCAL_ATROPHY"
           ],
-          "label_notes": "Double duct sign, focal atrophy, and EUS recommendation."
+          "label_notes": "Double duct sign, focal atrophy, and EUS recommendation.",
+          "benchmark_bucket": "secondary signs",
+          "reviewer_focus": "Treat double duct sign plus focal atrophy as escalation-worthy even without a measurable mass.",
+          "expected_rationale_codes": [
+            "DOUBLE_DUCT_SIGN",
+            "FOCAL_ATROPHY"
+          ]
+        },
+        {
+          "report_id": "R-007",
+          "case_id": "C-007",
+          "score": 0.863,
+          "base_score": 0.52,
+          "hybrid_score": 0.863,
+          "urgency": "medium",
+          "flagged": true,
+          "expected_positive": true,
+          "expected_escalation": true,
+          "rationale_codes": [
+            "DUCT_DILATION",
+            "FOCAL_ATROPHY",
+            "FOLLOWUP_RECOMMENDED"
+          ],
+          "label_notes": "Main duct dilation, distal atrophy, and EUS recommendation without a named mass.",
+          "benchmark_bucket": "secondary signs",
+          "reviewer_focus": "Escalate duct dilation plus distal atrophy even when the report frames the lesion as occult rather than measurable.",
+          "expected_rationale_codes": [
+            "DUCT_DILATION",
+            "FOCAL_ATROPHY",
+            "FOLLOWUP_RECOMMENDED"
+          ]
+        },
+        {
+          "report_id": "R-006",
+          "case_id": "C-006",
+          "score": 0.72,
+          "base_score": 0.49,
+          "hybrid_score": 0.72,
+          "urgency": "medium",
+          "flagged": true,
+          "expected_positive": true,
+          "expected_escalation": true,
+          "rationale_codes": [
+            "DOUBLE_DUCT_SIGN",
+            "FOLLOWUP_RECOMMENDED"
+          ],
+          "label_notes": "Double-duct obstruction plus worrisome malignancy wording with same-report tissue confirmation recommendation.",
+          "benchmark_bucket": "explicit malignancy",
+          "reviewer_focus": "Do not miss malignancy wording variance when the report couples double-duct obstruction with an immediate EUS/tissue-sampling recommendation.",
+          "expected_rationale_codes": [
+            "DOUBLE_DUCT_SIGN",
+            "FOLLOWUP_RECOMMENDED"
+          ]
+        },
+        {
+          "report_id": "R-008",
+          "case_id": "C-008",
+          "score": 0.629,
+          "base_score": 0.14,
+          "hybrid_score": 0.629,
+          "urgency": "low",
+          "flagged": true,
+          "expected_positive": true,
+          "expected_escalation": false,
+          "rationale_codes": [
+            "FOLLOWUP_RECOMMENDED"
+          ],
+          "label_notes": "Pancreatic cyst surveillance recommendation should remain reviewable in the benchmark queue.",
+          "benchmark_bucket": "follow-up only",
+          "reviewer_focus": "Keep follow-up-worthy pancreatic cyst recommendations visible even when only interval surveillance language is explicit.",
+          "expected_rationale_codes": [
+            "FOLLOWUP_RECOMMENDED"
+          ]
         },
         {
           "report_id": "R-005",
@@ -167,7 +493,12 @@
           "expected_positive": true,
           "expected_escalation": false,
           "rationale_codes": [],
-          "label_notes": "Side-branch IPMN follow-up recommendation should still be reviewable."
+          "label_notes": "Side-branch IPMN follow-up recommendation should still be reviewable.",
+          "benchmark_bucket": "follow-up only",
+          "reviewer_focus": "Keep action-worthy cyst surveillance recommendations reviewable even when malignancy language is absent.",
+          "expected_rationale_codes": [
+            "FOLLOWUP_RECOMMENDED"
+          ]
         },
         {
           "report_id": "R-002",
@@ -180,7 +511,10 @@
           "expected_positive": false,
           "expected_escalation": false,
           "rationale_codes": [],
-          "label_notes": "Pancreatitis without a discrete mass."
+          "label_notes": "Pancreatitis without a discrete mass.",
+          "benchmark_bucket": "pancreatitis confounder",
+          "reviewer_focus": "Avoid overcalling inflammatory change when the report explicitly says no discrete pancreatic mass.",
+          "expected_rationale_codes": []
         },
         {
           "report_id": "R-004",
@@ -193,21 +527,42 @@
           "expected_positive": false,
           "expected_escalation": false,
           "rationale_codes": [],
-          "label_notes": "Normal pancreas and no acute abnormality."
+          "label_notes": "Normal pancreas and no acute abnormality.",
+          "benchmark_bucket": "negative control",
+          "reviewer_focus": "Preserve specificity when the pancreas is described as unremarkable and there is no follow-up recommendation.",
+          "expected_rationale_codes": []
+        },
+        {
+          "report_id": "R-009",
+          "case_id": "C-009",
+          "score": 0.0,
+          "base_score": 0.0,
+          "hybrid_score": 0.0,
+          "urgency": "low",
+          "flagged": false,
+          "expected_positive": false,
+          "expected_escalation": false,
+          "rationale_codes": [],
+          "label_notes": "Chronic pancreatitis with explicit negation of mass and ductal interruption.",
+          "benchmark_bucket": "pancreatitis confounder",
+          "reviewer_focus": "Protect specificity when chronic pancreatitis language coexists with explicit negation of pancreatic mass and obstruction.",
+          "expected_rationale_codes": []
         }
       ]
     },
-    "flagged_delta": 1,
+    "flagged_delta": 2,
     "precision_delta": 0.0,
-    "recall_delta": 0.3333,
-    "f1_delta": 0.2,
-    "precision_at_top_k_delta": 0.3333,
-    "sensitivity_at_top_k_delta": 0.3333,
+    "recall_delta": 0.2857,
+    "f1_delta": 0.1667,
+    "precision_at_top_k_delta": 0.0,
+    "sensitivity_at_top_k_delta": 0.0,
     "newly_flagged_cases": [
-      "C-005"
+      "C-005",
+      "C-008"
     ],
     "resolved_false_negatives": [
-      "C-005"
+      "C-005",
+      "C-008"
     ]
   },
   "sweep": {
@@ -222,80 +577,380 @@
     "points": [
       {
         "threshold": 0.2,
-        "rules_f1": 0.8,
+        "rules_f1": 0.8333,
         "hybrid_f1": 1.0,
-        "rules_recall": 0.6667,
+        "rules_recall": 0.7143,
         "hybrid_recall": 1.0,
-        "rules_flagged": 2,
-        "hybrid_flagged": 3,
-        "f1_delta": 0.2,
-        "recall_delta": 0.3333,
-        "flagged_delta": 1
+        "rules_flagged": 5,
+        "hybrid_flagged": 7,
+        "f1_delta": 0.1667,
+        "recall_delta": 0.2857,
+        "flagged_delta": 2
       },
       {
         "threshold": 0.3,
-        "rules_f1": 0.8,
+        "rules_f1": 0.8333,
         "hybrid_f1": 1.0,
-        "rules_recall": 0.6667,
+        "rules_recall": 0.7143,
         "hybrid_recall": 1.0,
-        "rules_flagged": 2,
-        "hybrid_flagged": 3,
-        "f1_delta": 0.2,
-        "recall_delta": 0.3333,
-        "flagged_delta": 1
+        "rules_flagged": 5,
+        "hybrid_flagged": 7,
+        "f1_delta": 0.1667,
+        "recall_delta": 0.2857,
+        "flagged_delta": 2
       },
       {
         "threshold": 0.4,
-        "rules_f1": 0.8,
+        "rules_f1": 0.8333,
         "hybrid_f1": 1.0,
-        "rules_recall": 0.6667,
+        "rules_recall": 0.7143,
         "hybrid_recall": 1.0,
-        "rules_flagged": 2,
-        "hybrid_flagged": 3,
-        "f1_delta": 0.2,
-        "recall_delta": 0.3333,
-        "flagged_delta": 1
+        "rules_flagged": 5,
+        "hybrid_flagged": 7,
+        "f1_delta": 0.1667,
+        "recall_delta": 0.2857,
+        "flagged_delta": 2
       },
       {
         "threshold": 0.5,
-        "rules_f1": 0.8,
-        "hybrid_f1": 0.8,
-        "rules_recall": 0.6667,
-        "hybrid_recall": 0.6667,
-        "rules_flagged": 2,
-        "hybrid_flagged": 2,
-        "f1_delta": 0.0,
-        "recall_delta": 0.0,
-        "flagged_delta": 0
+        "rules_f1": 0.7273,
+        "hybrid_f1": 0.9231,
+        "rules_recall": 0.5714,
+        "hybrid_recall": 0.8571,
+        "rules_flagged": 4,
+        "hybrid_flagged": 6,
+        "f1_delta": 0.1958,
+        "recall_delta": 0.2857,
+        "flagged_delta": 2
       },
       {
         "threshold": 0.6,
-        "rules_f1": 0.5,
-        "hybrid_f1": 0.8,
-        "rules_recall": 0.3333,
-        "hybrid_recall": 0.6667,
-        "rules_flagged": 1,
-        "hybrid_flagged": 2,
-        "f1_delta": 0.3,
-        "recall_delta": 0.3334,
-        "flagged_delta": 1
+        "rules_f1": 0.4444,
+        "hybrid_f1": 0.9231,
+        "rules_recall": 0.2857,
+        "hybrid_recall": 0.8571,
+        "rules_flagged": 2,
+        "hybrid_flagged": 6,
+        "f1_delta": 0.4787,
+        "recall_delta": 0.5714,
+        "flagged_delta": 4
       }
     ],
     "rules_recommendation": {
       "score_mode": "rules",
       "recommended_threshold": 0.2,
-      "rationale": "Selected threshold 0.20 because it maximizes F1 (0.80) while preserving recall 0.67 with 2 flagged case(s).",
-      "f1": 0.8,
-      "recall": 0.6667,
-      "flagged": 2
+      "rationale": "Selected threshold 0.20 because it maximizes F1 (0.83) while preserving recall 0.71 with 5 flagged case(s).",
+      "f1": 0.8333,
+      "recall": 0.7143,
+      "flagged": 5
     },
     "hybrid_recommendation": {
       "score_mode": "hybrid",
       "recommended_threshold": 0.2,
-      "rationale": "Selected threshold 0.20 because it maximizes F1 (1.00) while preserving recall 1.00 with 3 flagged case(s).",
+      "rationale": "Selected threshold 0.20 because it maximizes F1 (1.00) while preserving recall 1.00 with 7 flagged case(s).",
       "f1": 1.0,
       "recall": 1.0,
-      "flagged": 3
+      "flagged": 7
     }
-  }
+  },
+  "casebook": [
+    {
+      "case_id": "C-001",
+      "report_id": "R-001",
+      "benchmark_bucket": "explicit malignancy",
+      "reviewer_focus": "Confirm the pancreatic head lesion, duct cutoff, and same-report escalation language stay visible together.",
+      "label_notes": "Explicit lesion, duct cutoff, and EUS/tissue sampling recommendation.",
+      "expected_positive": true,
+      "expected_escalation": true,
+      "expected_rationale_codes": [
+        "PDAC_EXPLICIT_SUSPICION",
+        "PANCREATIC_MASS",
+        "DUCT_CUTOFF",
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "hybrid_lift": 0.0,
+      "rules": {
+        "score": 1.0,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "PDAC_EXPLICIT_SUSPICION",
+          "PANCREATIC_MASS",
+          "DUCT_CUTOFF",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      "hybrid": {
+        "score": 1.0,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "PDAC_EXPLICIT_SUSPICION",
+          "PANCREATIC_MASS",
+          "DUCT_CUTOFF",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      }
+    },
+    {
+      "case_id": "C-002",
+      "report_id": "R-002",
+      "benchmark_bucket": "pancreatitis confounder",
+      "reviewer_focus": "Avoid overcalling inflammatory change when the report explicitly says no discrete pancreatic mass.",
+      "label_notes": "Pancreatitis without a discrete mass.",
+      "expected_positive": false,
+      "expected_escalation": false,
+      "expected_rationale_codes": [],
+      "hybrid_lift": 0.0,
+      "rules": {
+        "score": 0.0,
+        "flagged": false,
+        "outcome": "true_negative",
+        "rationale_codes": []
+      },
+      "hybrid": {
+        "score": 0.0,
+        "flagged": false,
+        "outcome": "true_negative",
+        "rationale_codes": []
+      }
+    },
+    {
+      "case_id": "C-003",
+      "report_id": "R-003",
+      "benchmark_bucket": "secondary signs",
+      "reviewer_focus": "Treat double duct sign plus focal atrophy as escalation-worthy even without a measurable mass.",
+      "label_notes": "Double duct sign, focal atrophy, and EUS recommendation.",
+      "expected_positive": true,
+      "expected_escalation": true,
+      "expected_rationale_codes": [
+        "DOUBLE_DUCT_SIGN",
+        "FOCAL_ATROPHY"
+      ],
+      "hybrid_lift": 0.371,
+      "rules": {
+        "score": 0.53,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "DOUBLE_DUCT_SIGN",
+          "FOCAL_ATROPHY"
+        ]
+      },
+      "hybrid": {
+        "score": 0.901,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "DOUBLE_DUCT_SIGN",
+          "FOCAL_ATROPHY"
+        ]
+      }
+    },
+    {
+      "case_id": "C-004",
+      "report_id": "R-004",
+      "benchmark_bucket": "negative control",
+      "reviewer_focus": "Preserve specificity when the pancreas is described as unremarkable and there is no follow-up recommendation.",
+      "label_notes": "Normal pancreas and no acute abnormality.",
+      "expected_positive": false,
+      "expected_escalation": false,
+      "expected_rationale_codes": [],
+      "hybrid_lift": 0.0,
+      "rules": {
+        "score": 0.0,
+        "flagged": false,
+        "outcome": "true_negative",
+        "rationale_codes": []
+      },
+      "hybrid": {
+        "score": 0.0,
+        "flagged": false,
+        "outcome": "true_negative",
+        "rationale_codes": []
+      }
+    },
+    {
+      "case_id": "C-005",
+      "report_id": "R-005",
+      "benchmark_bucket": "follow-up only",
+      "reviewer_focus": "Keep action-worthy cyst surveillance recommendations reviewable even when malignancy language is absent.",
+      "label_notes": "Side-branch IPMN follow-up recommendation should still be reviewable.",
+      "expected_positive": true,
+      "expected_escalation": false,
+      "expected_rationale_codes": [
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "hybrid_lift": 0.44,
+      "rules": {
+        "score": 0.0,
+        "flagged": false,
+        "outcome": "missed_positive",
+        "rationale_codes": []
+      },
+      "hybrid": {
+        "score": 0.44,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": []
+      }
+    },
+    {
+      "case_id": "C-006",
+      "report_id": "R-006",
+      "benchmark_bucket": "explicit malignancy",
+      "reviewer_focus": "Do not miss malignancy wording variance when the report couples double-duct obstruction with an immediate EUS/tissue-sampling recommendation.",
+      "label_notes": "Double-duct obstruction plus worrisome malignancy wording with same-report tissue confirmation recommendation.",
+      "expected_positive": true,
+      "expected_escalation": true,
+      "expected_rationale_codes": [
+        "DOUBLE_DUCT_SIGN",
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "hybrid_lift": 0.23,
+      "rules": {
+        "score": 0.49,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "DOUBLE_DUCT_SIGN",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      "hybrid": {
+        "score": 0.72,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "DOUBLE_DUCT_SIGN",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      }
+    },
+    {
+      "case_id": "C-007",
+      "report_id": "R-007",
+      "benchmark_bucket": "secondary signs",
+      "reviewer_focus": "Escalate duct dilation plus distal atrophy even when the report frames the lesion as occult rather than measurable.",
+      "label_notes": "Main duct dilation, distal atrophy, and EUS recommendation without a named mass.",
+      "expected_positive": true,
+      "expected_escalation": true,
+      "expected_rationale_codes": [
+        "DUCT_DILATION",
+        "FOCAL_ATROPHY",
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "hybrid_lift": 0.343,
+      "rules": {
+        "score": 0.52,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "DUCT_DILATION",
+          "FOCAL_ATROPHY",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      "hybrid": {
+        "score": 0.863,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "DUCT_DILATION",
+          "FOCAL_ATROPHY",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      }
+    },
+    {
+      "case_id": "C-008",
+      "report_id": "R-008",
+      "benchmark_bucket": "follow-up only",
+      "reviewer_focus": "Keep follow-up-worthy pancreatic cyst recommendations visible even when only interval surveillance language is explicit.",
+      "label_notes": "Pancreatic cyst surveillance recommendation should remain reviewable in the benchmark queue.",
+      "expected_positive": true,
+      "expected_escalation": false,
+      "expected_rationale_codes": [
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "hybrid_lift": 0.489,
+      "rules": {
+        "score": 0.14,
+        "flagged": false,
+        "outcome": "missed_positive",
+        "rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      "hybrid": {
+        "score": 0.629,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      }
+    },
+    {
+      "case_id": "C-009",
+      "report_id": "R-009",
+      "benchmark_bucket": "pancreatitis confounder",
+      "reviewer_focus": "Protect specificity when chronic pancreatitis language coexists with explicit negation of pancreatic mass and obstruction.",
+      "label_notes": "Chronic pancreatitis with explicit negation of mass and ductal interruption.",
+      "expected_positive": false,
+      "expected_escalation": false,
+      "expected_rationale_codes": [],
+      "hybrid_lift": 0.0,
+      "rules": {
+        "score": 0.0,
+        "flagged": false,
+        "outcome": "true_negative",
+        "rationale_codes": []
+      },
+      "hybrid": {
+        "score": 0.0,
+        "flagged": false,
+        "outcome": "true_negative",
+        "rationale_codes": []
+      }
+    },
+    {
+      "case_id": "C-010",
+      "report_id": "R-010",
+      "benchmark_bucket": "secondary signs",
+      "reviewer_focus": "Treat clustered obstructive secondary signs plus biopsy recommendation as reviewer-priority even before explicit malignancy wording appears.",
+      "label_notes": "Obstructive pattern cluster with duct cutoff, duct prominence, adjacent atrophy, and biopsy recommendation.",
+      "expected_positive": true,
+      "expected_escalation": true,
+      "expected_rationale_codes": [
+        "DUCT_CUTOFF",
+        "DUCT_DILATION",
+        "FOCAL_ATROPHY",
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "hybrid_lift": 0.13,
+      "rules": {
+        "score": 0.87,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "DUCT_DILATION",
+          "DUCT_CUTOFF",
+          "FOCAL_ATROPHY",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      "hybrid": {
+        "score": 1.0,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "DUCT_DILATION",
+          "DUCT_CUTOFF",
+          "FOCAL_ATROPHY",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      }
+    }
+  ]
 }

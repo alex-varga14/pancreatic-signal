@@ -25,6 +25,7 @@ function formatGeneratedAt(value: string): string {
 
 export default async function HomePage() {
   const demoProof = await getDemoBenchmarkSnapshot();
+  const datasetSummary = demoProof?.dataset_summary ?? null;
   const comparison = demoProof?.comparison ?? null;
   const sweep = demoProof?.sweep ?? null;
 
@@ -62,7 +63,7 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          {comparison && sweep ? (
+          {comparison && sweep && datasetSummary ? (
             <div className={styles.heroProof}>
               <p className={styles.heroProofLabel}>Current Demo Snapshot</p>
               <p className={styles.heroProofMetric}>
@@ -73,6 +74,10 @@ export default async function HomePage() {
               <p className={styles.heroProofMetric}>
                 Recommended top-{sweep.top_k} thresholds: rules <strong>{sweep.rules_recommendation.recommended_threshold.toFixed(2)}</strong>{" "}
                 and hybrid <strong>{sweep.hybrid_recommendation.recommended_threshold.toFixed(2)}</strong>.
+              </p>
+              <p className={styles.heroProofMetric}>
+                Casebook covers <strong>{datasetSummary.report_count}</strong> labeled reports across{" "}
+                <strong>{datasetSummary.bucket_counts.length}</strong> benchmark buckets.
               </p>
               <p className={styles.heroProofMetric}>Published snapshot: <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span></p>
             </div>
