@@ -1,0 +1,9 @@
+{"report_id":"R-WORD-001","case_id":"C-WORD-001","score":0.91,"rationale_codes":["PDAC_EXPLICIT_SUSPICION","PANCREATIC_MASS","DUCT_DILATION","FOLLOWUP_RECOMMENDED"],"notes":"Softer explicit neoplasm wording still ranks near the top."}
+{"report_id":"R-WORD-002","case_id":"C-WORD-002","score":0.64,"rationale_codes":["DUCT_DILATION","FOLLOWUP_RECOMMENDED"],"notes":"Occult-malignancy-not-excluded phrasing remains above threshold."}
+{"report_id":"R-WORD-003","case_id":"C-WORD-003","score":0.39,"rationale_codes":["FOLLOWUP_RECOMMENDED"],"notes":"Clear cyst surveillance recommendation stays barely above threshold."}
+{"report_id":"R-WORD-004","case_id":"C-WORD-004","score":0.37,"rationale_codes":["DUCT_DILATION"],"notes":"Inflammatory duct prominence is intentionally overcalled to keep confounder review visible."}
+{"report_id":"R-WORD-005","case_id":"C-WORD-005","score":0.05,"rationale_codes":[],"notes":"Negative control stays unflagged."}
+{"report_id":"R-WORD-006","case_id":"C-WORD-006","score":0.58,"rationale_codes":["PANCREATIC_MASS","DUCT_CUTOFF","FOLLOWUP_RECOMMENDED"],"notes":"Focal fullness plus abrupt duct change stays in the flagged queue."}
+{"report_id":"R-WORD-007","case_id":"C-WORD-007","score":0.22,"rationale_codes":["FOLLOWUP_RECOMMENDED"],"false_negative_bucket":"recommendation_language_missed","notes":"Optional-sounding follow-up wording remains undercalled at the selected threshold."}
+{"report_id":"R-WORD-008","case_id":"C-WORD-008","score":0.12,"rationale_codes":[],"notes":"Incidental fatty change stays below threshold."}
+{"report_id":"R-WORD-009","case_id":"C-WORD-009","score":0.71,"rationale_codes":["PDAC_EXPLICIT_SUSPICION","PANCREATIC_MASS","FOLLOWUP_RECOMMENDED"],"notes":"High-acuity lesion remains highly ranked."}

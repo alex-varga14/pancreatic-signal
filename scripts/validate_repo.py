@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 API_ROOT = ROOT / "apps" / "api"
 WEB_ROOT = ROOT / "apps" / "web"
+PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH = ROOT / "docs" / "examples" / "published-external-benchmarks.json"
 
 PASS = "PASS"
 WARN = "WARN"
@@ -52,6 +53,7 @@ def main() -> None:
         check_api_import(strict=args.strict),
         check_demo_eval_compare(),
         check_demo_eval_sweep(),
+        check_published_external_benchmark_registry(),
         check_pytest(strict=args.strict),
         check_web_lint(strict=args.strict),
         check_web_build(strict=args.strict),
@@ -195,6 +197,25 @@ def check_demo_eval_sweep() -> CheckResult:
     return CheckResult("demo-eval-sweep", PASS, detail)
 
 
+def check_published_external_benchmark_registry() -> CheckResult:
+    try:
+        descriptors = load_published_external_benchmark_registry(
+            PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH,
+            root=ROOT,
+        )
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        return CheckResult("published-external-registry", FAIL, str(exc))
+
+    return CheckResult(
+        "published-external-registry",
+        PASS,
+        (
+            f"Validated {len(descriptors)} published external benchmark pack(s) from "
+            f"{PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH.relative_to(ROOT)}."
+        ),
+    )
+
+
 def check_pytest(*, strict: bool) -> CheckResult:
     if importlib.util.find_spec("pytest") is None:
         status = FAIL if strict else WARN
@@ -256,6 +277,106 @@ def get_minimum_python_version() -> tuple[int, int]:
     if not match:
         return (3, 11)
     return int(match.group(1)), int(match.group(2))
+
+
+def load_published_external_benchmark_registry(
+    registry_path: Path,
+    *,
+    root: Path,
+) -> list[dict[str, str | None]]:
+    payload = json.loads(registry_path.read_text())
+    if not isinstance(payload, list) or not payload:
+        raise ValueError("Published external benchmark registry must be a non-empty JSON array.")
+
+    seen_ids: set[str] = set()
+    descriptors: list[dict[str, str | None]] = []
+    for index, raw_descriptor in enumerate(payload):
+        field_prefix = f"registry[{index}]"
+        descriptor = _require_object(raw_descriptor, field_prefix)
+        descriptor_id = _require_non_empty_string(descriptor.get("id"), f"{field_prefix}.id")
+        if descriptor_id in seen_ids:
+            raise ValueError(
+                f"Published external benchmark registry has duplicate id {descriptor_id!r} at {field_prefix}.id."
+            )
+
+        seen_ids.add(descriptor_id)
+        validated_descriptor = {
+            "id": descriptor_id,
+            "label": _require_non_empty_string(descriptor.get("label"), f"{field_prefix}.label"),
+            "title": _require_non_empty_string(descriptor.get("title"), f"{field_prefix}.title"),
+            "description": _require_non_empty_string(
+                descriptor.get("description"),
+                f"{field_prefix}.description",
+            ),
+            "snapshot_path": _require_relative_json_file(
+                descriptor.get("snapshot_path"),
+                f"{field_prefix}.snapshot_path",
+                root=root,
+            ),
+            "build_command": _require_optional_non_empty_string(
+                descriptor.get("build_command"),
+                f"{field_prefix}.build_command",
+            ),
+            "refresh_command": _require_optional_non_empty_string(
+                descriptor.get("refresh_command"),
+                f"{field_prefix}.refresh_command",
+            ),
+            "submission_path": _require_optional_relative_json_file(
+                descriptor.get("submission_path"),
+                f"{field_prefix}.submission_path",
+                root=root,
+            ),
+        }
+        descriptors.append(validated_descriptor)
+
+    return descriptors
+
+
+def _require_object(value: object, field_path: str) -> dict[str, object]:
+    if not isinstance(value, dict):
+        raise ValueError(f"Expected {field_path} to be an object.")
+    return value
+
+
+def _require_non_empty_string(value: object, field_path: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"Expected {field_path} to be a non-empty string.")
+    return value.strip()
+
+
+def _require_optional_non_empty_string(value: object, field_path: str) -> str | None:
+    if value is None:
+        return None
+    return _require_non_empty_string(value, field_path)
+
+
+def _require_optional_relative_json_file(
+    value: object,
+    field_path: str,
+    *,
+    root: Path,
+) -> str | None:
+    if value is None:
+        return None
+    return _require_relative_json_file(value, field_path, root=root)
+
+
+def _require_relative_json_file(value: object, field_path: str, *, root: Path) -> str:
+    raw_path = _require_non_empty_string(value, field_path)
+    path = Path(raw_path)
+    if path.is_absolute() or ".." in path.parts or path.suffix != ".json":
+        raise ValueError(f"Expected {field_path} to be a checked-in relative JSON path.")
+
+    resolved = root / path
+    if not resolved.exists():
+        raise ValueError(f"{field_path} references missing file {raw_path}.")
+
+    try:
+        json.loads(resolved.read_text())
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{field_path} references invalid JSON file {raw_path}: {exc.msg}.") from exc
+
+    return raw_path
 
 
 def run_command(

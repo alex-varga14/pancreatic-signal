@@ -113,14 +113,16 @@ make benchmark-external \
   MANIFEST=docs/examples/benchmark-manifest-template.json
 ```
 
-For a checked-in less-synthetic multi-cohort sample bundle with deidentified report excerpts and a reviewer-facing external casebook:
+For the checked-in external proof packs:
 
 ```bash
 make benchmark-external-sample
 make refresh-external-sample-proof
+make benchmark-external-wording-sample
+make refresh-external-wording-sample-proof
 ```
 
-The public `/proof` page now renders the checked-in demo comparison plus the registry of published external benchmark packs in `docs/examples/published-external-benchmarks.json`, which currently includes the retrospective-style multi-cohort sample.
+The public `/proof` page now renders the checked-in demo comparison plus the registry of published external benchmark packs in `docs/examples/published-external-benchmarks.json`, which currently includes the retrospective-style multi-cohort sample and a wording-variance challenge pack.
 
 ### API
 
@@ -147,7 +149,7 @@ make validate
 make validate-strict
 ```
 
-`make validate` is tolerant of missing local prerequisites and reports readiness gaps as warnings. `make validate-strict` upgrades those same gaps to failures and is the preferred pre-handoff or pre-release check.
+`make validate` is tolerant of missing local prerequisites and reports readiness gaps as warnings. `make validate-strict` upgrades those same gaps to failures, validates the published external benchmark registry, and is the preferred pre-handoff or pre-release check.
 GitHub Actions now runs the same `make validate-strict` gate on pull requests, on `main`, and via manual workflow dispatch. A separate hosted smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) reuses the base proxy and header pilot smokes plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule. The broader shared-visibility, audit-denial, and non-site structured failure matrix in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) remains a manual validation path.
 For the release-facing evidence path that ties validation, hosted smoke artifacts, and docs updates together, use [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md).
 For a concise outside-collaborator path, see [docs/QUICKSTART.md](docs/QUICKSTART.md).

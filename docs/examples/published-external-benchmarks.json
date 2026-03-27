@@ -8,5 +8,15 @@
     "build_command": "make benchmark-external-sample",
     "refresh_command": "make refresh-external-sample-proof",
     "submission_path": "docs/examples/retrospective-benchmark-sample-current-submission.json"
+  },
+  {
+    "id": "wording-variance-sample",
+    "label": "Wording Variance Sample",
+    "title": "A phrasing-focused challenge pack keeps softer concern language and follow-up misses visible.",
+    "description": "This deidentified challenge pack complements the broader retrospective sample with softer suspicion wording, optional-sounding surveillance language, and a visible pancreatitis confounder overcall.",
+    "snapshot_path": "docs/examples/wording-variance-benchmark-sample-current.json",
+    "build_command": "make benchmark-external-wording-sample",
+    "refresh_command": "make refresh-external-wording-sample-proof",
+    "submission_path": "docs/examples/wording-variance-benchmark-sample-current-submission.json"
   }
 ]

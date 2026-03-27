@@ -13,6 +13,8 @@ LABEL_TEMPLATE_PATH = ROOT / "docs" / "examples" / "benchmark-label-template.jso
 PREDICTION_TEMPLATE_PATH = ROOT / "docs" / "examples" / "benchmark-prediction-template.jsonl"
 RETRO_LABELS_PATH = ROOT / "docs" / "examples" / "retrospective-benchmark-sample-labels.jsonl"
 RETRO_PREDICTIONS_PATH = ROOT / "docs" / "examples" / "retrospective-benchmark-sample-predictions.jsonl"
+WORDING_LABELS_PATH = ROOT / "docs" / "examples" / "wording-variance-benchmark-sample-labels.jsonl"
+WORDING_PREDICTIONS_PATH = ROOT / "docs" / "examples" / "wording-variance-benchmark-sample-predictions.jsonl"
 SCRIPT_PATH = ROOT / "scripts" / "run_external_eval.py"
 
 
@@ -204,6 +206,35 @@ def test_run_external_eval_sample_bundle_includes_report_excerpts(tmp_path: Path
     assert "### C-RETRO-007 — follow-up only" in markdown
     assert "- Cohort: tertiary MRI workup" in markdown
     assert "- Report excerpt: MRI abdomen:" in markdown
+
+
+def test_wording_variance_external_sample_surfaces_softer_wording_edge_cases() -> None:
+    summary = evaluate_external_dataset(
+        labels_path=WORDING_LABELS_PATH,
+        predictions_path=WORDING_PREDICTIONS_PATH,
+        threshold=0.35,
+        top_k=4,
+    )
+
+    assert summary.processed == 9
+    assert summary.positives == 6
+    assert summary.flagged == 6
+    assert summary.true_positives == 5
+    assert summary.false_positives == 1
+    assert summary.true_negatives == 2
+    assert summary.false_negatives == 1
+    assert summary.precision == 0.8333
+    assert summary.recall == 0.8333
+    assert summary.f1 == 0.8333
+    assert summary.precision_at_top_k == 1.0
+    assert summary.sensitivity_at_top_k == 0.6667
+
+    case_by_id = {case.case_id: case for case in summary.cases}
+    assert case_by_id["C-WORD-001"].benchmark_bucket == "explicit malignancy"
+    assert case_by_id["C-WORD-006"].cohort == "navigator adjudication queue"
+    assert case_by_id["C-WORD-004"].flagged is True
+    assert case_by_id["C-WORD-007"].flagged is False
+    assert case_by_id["C-WORD-007"].false_negative_bucket == "recommendation_language_missed"
 
 
 def test_run_external_eval_manifest_enriches_bundle_and_accepts_cli_overrides(tmp_path: Path) -> None:

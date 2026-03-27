@@ -1,0 +1,47 @@
+{
+  "submission_version": "1.0",
+  "submission_name": "external-deidentified-wording-variance-challenge-sample",
+  "project_name": "Pancreatic Signal",
+  "repository_url": null,
+  "commit_sha": null,
+  "dataset_name": "deidentified-wording-variance-challenge-sample",
+  "dataset_split": "challenge",
+  "report_count": 9,
+  "deidentified": true,
+  "label_schema_version": "pancreatic-signal-eval-v1",
+  "score_mode": "external",
+  "threshold": 0.35,
+  "top_k": 4,
+  "evaluation_command": "python scripts/run_external_eval.py --labels docs/examples/wording-variance-benchmark-sample-labels.jsonl --predictions docs/examples/wording-variance-benchmark-sample-predictions.jsonl --threshold 0.35 --top-k 4 --out-dir docs/examples --basename wording-variance-benchmark-sample-current --manifest docs/examples/wording-variance-benchmark-sample-manifest.json --dataset-name deidentified-wording-variance-challenge-sample --dataset-split challenge --project-name \"Pancreatic Signal\" --submission-name external-deidentified-wording-variance-challenge-sample --strength \"Top-ranked positives still cluster around the most actionable lesion and occult-lesion concern cases.\" --strength \"The pack keeps softer wording and optional-sounding follow-up recommendations visible in the same reviewer-facing proof shape.\" --limitation \"Sample remains small and deidentified for repository use.\" --limitation \"One optional-sounding follow-up case remains missed and one pancreatitis confounder remains overcalled.\" --notes \"Repository challenge pack for public proof only. This is not a clinical validation dataset.\"",
+  "artifact_paths": [
+    "docs/examples/wording-variance-benchmark-sample-current.json",
+    "docs/examples/wording-variance-benchmark-sample-current.md"
+  ],
+  "metrics": {
+    "processed": 9,
+    "positives": 6,
+    "flagged": 6,
+    "true_positives": 5,
+    "false_positives": 1,
+    "true_negatives": 2,
+    "false_negatives": 1,
+    "precision": 0.8333,
+    "recall": 0.8333,
+    "f1": 0.8333,
+    "precision_at_top_k": 1.0,
+    "sensitivity_at_top_k": 0.6667,
+    "reviewer_yield_at_top_k": 1.0,
+    "false_negative_buckets": {
+      "recommendation_language_missed": 1
+    }
+  },
+  "notable_strengths": [
+    "Top-ranked positives still cluster around the most actionable lesion and occult-lesion concern cases.",
+    "The pack keeps softer wording and optional-sounding follow-up recommendations visible in the same reviewer-facing proof shape."
+  ],
+  "known_limitations": [
+    "Sample remains small and deidentified for repository use.",
+    "One optional-sounding follow-up case remains missed and one pancreatitis confounder remains overcalled."
+  ],
+  "notes": "Repository challenge pack for public proof only. This is not a clinical validation dataset."
+}
