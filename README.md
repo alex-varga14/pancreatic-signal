@@ -120,7 +120,7 @@ make benchmark-external-sample
 make refresh-external-sample-proof
 ```
 
-The public `/proof` page now renders both the checked-in demo comparison and the checked-in retrospective-style external sample, so outside collaborators can inspect a controlled synthetic casebook and a broader multi-cohort deidentified sample in one place.
+The public `/proof` page now renders the checked-in demo comparison plus the registry of published external benchmark packs in `docs/examples/published-external-benchmarks.json`, which currently includes the retrospective-style multi-cohort sample.
 
 ### API
 

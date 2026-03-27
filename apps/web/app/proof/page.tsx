@@ -1,11 +1,13 @@
 import Link from "next/link";
 import {
   getDemoBenchmarkSnapshot,
-  getRetrospectiveBenchmarkSnapshot,
   PUBLISHED_DEMO_PROOF_PATH,
-  PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH,
+  PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH,
+  getPublishedExternalBenchmarkEntries,
   type DemoBenchmarkCaseMode,
   type ExternalBenchmarkCaseMode,
+  type ExternalBenchmarkSnapshot,
+  type PublishedExternalBenchmarkEntry,
   type PublishedBenchmarkQueueEntry,
 } from "../../lib/demo-proof";
 import styles from "../marketing.module.css";
@@ -81,19 +83,352 @@ function renderQueueSummary(entry: PublishedBenchmarkQueueEntry): string {
   return parts.join(" • ");
 }
 
+type ExternalBenchmarkProofSectionProps = {
+  entry: PublishedExternalBenchmarkEntry & { snapshot: ExternalBenchmarkSnapshot };
+};
+
+function ExternalBenchmarkProofSection({ entry }: ExternalBenchmarkProofSectionProps) {
+  const { descriptor, snapshot } = entry;
+  const cohortNotes = snapshot.dataset_summary.cohort_counts?.filter((item) => Boolean(item.description)) ?? [];
+  const bucketNotes = snapshot.dataset_summary.bucket_counts.filter((item) => Boolean(item.description));
+  const reproduceCommands = [
+    descriptor.build_command,
+    descriptor.refresh_command,
+    descriptor.submission_path
+      ? `make validate-benchmark-submission \\\n  SUBMISSION=${descriptor.submission_path}`
+      : null,
+  ].filter((value): value is string => Boolean(value));
+
+  return (
+    <>
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <p className={styles.eyebrow}>{descriptor.label}</p>
+            <h2 className={styles.sectionTitle}>{descriptor.title}</h2>
+            <p className={styles.sectionText}>{descriptor.description}</p>
+          </div>
+        </div>
+
+        <div className={`${styles.grid} ${styles.gridFour}`}>
+          <article className={styles.card}>
+            <p className={styles.statLabel}>External F1</p>
+            <p className={styles.statValue}>{formatPercent(snapshot.evaluation.f1)}</p>
+            <p className={styles.statNote}>Current external casebook operating point.</p>
+          </article>
+          <article className={styles.card}>
+            <p className={styles.statLabel}>External Recall</p>
+            <p className={styles.statValue}>{formatPercent(snapshot.evaluation.recall)}</p>
+            <p className={styles.statNote}>Action-worthy cases still surfaced at the current threshold.</p>
+          </article>
+          <article className={styles.card}>
+            <p className={styles.statLabel}>Recommended Threshold</p>
+            <p className={styles.statValue}>{snapshot.sweep.recommendation.recommended_threshold.toFixed(2)}</p>
+            <p className={styles.statNote}>
+              Miss buckets: {formatFalseNegativeBuckets(snapshot.evaluation.false_negative_buckets)}.
+            </p>
+          </article>
+          <article className={styles.card}>
+            <p className={styles.statLabel}>Published</p>
+            <p className={styles.statValue}>{formatGeneratedAt(snapshot.generated_at)}</p>
+            <p className={styles.statNote}>
+              Snapshot file: <span className={styles.inlineCode}>{descriptor.snapshot_path}</span>.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <p className={styles.eyebrow}>Sample Coverage</p>
+            <h2 className={styles.sectionTitle}>The external proof stays reviewer-readable as the pack surface grows.</h2>
+            <p className={styles.sectionText}>
+              This checked-in benchmark pack keeps dataset coverage, queue previews, and a reviewer-facing casebook visible
+              so new collaborator packs can match the same proof shape instead of becoming metrics-only attachments.
+            </p>
+          </div>
+        </div>
+
+        <div className={`${styles.grid} ${styles.gridFour}`}>
+          <article className={styles.card}>
+            <p className={styles.statLabel}>Reports</p>
+            <p className={styles.statValue}>{snapshot.dataset_summary.report_count}</p>
+            <p className={styles.statNote}>Published reports in this checked-in external benchmark pack.</p>
+          </article>
+          <article className={styles.card}>
+            <p className={styles.statLabel}>Positive Labels</p>
+            <p className={styles.statValue}>{snapshot.dataset_summary.positive_count}</p>
+            <p className={styles.statNote}>Cases expected to stay visible for review or follow-up.</p>
+          </article>
+          <article className={styles.card}>
+            <p className={styles.statLabel}>Escalations</p>
+            <p className={styles.statValue}>{snapshot.dataset_summary.escalation_count}</p>
+            <p className={styles.statNote}>Cases expected to justify escalation rather than passive follow-up.</p>
+          </article>
+          <article className={styles.card}>
+            <p className={styles.statLabel}>Cohorts</p>
+            <p className={styles.statValue}>{snapshot.dataset_summary.cohort_counts?.length ?? 0}</p>
+            <p className={styles.statNote}>
+              {snapshot.dataset.dataset_name} on the {snapshot.dataset.dataset_split} split.
+            </p>
+          </article>
+        </div>
+
+        <div className={styles.chipRow}>
+          {snapshot.dataset_summary.bucket_counts.map((bucket) => (
+            <span key={bucket.bucket} className={styles.chip}>
+              {bucket.bucket}: {bucket.case_count}
+            </span>
+          ))}
+        </div>
+
+        {snapshot.dataset_summary.cohort_counts?.length ? (
+          <div className={styles.chipRow}>
+            {snapshot.dataset_summary.cohort_counts.map((cohort) => (
+              <span key={cohort.cohort} className={styles.chip}>
+                {cohort.cohort}: {cohort.case_count}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      {snapshot.dataset_context || cohortNotes.length || bucketNotes.length ? (
+        <section className={styles.section}>
+          <div className={`${styles.grid} ${styles.gridTwo}`}>
+            {snapshot.dataset_context ? (
+              <article className={styles.card}>
+                <h3 className={styles.cardTitle}>Dataset Framing</h3>
+                {snapshot.dataset_context.dataset_description ? (
+                  <p className={styles.cardText}>{snapshot.dataset_context.dataset_description}</p>
+                ) : null}
+                {snapshot.dataset_context.labeling_policy ? (
+                  <>
+                    <p className={styles.casebookMeta}>Labeling policy</p>
+                    <p className={styles.cardText}>{snapshot.dataset_context.labeling_policy}</p>
+                  </>
+                ) : null}
+                {snapshot.dataset_context.notes ? (
+                  <>
+                    <p className={styles.casebookMeta}>Notes</p>
+                    <p className={styles.cardText}>{snapshot.dataset_context.notes}</p>
+                  </>
+                ) : null}
+                {snapshot.dataset.manifest_path ? (
+                  <p className={styles.casebookMeta}>
+                    Manifest: <span className={styles.inlineCode}>{snapshot.dataset.manifest_path}</span>
+                  </p>
+                ) : null}
+              </article>
+            ) : null}
+
+            {cohortNotes.length || bucketNotes.length ? (
+              <article className={styles.card}>
+                <h3 className={styles.cardTitle}>Benchmark Notes</h3>
+                {cohortNotes.length ? (
+                  <>
+                    <p className={styles.casebookMeta}>Cohorts</p>
+                    <ul className={styles.list}>
+                      {cohortNotes.map((cohort) => (
+                        <li key={cohort.cohort}>
+                          {cohort.cohort}: {cohort.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+                {bucketNotes.length ? (
+                  <>
+                    <p className={styles.casebookMeta}>Buckets</p>
+                    <ul className={styles.list}>
+                      {bucketNotes.map((bucket) => (
+                        <li key={bucket.bucket}>
+                          {bucket.bucket}: {bucket.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+              </article>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      <section className={styles.section}>
+        <div className={`${styles.grid} ${styles.gridTwo}`}>
+          <article className={styles.card}>
+            <h3 className={styles.cardTitle}>External Queue</h3>
+            <p className={styles.cardText}>
+              Current top-{snapshot.queue_preview.top_k} ranking for this checked-in external benchmark pack across its
+              recorded cohorts.
+            </p>
+            <div className={styles.queueList}>
+              {snapshot.queue_preview.external.map((queueEntry) => (
+                <div key={`${descriptor.id}-${queueEntry.case_id}`} className={styles.queueItem}>
+                  <div>
+                    <p className={styles.queueItemTitle}>{renderQueueSummary(queueEntry)}</p>
+                    <p className={styles.queueItemMeta}>{queueEntry.report_id}</p>
+                  </div>
+                  <p className={styles.queueItemScore}>{formatScore(queueEntry.score)}</p>
+                </div>
+              ))}
+            </div>
+          </article>
+          <article className={styles.card}>
+            <h3 className={styles.cardTitle}>Submission Framing</h3>
+            <p className={styles.cardText}>{snapshot.sweep.recommendation.rationale}</p>
+            {snapshot.submission?.notable_strengths?.length ? (
+              <>
+                <p className={styles.casebookMeta}>Notable strengths</p>
+                <ul className={styles.list}>
+                  {snapshot.submission.notable_strengths.map((strength) => (
+                    <li key={strength}>{strength}</li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            {snapshot.submission?.known_limitations?.length ? (
+              <>
+                <p className={styles.casebookMeta}>Known limitations</p>
+                <ul className={styles.list}>
+                  {snapshot.submission.known_limitations.map((limitation) => (
+                    <li key={limitation}>{limitation}</li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+          </article>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <p className={styles.eyebrow}>External Threshold Sweep</p>
+            <h2 className={styles.sectionTitle}>Each external pack should keep its operating point explicit too.</h2>
+          </div>
+        </div>
+
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Threshold</th>
+                <th>Precision</th>
+                <th>Recall</th>
+                <th>F1</th>
+                <th>Flagged</th>
+                <th>Top-{snapshot.sweep.top_k} Sensitivity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snapshot.sweep.points.map((point) => (
+                <tr key={`${descriptor.id}-${point.threshold}`}>
+                  <td>{point.threshold.toFixed(2)}</td>
+                  <td>{formatPercent(point.precision)}</td>
+                  <td>{formatPercent(point.recall)}</td>
+                  <td>{formatPercent(point.f1)}</td>
+                  <td>{point.flagged}</td>
+                  <td>{formatPercent(point.sensitivity_at_top_k)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <p className={styles.eyebrow}>External Reviewer Casebook</p>
+            <h2 className={styles.sectionTitle}>Every checked-in external pack should stay inspectable, not just summarized.</h2>
+            <p className={styles.sectionText}>
+              Each entry keeps the report excerpt, reviewer focus, and actual external scoring outcome so follow-up misses
+              and confounders stay visible as the published benchmark set grows.
+            </p>
+          </div>
+        </div>
+
+        <div className={styles.casebookGrid}>
+          {snapshot.casebook.map((casebookEntry) => (
+            <article key={`${descriptor.id}-${casebookEntry.case_id}`} className={styles.casebookCard}>
+              <div className={styles.casebookHeader}>
+                <div>
+                  <p className={styles.casebookMeta}>{casebookEntry.report_id}</p>
+                  <h3 className={styles.cardTitle}>{casebookEntry.case_id}</h3>
+                </div>
+                <span className={styles.casebookTag}>{casebookEntry.benchmark_bucket || "unbucketed"}</span>
+              </div>
+
+              <p className={styles.casebookFocus}>{casebookEntry.reviewer_focus || "No reviewer cue recorded."}</p>
+              {casebookEntry.report_excerpt ? <p className={styles.casebookMeta}>{casebookEntry.report_excerpt}</p> : null}
+              <p className={styles.casebookMeta}>{casebookEntry.label_notes || "No label note recorded."}</p>
+
+              <div className={styles.miniChipRow}>
+                {casebookEntry.cohort ? <span className={styles.miniChip}>Cohort: {casebookEntry.cohort}</span> : null}
+                <span className={styles.miniChip}>
+                  Expected positive: {formatBooleanLabel(casebookEntry.expected_positive)}
+                </span>
+                <span className={styles.miniChip}>
+                  Expected escalation: {formatBooleanLabel(casebookEntry.expected_escalation)}
+                </span>
+                {casebookEntry.external.false_negative_bucket ? (
+                  <span className={styles.miniChip}>Miss bucket: {casebookEntry.external.false_negative_bucket}</span>
+                ) : null}
+              </div>
+
+              <p className={styles.casebookMeta}>
+                Expected rationale cues:{" "}
+                <span className={styles.inlineCode}>{formatCodeList(casebookEntry.expected_rationale_codes)}</span>
+              </p>
+
+              <div className={styles.resultCard}>
+                <p className={styles.resultLabel}>External</p>
+                <p className={styles.resultValue}>{formatOutcomeLabel(casebookEntry.external.outcome)}</p>
+                <p className={styles.resultText}>{renderExternalModeSummary(casebookEntry.external)}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.codePanel}>
+          <p className={styles.codeLabel}>Reproduce This</p>
+          <h2 className={styles.codeTitle}>Each published external pack should survive a clean checkout too.</h2>
+          <pre className={styles.codeBlock}>{reproduceCommands.join("\n")}</pre>
+          <p className={styles.codeText}>
+            Source files: <span className={styles.inlineCode}>{snapshot.dataset.labels_path}</span> and{" "}
+            <span className={styles.inlineCode}>{snapshot.dataset.predictions_path}</span>.
+          </p>
+        </div>
+      </section>
+    </>
+  );
+}
+
 export default async function ProofPage() {
   const demoSnapshot = await getDemoBenchmarkSnapshot();
-  const retrospectiveSnapshot = await getRetrospectiveBenchmarkSnapshot();
+  const externalBenchmarkEntries = await getPublishedExternalBenchmarkEntries();
+  const configuredExternalBenchmarkEntries = externalBenchmarkEntries.length;
+  const availableExternalBenchmarkEntries = externalBenchmarkEntries.filter(
+    (entry): entry is PublishedExternalBenchmarkEntry & { snapshot: ExternalBenchmarkSnapshot } =>
+      entry.snapshot !== null,
+  );
+  const missingExternalBenchmarkEntries =
+    configuredExternalBenchmarkEntries - availableExternalBenchmarkEntries.length;
 
-  if (!demoSnapshot && !retrospectiveSnapshot) {
+  if (!demoSnapshot && availableExternalBenchmarkEntries.length === 0) {
     return (
       <main className={styles.page}>
         <div className={styles.shell}>
           <section className={styles.warningCard}>
             <h1 className={styles.warningTitle}>Published benchmark snapshots not found</h1>
             <p className={styles.warningText}>
-              Generate the checked-in proof artifacts with <span className={styles.inlineCode}>make refresh-demo-proof</span> and{" "}
-              <span className={styles.inlineCode}>make refresh-external-sample-proof</span>, then reload this page.
+              Generate the checked-in proof artifacts with <span className={styles.inlineCode}>make refresh-demo-proof</span> and
+              the registered external benchmark refresh commands, then reload this page.
             </p>
           </section>
         </div>
@@ -103,12 +438,10 @@ export default async function ProofPage() {
 
   const missingArtifacts = [
     !demoSnapshot ? PUBLISHED_DEMO_PROOF_PATH : null,
-    !retrospectiveSnapshot ? PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH : null,
+    ...externalBenchmarkEntries
+      .filter((entry) => entry.snapshot === null)
+      .map((entry) => entry.descriptor.snapshot_path),
   ].filter((value): value is string => Boolean(value));
-  const retrospectiveCohortNotes =
-    retrospectiveSnapshot?.dataset_summary.cohort_counts?.filter((item) => Boolean(item.description)) ?? [];
-  const retrospectiveBucketNotes =
-    retrospectiveSnapshot?.dataset_summary.bucket_counts.filter((item) => Boolean(item.description)) ?? [];
 
   return (
     <main className={styles.page}>
@@ -117,13 +450,13 @@ export default async function ProofPage() {
           <p className={styles.eyebrow}>Benchmark Proof</p>
           <h1 className={styles.title}>A reproducible proof surface, not a hand-wavy claim.</h1>
           <p className={styles.subtitle}>
-            This page renders two checked-in benchmark stories: the synthetic demo comparison and the deidentified
-            retrospective-style external sample. It exists so collaborators can inspect concrete evaluation deltas, queue
-            behavior, reviewer-facing casebooks, and the exact commands needed to reproduce them.
+            This page renders the synthetic demo comparison plus every checked-in external benchmark pack listed in the
+            published registry. It exists so collaborators can inspect concrete evaluation deltas, queue behavior,
+            reviewer-facing casebooks, and the exact commands needed to reproduce them.
           </p>
           <div className={styles.chipRow}>
             <span className={styles.chip}>Synthetic demo comparison</span>
-            <span className={styles.chip}>Deidentified retrospective sample</span>
+            <span className={styles.chip}>Published external benchmark packs</span>
             <span className={styles.chip}>Reproducible reviewer casebooks</span>
           </div>
           <div className={styles.ctaRow}>
@@ -143,8 +476,11 @@ export default async function ProofPage() {
               <p className={styles.warningText}>
                 Missing artifact{missingArtifacts.length > 1 ? "s" : ""}:{" "}
                 <span className={styles.inlineCode}>{missingArtifacts.join(", ")}</span>. Regenerate the demo proof with{" "}
-                <span className={styles.inlineCode}>make refresh-demo-proof</span> and the retrospective sample with{" "}
-                <span className={styles.inlineCode}>make refresh-external-sample-proof</span>.
+                <span className={styles.inlineCode}>make refresh-demo-proof</span>. External registry coverage is{" "}
+                <strong>
+                  {availableExternalBenchmarkEntries.length}/{configuredExternalBenchmarkEntries}
+                </strong>{" "}
+                published snapshots from <span className={styles.inlineCode}>{PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH}</span>.
               </p>
             </div>
           </section>
@@ -460,323 +796,39 @@ python scripts/run_demo_eval.py --compare --json`}
           </>
         ) : null}
 
-        {retrospectiveSnapshot ? (
-          <>
-            <section className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <div>
-                  <p className={styles.eyebrow}>Retrospective Sample</p>
-                  <h2 className={styles.sectionTitle}>A broader multi-cohort external casebook now sits beside the demo proof.</h2>
-                  <p className={styles.sectionText}>
-                    This sample is still intentionally bounded, but it now shows the same proof shape across multiple
-                    deidentified retrospective-style cohorts instead of only a single undifferentiated pack.
-                  </p>
-                </div>
-              </div>
-
-              <div className={`${styles.grid} ${styles.gridFour}`}>
-                <article className={styles.card}>
-                  <p className={styles.statLabel}>External F1</p>
-                  <p className={styles.statValue}>{formatPercent(retrospectiveSnapshot.evaluation.f1)}</p>
-                  <p className={styles.statNote}>Current external casebook operating point.</p>
-                </article>
-                <article className={styles.card}>
-                  <p className={styles.statLabel}>External Recall</p>
-                  <p className={styles.statValue}>{formatPercent(retrospectiveSnapshot.evaluation.recall)}</p>
-                  <p className={styles.statNote}>Action-worthy retrospective-style cases still surfaced at threshold 0.30.</p>
-                </article>
-                <article className={styles.card}>
-                  <p className={styles.statLabel}>Recommended Threshold</p>
-                  <p className={styles.statValue}>{retrospectiveSnapshot.sweep.recommendation.recommended_threshold.toFixed(2)}</p>
-                  <p className={styles.statNote}>
-                    Miss buckets: {formatFalseNegativeBuckets(retrospectiveSnapshot.evaluation.false_negative_buckets)}.
-                  </p>
-                </article>
-                <article className={styles.card}>
-                  <p className={styles.statLabel}>Published</p>
-                  <p className={styles.statValue}>{formatGeneratedAt(retrospectiveSnapshot.generated_at)}</p>
-                  <p className={styles.statNote}>
-                    Snapshot file: <span className={styles.inlineCode}>{PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH}</span>.
-                  </p>
-                </article>
-              </div>
-            </section>
-
-            <section className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <div>
-                  <p className={styles.eyebrow}>Sample Coverage</p>
-                  <h2 className={styles.sectionTitle}>The external proof is small, deidentified, and reviewer-readable.</h2>
-                  <p className={styles.sectionText}>
-                    The checked-in sample keeps the same bucketed coverage and queue preview structure while adding report
-                    excerpts and one intentional follow-up miss that reviewers can inspect directly.
-                  </p>
-                </div>
-              </div>
-
-              <div className={`${styles.grid} ${styles.gridFour}`}>
-                <article className={styles.card}>
-                  <p className={styles.statLabel}>Reports</p>
-                  <p className={styles.statValue}>{retrospectiveSnapshot.dataset_summary.report_count}</p>
-                  <p className={styles.statNote}>Deidentified retrospective-style cases in the checked-in sample.</p>
-                </article>
-                <article className={styles.card}>
-                  <p className={styles.statLabel}>Positive Labels</p>
-                  <p className={styles.statValue}>{retrospectiveSnapshot.dataset_summary.positive_count}</p>
-                  <p className={styles.statNote}>Cases expected to stay visible for review or follow-up.</p>
-                </article>
-                <article className={styles.card}>
-                  <p className={styles.statLabel}>Escalations</p>
-                  <p className={styles.statValue}>{retrospectiveSnapshot.dataset_summary.escalation_count}</p>
-                  <p className={styles.statNote}>Cases expected to justify escalation rather than passive follow-up.</p>
-                </article>
-                <article className={styles.card}>
-                  <p className={styles.statLabel}>Cohorts</p>
-                  <p className={styles.statValue}>
-                    {retrospectiveSnapshot.dataset_summary.cohort_counts?.length ?? 0}
-                  </p>
-                  <p className={styles.statNote}>
-                    {retrospectiveSnapshot.dataset.dataset_name} on the {retrospectiveSnapshot.dataset.dataset_split} split.
-                  </p>
-                </article>
-              </div>
-
-              <div className={styles.chipRow}>
-                {retrospectiveSnapshot.dataset_summary.bucket_counts.map((bucket) => (
-                  <span key={bucket.bucket} className={styles.chip}>
-                    {bucket.bucket}: {bucket.case_count}
-                  </span>
-                ))}
-              </div>
-
-              {retrospectiveSnapshot.dataset_summary.cohort_counts?.length ? (
-                <div className={styles.chipRow}>
-                  {retrospectiveSnapshot.dataset_summary.cohort_counts.map((cohort) => (
-                    <span key={cohort.cohort} className={styles.chip}>
-                      {cohort.cohort}: {cohort.case_count}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-            </section>
-
-            {retrospectiveSnapshot.dataset_context ||
-            retrospectiveCohortNotes.length ||
-            retrospectiveBucketNotes.length ? (
-              <section className={styles.section}>
-                <div className={`${styles.grid} ${styles.gridTwo}`}>
-                  {retrospectiveSnapshot.dataset_context ? (
-                    <article className={styles.card}>
-                      <h3 className={styles.cardTitle}>Dataset Framing</h3>
-                      {retrospectiveSnapshot.dataset_context.dataset_description ? (
-                        <p className={styles.cardText}>{retrospectiveSnapshot.dataset_context.dataset_description}</p>
-                      ) : null}
-                      {retrospectiveSnapshot.dataset_context.labeling_policy ? (
-                        <>
-                          <p className={styles.casebookMeta}>Labeling policy</p>
-                          <p className={styles.cardText}>{retrospectiveSnapshot.dataset_context.labeling_policy}</p>
-                        </>
-                      ) : null}
-                      {retrospectiveSnapshot.dataset_context.notes ? (
-                        <>
-                          <p className={styles.casebookMeta}>Notes</p>
-                          <p className={styles.cardText}>{retrospectiveSnapshot.dataset_context.notes}</p>
-                        </>
-                      ) : null}
-                      {retrospectiveSnapshot.dataset.manifest_path ? (
-                        <p className={styles.casebookMeta}>
-                          Manifest: <span className={styles.inlineCode}>{retrospectiveSnapshot.dataset.manifest_path}</span>
-                        </p>
-                      ) : null}
-                    </article>
-                  ) : null}
-
-                  {retrospectiveCohortNotes.length || retrospectiveBucketNotes.length ? (
-                    <article className={styles.card}>
-                      <h3 className={styles.cardTitle}>Benchmark Notes</h3>
-                      {retrospectiveCohortNotes.length ? (
-                        <>
-                          <p className={styles.casebookMeta}>Cohorts</p>
-                          <ul className={styles.list}>
-                            {retrospectiveCohortNotes.map((cohort) => (
-                              <li key={cohort.cohort}>
-                                {cohort.cohort}: {cohort.description}
-                              </li>
-                            ))}
-                          </ul>
-                        </>
-                      ) : null}
-                      {retrospectiveBucketNotes.length ? (
-                        <>
-                          <p className={styles.casebookMeta}>Buckets</p>
-                          <ul className={styles.list}>
-                            {retrospectiveBucketNotes.map((bucket) => (
-                              <li key={bucket.bucket}>
-                                {bucket.bucket}: {bucket.description}
-                              </li>
-                            ))}
-                          </ul>
-                        </>
-                      ) : null}
-                    </article>
-                  ) : null}
-                </div>
-              </section>
-            ) : null}
-
-            <section className={styles.section}>
-              <div className={`${styles.grid} ${styles.gridTwo}`}>
-                <article className={styles.card}>
-                  <h3 className={styles.cardTitle}>External Queue</h3>
-                  <p className={styles.cardText}>
-                    Current top-{retrospectiveSnapshot.queue_preview.top_k} ranking for the deidentified retrospective sample
-                    across its recorded cohorts.
-                  </p>
-                  <div className={styles.queueList}>
-                    {retrospectiveSnapshot.queue_preview.external.map((entry) => (
-                      <div key={`external-${entry.case_id}`} className={styles.queueItem}>
-                        <div>
-                          <p className={styles.queueItemTitle}>{renderQueueSummary(entry)}</p>
-                          <p className={styles.queueItemMeta}>{entry.report_id}</p>
-                        </div>
-                        <p className={styles.queueItemScore}>{formatScore(entry.score)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </article>
-                <article className={styles.card}>
-                  <h3 className={styles.cardTitle}>Submission Framing</h3>
-                  <p className={styles.cardText}>{retrospectiveSnapshot.sweep.recommendation.rationale}</p>
-                  {retrospectiveSnapshot.submission?.notable_strengths?.length ? (
-                    <>
-                      <p className={styles.casebookMeta}>Notable strengths</p>
-                      <ul className={styles.list}>
-                        {retrospectiveSnapshot.submission.notable_strengths.map((strength) => (
-                          <li key={strength}>{strength}</li>
-                        ))}
-                      </ul>
-                    </>
-                  ) : null}
-                  {retrospectiveSnapshot.submission?.known_limitations?.length ? (
-                    <>
-                      <p className={styles.casebookMeta}>Known limitations</p>
-                      <ul className={styles.list}>
-                        {retrospectiveSnapshot.submission.known_limitations.map((limitation) => (
-                          <li key={limitation}>{limitation}</li>
-                        ))}
-                      </ul>
-                    </>
-                  ) : null}
-                </article>
-              </div>
-            </section>
-
-            <section className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <div>
-                  <p className={styles.eyebrow}>External Threshold Sweep</p>
-                  <h2 className={styles.sectionTitle}>The external sample keeps its operating point explicit too.</h2>
-                </div>
-              </div>
-
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Threshold</th>
-                      <th>Precision</th>
-                      <th>Recall</th>
-                      <th>F1</th>
-                      <th>Flagged</th>
-                      <th>Top-{retrospectiveSnapshot.sweep.top_k} Sensitivity</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {retrospectiveSnapshot.sweep.points.map((point) => (
-                      <tr key={point.threshold}>
-                        <td>{point.threshold.toFixed(2)}</td>
-                        <td>{formatPercent(point.precision)}</td>
-                        <td>{formatPercent(point.recall)}</td>
-                        <td>{formatPercent(point.f1)}</td>
-                        <td>{point.flagged}</td>
-                        <td>{formatPercent(point.sensitivity_at_top_k)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            <section className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <div>
-                  <p className={styles.eyebrow}>External Reviewer Casebook</p>
-                  <h2 className={styles.sectionTitle}>The same reviewer-facing proof shape now works on less-synthetic text.</h2>
-                  <p className={styles.sectionText}>
-                    Each entry keeps the deidentified report excerpt, reviewer focus, and the actual external scoring outcome
-                    so missed follow-up cases stay inspectable instead of disappearing into summary metrics.
-                  </p>
-                </div>
-              </div>
-
-              <div className={styles.casebookGrid}>
-                {retrospectiveSnapshot.casebook.map((entry) => (
-                  <article key={entry.case_id} className={styles.casebookCard}>
-                    <div className={styles.casebookHeader}>
-                      <div>
-                        <p className={styles.casebookMeta}>{entry.report_id}</p>
-                        <h3 className={styles.cardTitle}>{entry.case_id}</h3>
-                      </div>
-                      <span className={styles.casebookTag}>{entry.benchmark_bucket || "unbucketed"}</span>
-                    </div>
-
-                    <p className={styles.casebookFocus}>{entry.reviewer_focus || "No reviewer cue recorded."}</p>
-                    {entry.report_excerpt ? <p className={styles.casebookMeta}>{entry.report_excerpt}</p> : null}
-                    <p className={styles.casebookMeta}>{entry.label_notes || "No label note recorded."}</p>
-
-                    <div className={styles.miniChipRow}>
-                      {entry.cohort ? <span className={styles.miniChip}>Cohort: {entry.cohort}</span> : null}
-                      <span className={styles.miniChip}>Expected positive: {formatBooleanLabel(entry.expected_positive)}</span>
-                      <span className={styles.miniChip}>
-                        Expected escalation: {formatBooleanLabel(entry.expected_escalation)}
-                      </span>
-                      {entry.external.false_negative_bucket ? (
-                        <span className={styles.miniChip}>Miss bucket: {entry.external.false_negative_bucket}</span>
-                      ) : null}
-                    </div>
-
-                    <p className={styles.casebookMeta}>
-                      Expected rationale cues: <span className={styles.inlineCode}>{formatCodeList(entry.expected_rationale_codes)}</span>
-                    </p>
-
-                    <div className={styles.resultCard}>
-                      <p className={styles.resultLabel}>External</p>
-                      <p className={styles.resultValue}>{formatOutcomeLabel(entry.external.outcome)}</p>
-                      <p className={styles.resultText}>{renderExternalModeSummary(entry.external)}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section className={styles.section}>
-              <div className={styles.codePanel}>
-                <p className={styles.codeLabel}>Reproduce This</p>
-                <h2 className={styles.codeTitle}>The external sample proof should survive a clean checkout too.</h2>
-                <pre className={styles.codeBlock}>
-{`make benchmark-external-sample
-make refresh-external-sample-proof
-make validate-benchmark-submission \\
-  SUBMISSION=docs/examples/retrospective-benchmark-sample-current-submission.json`}
-                </pre>
-                <p className={styles.codeText}>
-                  Source files: <span className={styles.inlineCode}>{retrospectiveSnapshot.dataset.labels_path}</span> and{" "}
-                  <span className={styles.inlineCode}>{retrospectiveSnapshot.dataset.predictions_path}</span>.
-                </p>
-              </div>
-            </section>
-          </>
+        {configuredExternalBenchmarkEntries ? (
+          <section className={`${styles.section} ${styles.grid} ${styles.gridFour}`}>
+            <article className={styles.card}>
+              <p className={styles.statLabel}>Registry Entries</p>
+              <p className={styles.statValue}>{configuredExternalBenchmarkEntries}</p>
+              <p className={styles.statNote}>
+                External benchmark packs currently configured in{" "}
+                <span className={styles.inlineCode}>{PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH}</span>.
+              </p>
+            </article>
+            <article className={styles.card}>
+              <p className={styles.statLabel}>Published Snapshots</p>
+              <p className={styles.statValue}>{availableExternalBenchmarkEntries.length}</p>
+              <p className={styles.statNote}>Registry entries with checked-in proof artifacts available to render.</p>
+            </article>
+            <article className={styles.card}>
+              <p className={styles.statLabel}>Missing Snapshots</p>
+              <p className={styles.statValue}>{missingExternalBenchmarkEntries}</p>
+              <p className={styles.statNote}>Configured packs that still need their snapshot JSON published into the repo.</p>
+            </article>
+            <article className={styles.card}>
+              <p className={styles.statLabel}>Registry Mode</p>
+              <p className={styles.statValue}>Validated</p>
+              <p className={styles.statNote}>
+                Duplicate IDs and malformed snapshot paths now fail fast during the published proof load.
+              </p>
+            </article>
+          </section>
         ) : null}
+
+        {availableExternalBenchmarkEntries.map((entry) => (
+          <ExternalBenchmarkProofSection key={entry.descriptor.id} entry={entry} />
+        ))}
       </div>
     </main>
   );

@@ -82,8 +82,8 @@ export type DemoBenchmarkSnapshot = {
 };
 
 export const PUBLISHED_DEMO_PROOF_PATH = "docs/examples/demo-benchmark-current.json";
-export const PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH =
-  "docs/examples/retrospective-benchmark-sample-current.json";
+export const PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH =
+  "docs/examples/published-external-benchmarks.json";
 
 export type ExternalBenchmarkQueuePreview = {
   top_k: number;
@@ -125,7 +125,7 @@ export type ExternalBenchmarkDatasetContext = {
   notes?: string | null;
 };
 
-export type RetrospectiveBenchmarkSnapshot = {
+export type ExternalBenchmarkSnapshot = {
   generated_at: string;
   dataset: {
     dataset_name: string;
@@ -144,6 +144,119 @@ export type RetrospectiveBenchmarkSnapshot = {
   casebook: ExternalBenchmarkCasebookEntry[];
   submission?: ExternalBenchmarkSubmission | null;
 };
+
+export type RetrospectiveBenchmarkSnapshot = ExternalBenchmarkSnapshot;
+
+export type PublishedExternalBenchmarkDescriptor = {
+  id: string;
+  label: string;
+  title: string;
+  description: string;
+  snapshot_path: string;
+  build_command?: string | null;
+  refresh_command?: string | null;
+  submission_path?: string | null;
+};
+
+export type PublishedExternalBenchmarkEntry = {
+  descriptor: PublishedExternalBenchmarkDescriptor;
+  snapshot: ExternalBenchmarkSnapshot | null;
+};
+
+const LEGACY_EXTERNAL_BENCHMARK_DESCRIPTOR: PublishedExternalBenchmarkDescriptor = {
+  id: "retrospective-sample",
+  label: "Retrospective Sample",
+  title: "A broader multi-cohort external casebook now sits beside the demo proof.",
+  description:
+    "This sample is still intentionally bounded, but it now shows the same proof shape across multiple deidentified retrospective-style cohorts instead of only a single undifferentiated pack.",
+  snapshot_path: "docs/examples/retrospective-benchmark-sample-current.json",
+  build_command: "make benchmark-external-sample",
+  refresh_command: "make refresh-external-sample-proof",
+  submission_path: "docs/examples/retrospective-benchmark-sample-current-submission.json",
+};
+
+function expectRecord(value: unknown, fieldPath: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Invalid published benchmark registry at ${fieldPath}: expected an object.`);
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function expectTrimmedString(value: unknown, fieldPath: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`Invalid published benchmark registry at ${fieldPath}: expected a non-empty string.`);
+  }
+
+  return value.trim();
+}
+
+function expectOptionalTrimmedString(value: unknown, fieldPath: string): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  return expectTrimmedString(value, fieldPath);
+}
+
+function expectRelativeJsonPath(value: unknown, fieldPath: string): string {
+  const normalized = expectTrimmedString(value, fieldPath);
+
+  if (path.isAbsolute(normalized) || !normalized.endsWith(".json")) {
+    throw new Error(
+      `Invalid published benchmark registry at ${fieldPath}: expected a relative path to a JSON file.`,
+    );
+  }
+
+  return normalized;
+}
+
+function normalizePublishedExternalBenchmarkDescriptor(
+  value: unknown,
+  index: number,
+): PublishedExternalBenchmarkDescriptor {
+  const fieldPath = `registry[${index}]`;
+  const descriptor = expectRecord(value, fieldPath);
+
+  return {
+    id: expectTrimmedString(descriptor.id, `${fieldPath}.id`),
+    label: expectTrimmedString(descriptor.label, `${fieldPath}.label`),
+    title: expectTrimmedString(descriptor.title, `${fieldPath}.title`),
+    description: expectTrimmedString(descriptor.description, `${fieldPath}.description`),
+    snapshot_path: expectRelativeJsonPath(descriptor.snapshot_path, `${fieldPath}.snapshot_path`),
+    build_command: expectOptionalTrimmedString(descriptor.build_command, `${fieldPath}.build_command`),
+    refresh_command: expectOptionalTrimmedString(descriptor.refresh_command, `${fieldPath}.refresh_command`),
+    submission_path:
+      descriptor.submission_path === undefined || descriptor.submission_path === null
+        ? null
+        : expectRelativeJsonPath(descriptor.submission_path, `${fieldPath}.submission_path`),
+  };
+}
+
+function validatePublishedExternalBenchmarkRegistry(
+  value: unknown,
+): PublishedExternalBenchmarkDescriptor[] {
+  if (!Array.isArray(value)) {
+    throw new Error("Invalid published benchmark registry: expected an array of benchmark descriptors.");
+  }
+
+  const seenIds = new Set<string>();
+  const normalizedDescriptors = value.map((descriptor, index) =>
+    normalizePublishedExternalBenchmarkDescriptor(descriptor, index),
+  );
+
+  normalizedDescriptors.forEach((descriptor, index) => {
+    if (seenIds.has(descriptor.id)) {
+      throw new Error(
+        `Invalid published benchmark registry at registry[${index}].id: duplicate id "${descriptor.id}".`,
+      );
+    }
+
+    seenIds.add(descriptor.id);
+  });
+
+  return normalizedDescriptors;
+}
 
 function candidateRoots(): string[] {
   const cwd = process.cwd();
@@ -174,6 +287,38 @@ export async function getDemoBenchmarkSnapshot(): Promise<DemoBenchmarkSnapshot 
   return readPublishedSnapshot<DemoBenchmarkSnapshot>(PUBLISHED_DEMO_PROOF_PATH);
 }
 
+export async function getPublishedExternalBenchmarkDescriptors(): Promise<
+  PublishedExternalBenchmarkDescriptor[]
+> {
+  const registry = await readPublishedSnapshot<unknown>(
+    PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH,
+  );
+
+  if (!registry) {
+    return [LEGACY_EXTERNAL_BENCHMARK_DESCRIPTOR];
+  }
+
+  const normalizedRegistry = validatePublishedExternalBenchmarkRegistry(registry);
+
+  if (normalizedRegistry.length === 0) {
+    return [LEGACY_EXTERNAL_BENCHMARK_DESCRIPTOR];
+  }
+
+  return normalizedRegistry;
+}
+
+export async function getPublishedExternalBenchmarkEntries(): Promise<PublishedExternalBenchmarkEntry[]> {
+  const descriptors = await getPublishedExternalBenchmarkDescriptors();
+
+  return Promise.all(
+    descriptors.map(async (descriptor) => ({
+      descriptor,
+      snapshot: await readPublishedSnapshot<ExternalBenchmarkSnapshot>(descriptor.snapshot_path),
+    })),
+  );
+}
+
 export async function getRetrospectiveBenchmarkSnapshot(): Promise<RetrospectiveBenchmarkSnapshot | null> {
-  return readPublishedSnapshot<RetrospectiveBenchmarkSnapshot>(PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH);
+  const entries = await getPublishedExternalBenchmarkEntries();
+  return entries[0]?.snapshot ?? null;
 }
