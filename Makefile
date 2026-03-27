@@ -75,6 +75,22 @@ refresh-external-sample-proof:
 		--out-dir docs/examples \
 		--basename retrospective-benchmark-sample-current
 
+benchmark-external-wording-sample:
+	$(PYTHON) scripts/run_external_eval.py \
+		--labels docs/examples/wording-variance-benchmark-sample-labels.jsonl \
+		--predictions docs/examples/wording-variance-benchmark-sample-predictions.jsonl \
+		--manifest docs/examples/wording-variance-benchmark-sample-manifest.json \
+		--out-dir artifacts/benchmarks \
+		--basename wording-variance-benchmark-sample
+
+refresh-external-wording-sample-proof:
+	$(PYTHON) scripts/run_external_eval.py \
+		--labels docs/examples/wording-variance-benchmark-sample-labels.jsonl \
+		--predictions docs/examples/wording-variance-benchmark-sample-predictions.jsonl \
+		--manifest docs/examples/wording-variance-benchmark-sample-manifest.json \
+		--out-dir docs/examples \
+		--basename wording-variance-benchmark-sample-current
+
 pilot-smoke-evidence:
 	@test -n "$(SUMMARY_DIR)" || (echo "Usage: make pilot-smoke-evidence SUMMARY_DIR=path/to/downloaded/pilot-smoke-artifacts [OUT_DIR=path] [HL7_DECISION=pending|keep-manual|promote-default] [HL7_RATIONALE='reason']" && exit 2)
 	$(PYTHON) scripts/build_pilot_smoke_evidence.py \

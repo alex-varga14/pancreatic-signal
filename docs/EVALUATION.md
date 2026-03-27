@@ -18,7 +18,7 @@ The repository already ships with:
 - threshold sweep helpers for review-depth tuning
 - generated benchmark proof artifacts in `docs/examples/`, including dataset coverage, top-k queue previews, and a reviewer-facing casebook
 - an external benchmark bundle writer and submission validator that now preserves the same reviewer-facing casebook fields for collaborator datasets
-- a checked-in deidentified retrospective-style external sample pack with reproducible JSON, Markdown, and submission outputs, now broadened to 12 reports across 3 cohorts
+- checked-in deidentified external sample packs with reproducible JSON, Markdown, and submission outputs, including a 12-report retrospective multi-cohort pack and a 9-report wording-variance challenge pack
 - optional manifest-driven collaborator framing so external bundles can carry dataset notes, cohort descriptions, and labeling policy without custom hand editing
 
 ## Datasets
@@ -29,6 +29,7 @@ Current datasets:
 - public benchmark templates in `docs/examples/`
 - an optional manifest template in `docs/examples/benchmark-manifest-template.json`
 - a checked-in deidentified retrospective-style multi-cohort sample set in `docs/examples/retrospective-benchmark-sample-*.jsonl`
+- a checked-in deidentified wording-variance challenge set in `docs/examples/wording-variance-benchmark-sample-*.jsonl`
 
 Next datasets to prioritize:
 
@@ -102,6 +103,8 @@ Use these stable buckets when reviewing misses:
 - `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl MANIFEST=docs/examples/benchmark-manifest-template.json`
 - `make benchmark-external-sample`
 - `make refresh-external-sample-proof`
+- `make benchmark-external-wording-sample`
+- `make refresh-external-wording-sample-proof`
 - `make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission-template.json`
 
 ### Repo health gate
@@ -119,10 +122,13 @@ Use these stable buckets when reviewing misses:
 - `docs/examples/benchmark-prediction-template.jsonl`
 - `docs/examples/benchmark-submission-template.json`
 - generated external benchmark JSON and Markdown bundles from `scripts/run_external_eval.py` with the same dataset coverage, queue preview, and casebook structure
-- `docs/examples/published-external-benchmarks.json` as the registry that powers published external proof packs in the web UI; entries should use unique ids and checked-in relative JSON artifact paths
+- `docs/examples/published-external-benchmarks.json` as the registry that powers published external proof packs in the web UI; entries should use unique ids and checked-in relative JSON artifact paths, and `python scripts/validate_repo.py --strict` now verifies that those referenced files exist and parse
 - `docs/examples/retrospective-benchmark-sample-current.json`
 - `docs/examples/retrospective-benchmark-sample-current.md`
 - `docs/examples/retrospective-benchmark-sample-current-submission.json`
+- `docs/examples/wording-variance-benchmark-sample-current.json`
+- `docs/examples/wording-variance-benchmark-sample-current.md`
+- `docs/examples/wording-variance-benchmark-sample-current-submission.json`
 
 ## Recommended reproducibility loop
 

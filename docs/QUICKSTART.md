@@ -82,22 +82,28 @@ make benchmark-external \
 
 That external helper now emits a casebook-shaped JSON and Markdown bundle with dataset coverage, top-k queue previews, and reviewer-facing notes drawn from the optional label fields.
 
-If you want a checked-in less-synthetic multi-cohort sample rather than the tiny template pack, run:
+If you want the checked-in external proof packs rather than the tiny template pack, run:
 
 ```bash
 make benchmark-external-sample
 make refresh-external-sample-proof
+make benchmark-external-wording-sample
+make refresh-external-wording-sample-proof
 ```
 
-That sample writes and refreshes:
+Those commands write and refresh:
 
 - `artifacts/benchmarks/retrospective-benchmark-sample.json`
 - `artifacts/benchmarks/retrospective-benchmark-sample.md`
+- `artifacts/benchmarks/wording-variance-benchmark-sample.json`
+- `artifacts/benchmarks/wording-variance-benchmark-sample.md`
 - `docs/examples/published-external-benchmarks.json`
 - `docs/examples/retrospective-benchmark-sample-current.json`
 - `docs/examples/retrospective-benchmark-sample-current.md`
+- `docs/examples/wording-variance-benchmark-sample-current.json`
+- `docs/examples/wording-variance-benchmark-sample-current.md`
 
-The `/proof` page now reads the published demo proof plus every external pack listed in `docs/examples/published-external-benchmarks.json`, so the public web surface can grow beyond a single checked-in sample without more one-off UI wiring. Registry entries should keep unique `id` values and point at checked-in relative JSON snapshot paths.
+The `/proof` page now reads the published demo proof plus every external pack listed in `docs/examples/published-external-benchmarks.json`, so the public web surface can grow beyond a single checked-in sample without more one-off UI wiring. Registry entries should keep unique `id` values, point at checked-in relative JSON snapshot paths, and stay green under `make validate-strict`.
 
 - product framing: [README.md](../README.md)
 - benchmark philosophy: [EVALUATION.md](./EVALUATION.md)

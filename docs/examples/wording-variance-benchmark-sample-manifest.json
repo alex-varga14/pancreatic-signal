@@ -1,0 +1,56 @@
+{
+  "dataset_name": "deidentified-wording-variance-challenge-sample",
+  "dataset_split": "challenge",
+  "project_name": "Pancreatic Signal",
+  "submission_name": "external-deidentified-wording-variance-challenge-sample",
+  "threshold": 0.35,
+  "top_k": 4,
+  "deidentified": true,
+  "dataset_description": "Checked-in wording-variance challenge pack used to keep softer suspicion language, optional follow-up recommendations, and inflammatory confounders visible in the public proof surface.",
+  "labeling_policy": "This deidentified repository sample emphasizes reviewer-visible pancreatic concern, follow-up language, and confounder handling rather than autonomous diagnostic claims. Labels were shaped to preserve the ambiguity a reviewer would still need to inspect.",
+  "notes": "Repository challenge pack for public proof only. This is not a clinical validation dataset.",
+  "notable_strengths": [
+    "Top-ranked positives still cluster around the most actionable lesion and occult-lesion concern cases.",
+    "The pack keeps softer wording and optional-sounding follow-up recommendations visible in the same reviewer-facing proof shape."
+  ],
+  "known_limitations": [
+    "Sample remains small and deidentified for repository use.",
+    "One optional-sounding follow-up case remains missed and one pancreatitis confounder remains overcalled."
+  ],
+  "cohort_descriptions": [
+    {
+      "cohort": "community CT wording review",
+      "description": "Front-door CT cases where softer phrasing and inflammatory change can blur the line between a true pancreatic cue and a confounder."
+    },
+    {
+      "cohort": "MR surveillance callbacks",
+      "description": "Surveillance MRI cases centered on cyst follow-up language, interval wording, and optional-sounding reimaging recommendations."
+    },
+    {
+      "cohort": "navigator adjudication queue",
+      "description": "Navigator-style review cases that mix high-acuity lesion language, equivocal focal fullness, and clearly benign negatives."
+    }
+  ],
+  "benchmark_bucket_descriptions": [
+    {
+      "bucket": "explicit malignancy",
+      "description": "Reports with direct lesion or malignant-process wording that should remain easy to justify in a reviewed queue."
+    },
+    {
+      "bucket": "implicit concern",
+      "description": "Cases driven by focal fullness, duct change, or hedged occult-lesion language instead of a direct mass declaration."
+    },
+    {
+      "bucket": "follow-up only",
+      "description": "Operationally important pancreatic follow-up recommendations that can sound optional enough to miss."
+    },
+    {
+      "bucket": "pancreatitis confounder",
+      "description": "Specificity checks where inflammatory duct prominence risks being overcalled as a suspicious pancreatic signal."
+    },
+    {
+      "bucket": "negative control",
+      "description": "Clearly nonsuspicious pancreatic reports that should stay out of the flagged queue."
+    }
+  ]
+}

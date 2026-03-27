@@ -49,12 +49,16 @@ The public label template now also supports optional reviewer-facing fields:
 
 These fields are not required for metric validity, but they let the generated external bundle publish cohort coverage, dataset coverage, queue previews, and a reviewer-facing casebook instead of only a score table.
 
-The repository also now includes a checked-in deidentified retrospective-style multi-cohort sample pack that uses those fields:
+The repository also now includes checked-in deidentified sample packs that use those fields:
 
 - `docs/examples/retrospective-benchmark-sample-labels.jsonl`
 - `docs/examples/retrospective-benchmark-sample-predictions.jsonl`
 - `docs/examples/retrospective-benchmark-sample-current.json`
 - `docs/examples/retrospective-benchmark-sample-current.md`
+- `docs/examples/wording-variance-benchmark-sample-labels.jsonl`
+- `docs/examples/wording-variance-benchmark-sample-predictions.jsonl`
+- `docs/examples/wording-variance-benchmark-sample-current.json`
+- `docs/examples/wording-variance-benchmark-sample-current.md`
 
 ## Generate the bundle
 
@@ -76,18 +80,22 @@ make benchmark-external \
   MANIFEST=docs/examples/benchmark-manifest-template.json
 ```
 
-For the checked-in less-synthetic sample pack:
+For the checked-in proof packs:
 
 ```bash
 make benchmark-external-sample
 make refresh-external-sample-proof
+make benchmark-external-wording-sample
+make refresh-external-wording-sample-proof
 ```
 
-This writes:
+The generic helper writes:
 
 - `artifacts/benchmarks/external-benchmark.json`
 - `artifacts/benchmarks/external-benchmark.md`
 - `artifacts/benchmarks/external-benchmark-submission.json`
+
+The checked-in proof-pack commands above refresh the retrospective sample plus the wording-variance challenge pack listed in `docs/examples/published-external-benchmarks.json`.
 
 The JSON and Markdown outputs now include:
 

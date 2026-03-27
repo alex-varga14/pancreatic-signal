@@ -1,0 +1,677 @@
+{
+  "generated_at": "2026-03-27T06:49:08.782172Z",
+  "dataset": {
+    "dataset_name": "deidentified-wording-variance-challenge-sample",
+    "dataset_split": "challenge",
+    "deidentified": true,
+    "label_schema_version": "pancreatic-signal-eval-v1",
+    "labels_path": "docs/examples/wording-variance-benchmark-sample-labels.jsonl",
+    "predictions_path": "docs/examples/wording-variance-benchmark-sample-predictions.jsonl",
+    "manifest_path": "docs/examples/wording-variance-benchmark-sample-manifest.json"
+  },
+  "dataset_context": {
+    "dataset_description": "Checked-in wording-variance challenge pack used to keep softer suspicion language, optional follow-up recommendations, and inflammatory confounders visible in the public proof surface.",
+    "labeling_policy": "This deidentified repository sample emphasizes reviewer-visible pancreatic concern, follow-up language, and confounder handling rather than autonomous diagnostic claims. Labels were shaped to preserve the ambiguity a reviewer would still need to inspect.",
+    "notes": "Repository challenge pack for public proof only. This is not a clinical validation dataset."
+  },
+  "dataset_summary": {
+    "report_count": 9,
+    "positive_count": 6,
+    "escalation_count": 4,
+    "bucket_counts": [
+      {
+        "bucket": "explicit malignancy",
+        "case_count": 2,
+        "positive_count": 2,
+        "escalation_count": 2,
+        "description": "Reports with direct lesion or malignant-process wording that should remain easy to justify in a reviewed queue."
+      },
+      {
+        "bucket": "follow-up only",
+        "case_count": 2,
+        "positive_count": 2,
+        "escalation_count": 0,
+        "description": "Operationally important pancreatic follow-up recommendations that can sound optional enough to miss."
+      },
+      {
+        "bucket": "implicit concern",
+        "case_count": 2,
+        "positive_count": 2,
+        "escalation_count": 2,
+        "description": "Cases driven by focal fullness, duct change, or hedged occult-lesion language instead of a direct mass declaration."
+      },
+      {
+        "bucket": "negative control",
+        "case_count": 2,
+        "positive_count": 0,
+        "escalation_count": 0,
+        "description": "Clearly nonsuspicious pancreatic reports that should stay out of the flagged queue."
+      },
+      {
+        "bucket": "pancreatitis confounder",
+        "case_count": 1,
+        "positive_count": 0,
+        "escalation_count": 0,
+        "description": "Specificity checks where inflammatory duct prominence risks being overcalled as a suspicious pancreatic signal."
+      }
+    ],
+    "cohort_counts": [
+      {
+        "cohort": "MR surveillance callbacks",
+        "case_count": 2,
+        "positive_count": 2,
+        "flagged_count": 1,
+        "missed_positive_count": 1,
+        "description": "Surveillance MRI cases centered on cyst follow-up language, interval wording, and optional-sounding reimaging recommendations."
+      },
+      {
+        "cohort": "community CT wording review",
+        "case_count": 3,
+        "positive_count": 2,
+        "flagged_count": 3,
+        "missed_positive_count": 0,
+        "description": "Front-door CT cases where softer phrasing and inflammatory change can blur the line between a true pancreatic cue and a confounder."
+      },
+      {
+        "cohort": "navigator adjudication queue",
+        "case_count": 4,
+        "positive_count": 2,
+        "flagged_count": 2,
+        "missed_positive_count": 0,
+        "description": "Navigator-style review cases that mix high-acuity lesion language, equivocal focal fullness, and clearly benign negatives."
+      }
+    ]
+  },
+  "queue_preview": {
+    "top_k": 4,
+    "external": [
+      {
+        "case_id": "C-WORD-001",
+        "report_id": "R-WORD-001",
+        "cohort": "community CT wording review",
+        "benchmark_bucket": "explicit malignancy",
+        "score": 0.91,
+        "outcome": "true_positive"
+      },
+      {
+        "case_id": "C-WORD-009",
+        "report_id": "R-WORD-009",
+        "cohort": "navigator adjudication queue",
+        "benchmark_bucket": "explicit malignancy",
+        "score": 0.71,
+        "outcome": "true_positive"
+      },
+      {
+        "case_id": "C-WORD-002",
+        "report_id": "R-WORD-002",
+        "cohort": "community CT wording review",
+        "benchmark_bucket": "implicit concern",
+        "score": 0.64,
+        "outcome": "true_positive"
+      },
+      {
+        "case_id": "C-WORD-006",
+        "report_id": "R-WORD-006",
+        "cohort": "navigator adjudication queue",
+        "benchmark_bucket": "implicit concern",
+        "score": 0.58,
+        "outcome": "true_positive"
+      }
+    ]
+  },
+  "evaluation": {
+    "score_mode": "external",
+    "threshold": 0.35,
+    "top_k": 4,
+    "processed": 9,
+    "positives": 6,
+    "flagged": 6,
+    "true_positives": 5,
+    "false_positives": 1,
+    "true_negatives": 2,
+    "false_negatives": 1,
+    "precision": 0.8333,
+    "recall": 0.8333,
+    "f1": 0.8333,
+    "precision_at_top_k": 1.0,
+    "sensitivity_at_top_k": 0.6667,
+    "reviewer_yield_at_top_k": 1.0,
+    "false_negative_buckets": {
+      "recommendation_language_missed": 1
+    },
+    "cases": [
+      {
+        "report_id": "R-WORD-001",
+        "case_id": "C-WORD-001",
+        "score": 0.91,
+        "base_score": 0.91,
+        "hybrid_score": 0.91,
+        "urgency": "external",
+        "flagged": true,
+        "expected_positive": true,
+        "expected_escalation": true,
+        "rationale_codes": [
+          "PDAC_EXPLICIT_SUSPICION",
+          "PANCREATIC_MASS",
+          "DUCT_DILATION",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "label_notes": "Softer explicit neoplasm phrasing with tissue recommendation and duct caliber change.",
+        "report_excerpt": "CT abdomen with contrast: Ill-defined hypoattenuating lesion at the pancreatic tail with upstream duct caliber change. Impression: infiltrative pancreatic neoplasm is suspected; EUS-guided tissue sampling is recommended.",
+        "cohort": "community CT wording review",
+        "benchmark_bucket": "explicit malignancy",
+        "reviewer_focus": "Keep softer but still explicit neoplasm suspicion linked to the tissue recommendation.",
+        "expected_rationale_codes": [
+          "PDAC_EXPLICIT_SUSPICION",
+          "PANCREATIC_MASS",
+          "DUCT_DILATION",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      {
+        "report_id": "R-WORD-009",
+        "case_id": "C-WORD-009",
+        "score": 0.71,
+        "base_score": 0.71,
+        "hybrid_score": 0.71,
+        "urgency": "external",
+        "flagged": true,
+        "expected_positive": true,
+        "expected_escalation": true,
+        "rationale_codes": [
+          "PDAC_EXPLICIT_SUSPICION",
+          "PANCREATIC_MASS",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "label_notes": "High-acuity neck lesion with malignant process favored and urgent biopsy guidance.",
+        "report_excerpt": "CT abdomen and pelvis: Hypoenhancing lesion at the pancreatic neck with mild SMV abutment. Impression: malignant pancreatic process is favored; urgent tissue diagnosis is advised.",
+        "cohort": "navigator adjudication queue",
+        "benchmark_bucket": "explicit malignancy",
+        "reviewer_focus": "Keep high-acuity lesion language and urgent workup recommendation near the top of the queue.",
+        "expected_rationale_codes": [
+          "PDAC_EXPLICIT_SUSPICION",
+          "PANCREATIC_MASS",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      {
+        "report_id": "R-WORD-002",
+        "case_id": "C-WORD-002",
+        "score": 0.64,
+        "base_score": 0.64,
+        "hybrid_score": 0.64,
+        "urgency": "external",
+        "flagged": true,
+        "expected_positive": true,
+        "expected_escalation": true,
+        "rationale_codes": [
+          "DUCT_DILATION",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "label_notes": "Subtle contour change and distal duct prominence with occult malignancy not excluded.",
+        "report_excerpt": "CT pancreas protocol: Mild loss of normal lobulation at the pancreatic neck with distal duct prominence. Impression: occult pancreatic malignancy is not excluded; dedicated pancreas protocol CT is recommended.",
+        "cohort": "community CT wording review",
+        "benchmark_bucket": "implicit concern",
+        "reviewer_focus": "Surface softer not-excluded wording when it rides with focal pancreatic morphology.",
+        "expected_rationale_codes": [
+          "DUCT_DILATION",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      {
+        "report_id": "R-WORD-006",
+        "case_id": "C-WORD-006",
+        "score": 0.58,
+        "base_score": 0.58,
+        "hybrid_score": 0.58,
+        "urgency": "external",
+        "flagged": true,
+        "expected_positive": true,
+        "expected_escalation": true,
+        "rationale_codes": [
+          "PANCREATIC_MASS",
+          "DUCT_CUTOFF",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "label_notes": "Focal pancreatic head fullness with abrupt side-branch termination and GI workup advice.",
+        "report_excerpt": "CT abdomen and pelvis: Focal fullness at the pancreatic head with abrupt termination of an adjacent side branch. Impression: an occult pancreatic lesion remains a concern; GI evaluation and endoscopic correlation are recommended.",
+        "cohort": "navigator adjudication queue",
+        "benchmark_bucket": "implicit concern",
+        "reviewer_focus": "Flag focal fullness plus abrupt ductal change even when the report hedges on naming a mass.",
+        "expected_rationale_codes": [
+          "PANCREATIC_MASS",
+          "DUCT_CUTOFF",
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      {
+        "report_id": "R-WORD-003",
+        "case_id": "C-WORD-003",
+        "score": 0.39,
+        "base_score": 0.39,
+        "hybrid_score": 0.39,
+        "urgency": "external",
+        "flagged": true,
+        "expected_positive": true,
+        "expected_escalation": false,
+        "rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "label_notes": "Branch-duct cyst surveillance case with interval septal thickening and a clear MRI follow-up recommendation.",
+        "report_excerpt": "MRI abdomen: Branch-duct IPMN at the pancreatic body shows mild interval septal thickening without enhancing nodularity. Impression: follow-up pancreas MRI in 6 months is recommended.",
+        "cohort": "MR surveillance callbacks",
+        "benchmark_bucket": "follow-up only",
+        "reviewer_focus": "Keep pancreatic surveillance instructions reviewable even when cancer wording is absent.",
+        "expected_rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      {
+        "report_id": "R-WORD-004",
+        "case_id": "C-WORD-004",
+        "score": 0.37,
+        "base_score": 0.37,
+        "hybrid_score": 0.37,
+        "urgency": "external",
+        "flagged": true,
+        "expected_positive": false,
+        "expected_escalation": false,
+        "rationale_codes": [
+          "DUCT_DILATION"
+        ],
+        "label_notes": "Acute-on-chronic pancreatitis with transient duct prominence and an explicit denial of a focal mass.",
+        "report_excerpt": "CT abdomen: Acute-on-chronic pancreatitis with mild main duct prominence and peripancreatic inflammatory change. No focal pancreatic mass is identified.",
+        "cohort": "community CT wording review",
+        "benchmark_bucket": "pancreatitis confounder",
+        "reviewer_focus": "Avoid turning inflammatory duct prominence into a false alarm when mass language is explicitly denied.",
+        "expected_rationale_codes": []
+      },
+      {
+        "report_id": "R-WORD-007",
+        "case_id": "C-WORD-007",
+        "score": 0.22,
+        "base_score": 0.22,
+        "hybrid_score": 0.22,
+        "urgency": "external",
+        "flagged": false,
+        "expected_positive": true,
+        "expected_escalation": false,
+        "rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "label_notes": "Optional-sounding surveillance recommendation for stable uncinate cyst cluster that is easy to underrank.",
+        "report_excerpt": "MRI pancreas surveillance: Small clustered uncinate cysts are unchanged. Impression: consider repeat pancreas MRI in 12 months to document continued stability.",
+        "cohort": "MR surveillance callbacks",
+        "benchmark_bucket": "follow-up only",
+        "reviewer_focus": "Make softer optional-sounding surveillance wording visible enough for review.",
+        "expected_rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ]
+      },
+      {
+        "report_id": "R-WORD-008",
+        "case_id": "C-WORD-008",
+        "score": 0.12,
+        "base_score": 0.12,
+        "hybrid_score": 0.12,
+        "urgency": "external",
+        "flagged": false,
+        "expected_positive": false,
+        "expected_escalation": false,
+        "rationale_codes": [],
+        "label_notes": "Incidental fatty pancreatic change without lesion or follow-up recommendation.",
+        "report_excerpt": "CT abdomen: Mild fatty replacement of the pancreas without ductal dilatation, focal lesion, or peripancreatic stranding.",
+        "cohort": "navigator adjudication queue",
+        "benchmark_bucket": "negative control",
+        "reviewer_focus": "Do not escalate incidental pancreatic fatty change.",
+        "expected_rationale_codes": []
+      },
+      {
+        "report_id": "R-WORD-005",
+        "case_id": "C-WORD-005",
+        "score": 0.05,
+        "base_score": 0.05,
+        "hybrid_score": 0.05,
+        "urgency": "external",
+        "flagged": false,
+        "expected_positive": false,
+        "expected_escalation": false,
+        "rationale_codes": [],
+        "label_notes": "Clean MRI negative control with a normal pancreas and no recommendation language.",
+        "report_excerpt": "MRI abdomen: Pancreas is normal in contour and signal without ductal dilatation, focal lesion, or cystic change.",
+        "cohort": "navigator adjudication queue",
+        "benchmark_bucket": "negative control",
+        "reviewer_focus": "Keep clean normal surveillance reads out of the queue.",
+        "expected_rationale_codes": []
+      }
+    ]
+  },
+  "sweep": {
+    "score_mode": "external",
+    "top_k": 4,
+    "thresholds": [
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6
+    ],
+    "points": [
+      {
+        "threshold": 0.2,
+        "f1": 0.9231,
+        "recall": 1.0,
+        "flagged": 7,
+        "precision": 0.8571,
+        "precision_at_top_k": 1.0,
+        "sensitivity_at_top_k": 0.6667
+      },
+      {
+        "threshold": 0.3,
+        "f1": 0.8333,
+        "recall": 0.8333,
+        "flagged": 6,
+        "precision": 0.8333,
+        "precision_at_top_k": 1.0,
+        "sensitivity_at_top_k": 0.6667
+      },
+      {
+        "threshold": 0.4,
+        "f1": 0.8,
+        "recall": 0.6667,
+        "flagged": 4,
+        "precision": 1.0,
+        "precision_at_top_k": 1.0,
+        "sensitivity_at_top_k": 0.6667
+      },
+      {
+        "threshold": 0.5,
+        "f1": 0.8,
+        "recall": 0.6667,
+        "flagged": 4,
+        "precision": 1.0,
+        "precision_at_top_k": 1.0,
+        "sensitivity_at_top_k": 0.6667
+      },
+      {
+        "threshold": 0.6,
+        "f1": 0.6667,
+        "recall": 0.5,
+        "flagged": 3,
+        "precision": 1.0,
+        "precision_at_top_k": 1.0,
+        "sensitivity_at_top_k": 0.6667
+      }
+    ],
+    "recommendation": {
+      "score_mode": "external",
+      "recommended_threshold": 0.2,
+      "rationale": "Selected threshold 0.20 because it maximizes F1 (0.92) while preserving recall 1.00 with 7 flagged case(s).",
+      "f1": 0.9231,
+      "recall": 1.0,
+      "flagged": 7
+    }
+  },
+  "casebook": [
+    {
+      "case_id": "C-WORD-001",
+      "report_id": "R-WORD-001",
+      "report_excerpt": "CT abdomen with contrast: Ill-defined hypoattenuating lesion at the pancreatic tail with upstream duct caliber change. Impression: infiltrative pancreatic neoplasm is suspected; EUS-guided tissue sampling is recommended.",
+      "cohort": "community CT wording review",
+      "benchmark_bucket": "explicit malignancy",
+      "reviewer_focus": "Keep softer but still explicit neoplasm suspicion linked to the tissue recommendation.",
+      "label_notes": "Softer explicit neoplasm phrasing with tissue recommendation and duct caliber change.",
+      "expected_positive": true,
+      "expected_escalation": true,
+      "expected_rationale_codes": [
+        "PDAC_EXPLICIT_SUSPICION",
+        "PANCREATIC_MASS",
+        "DUCT_DILATION",
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "external": {
+        "score": 0.91,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "PDAC_EXPLICIT_SUSPICION",
+          "PANCREATIC_MASS",
+          "DUCT_DILATION",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-WORD-002",
+      "report_id": "R-WORD-002",
+      "report_excerpt": "CT pancreas protocol: Mild loss of normal lobulation at the pancreatic neck with distal duct prominence. Impression: occult pancreatic malignancy is not excluded; dedicated pancreas protocol CT is recommended.",
+      "cohort": "community CT wording review",
+      "benchmark_bucket": "implicit concern",
+      "reviewer_focus": "Surface softer not-excluded wording when it rides with focal pancreatic morphology.",
+      "label_notes": "Subtle contour change and distal duct prominence with occult malignancy not excluded.",
+      "expected_positive": true,
+      "expected_escalation": true,
+      "expected_rationale_codes": [
+        "DUCT_DILATION",
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "external": {
+        "score": 0.64,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "DUCT_DILATION",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-WORD-003",
+      "report_id": "R-WORD-003",
+      "report_excerpt": "MRI abdomen: Branch-duct IPMN at the pancreatic body shows mild interval septal thickening without enhancing nodularity. Impression: follow-up pancreas MRI in 6 months is recommended.",
+      "cohort": "MR surveillance callbacks",
+      "benchmark_bucket": "follow-up only",
+      "reviewer_focus": "Keep pancreatic surveillance instructions reviewable even when cancer wording is absent.",
+      "label_notes": "Branch-duct cyst surveillance case with interval septal thickening and a clear MRI follow-up recommendation.",
+      "expected_positive": true,
+      "expected_escalation": false,
+      "expected_rationale_codes": [
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "external": {
+        "score": 0.39,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-WORD-004",
+      "report_id": "R-WORD-004",
+      "report_excerpt": "CT abdomen: Acute-on-chronic pancreatitis with mild main duct prominence and peripancreatic inflammatory change. No focal pancreatic mass is identified.",
+      "cohort": "community CT wording review",
+      "benchmark_bucket": "pancreatitis confounder",
+      "reviewer_focus": "Avoid turning inflammatory duct prominence into a false alarm when mass language is explicitly denied.",
+      "label_notes": "Acute-on-chronic pancreatitis with transient duct prominence and an explicit denial of a focal mass.",
+      "expected_positive": false,
+      "expected_escalation": false,
+      "expected_rationale_codes": [],
+      "external": {
+        "score": 0.37,
+        "flagged": true,
+        "outcome": "false_positive",
+        "rationale_codes": [
+          "DUCT_DILATION"
+        ],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-WORD-005",
+      "report_id": "R-WORD-005",
+      "report_excerpt": "MRI abdomen: Pancreas is normal in contour and signal without ductal dilatation, focal lesion, or cystic change.",
+      "cohort": "navigator adjudication queue",
+      "benchmark_bucket": "negative control",
+      "reviewer_focus": "Keep clean normal surveillance reads out of the queue.",
+      "label_notes": "Clean MRI negative control with a normal pancreas and no recommendation language.",
+      "expected_positive": false,
+      "expected_escalation": false,
+      "expected_rationale_codes": [],
+      "external": {
+        "score": 0.05,
+        "flagged": false,
+        "outcome": "true_negative",
+        "rationale_codes": [],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-WORD-006",
+      "report_id": "R-WORD-006",
+      "report_excerpt": "CT abdomen and pelvis: Focal fullness at the pancreatic head with abrupt termination of an adjacent side branch. Impression: an occult pancreatic lesion remains a concern; GI evaluation and endoscopic correlation are recommended.",
+      "cohort": "navigator adjudication queue",
+      "benchmark_bucket": "implicit concern",
+      "reviewer_focus": "Flag focal fullness plus abrupt ductal change even when the report hedges on naming a mass.",
+      "label_notes": "Focal pancreatic head fullness with abrupt side-branch termination and GI workup advice.",
+      "expected_positive": true,
+      "expected_escalation": true,
+      "expected_rationale_codes": [
+        "PANCREATIC_MASS",
+        "DUCT_CUTOFF",
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "external": {
+        "score": 0.58,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "PANCREATIC_MASS",
+          "DUCT_CUTOFF",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-WORD-007",
+      "report_id": "R-WORD-007",
+      "report_excerpt": "MRI pancreas surveillance: Small clustered uncinate cysts are unchanged. Impression: consider repeat pancreas MRI in 12 months to document continued stability.",
+      "cohort": "MR surveillance callbacks",
+      "benchmark_bucket": "follow-up only",
+      "reviewer_focus": "Make softer optional-sounding surveillance wording visible enough for review.",
+      "label_notes": "Optional-sounding surveillance recommendation for stable uncinate cyst cluster that is easy to underrank.",
+      "expected_positive": true,
+      "expected_escalation": false,
+      "expected_rationale_codes": [
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "external": {
+        "score": 0.22,
+        "flagged": false,
+        "outcome": "missed_positive",
+        "rationale_codes": [
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "false_negative_bucket": "recommendation_language_missed"
+      }
+    },
+    {
+      "case_id": "C-WORD-008",
+      "report_id": "R-WORD-008",
+      "report_excerpt": "CT abdomen: Mild fatty replacement of the pancreas without ductal dilatation, focal lesion, or peripancreatic stranding.",
+      "cohort": "navigator adjudication queue",
+      "benchmark_bucket": "negative control",
+      "reviewer_focus": "Do not escalate incidental pancreatic fatty change.",
+      "label_notes": "Incidental fatty pancreatic change without lesion or follow-up recommendation.",
+      "expected_positive": false,
+      "expected_escalation": false,
+      "expected_rationale_codes": [],
+      "external": {
+        "score": 0.12,
+        "flagged": false,
+        "outcome": "true_negative",
+        "rationale_codes": [],
+        "false_negative_bucket": null
+      }
+    },
+    {
+      "case_id": "C-WORD-009",
+      "report_id": "R-WORD-009",
+      "report_excerpt": "CT abdomen and pelvis: Hypoenhancing lesion at the pancreatic neck with mild SMV abutment. Impression: malignant pancreatic process is favored; urgent tissue diagnosis is advised.",
+      "cohort": "navigator adjudication queue",
+      "benchmark_bucket": "explicit malignancy",
+      "reviewer_focus": "Keep high-acuity lesion language and urgent workup recommendation near the top of the queue.",
+      "label_notes": "High-acuity neck lesion with malignant process favored and urgent biopsy guidance.",
+      "expected_positive": true,
+      "expected_escalation": true,
+      "expected_rationale_codes": [
+        "PDAC_EXPLICIT_SUSPICION",
+        "PANCREATIC_MASS",
+        "FOLLOWUP_RECOMMENDED"
+      ],
+      "external": {
+        "score": 0.71,
+        "flagged": true,
+        "outcome": "true_positive",
+        "rationale_codes": [
+          "PDAC_EXPLICIT_SUSPICION",
+          "PANCREATIC_MASS",
+          "FOLLOWUP_RECOMMENDED"
+        ],
+        "false_negative_bucket": null
+      }
+    }
+  ],
+  "submission": {
+    "submission_version": "1.0",
+    "submission_name": "external-deidentified-wording-variance-challenge-sample",
+    "project_name": "Pancreatic Signal",
+    "repository_url": null,
+    "commit_sha": null,
+    "dataset_name": "deidentified-wording-variance-challenge-sample",
+    "dataset_split": "challenge",
+    "report_count": 9,
+    "deidentified": true,
+    "label_schema_version": "pancreatic-signal-eval-v1",
+    "score_mode": "external",
+    "threshold": 0.35,
+    "top_k": 4,
+    "evaluation_command": "python scripts/run_external_eval.py --labels docs/examples/wording-variance-benchmark-sample-labels.jsonl --predictions docs/examples/wording-variance-benchmark-sample-predictions.jsonl --threshold 0.35 --top-k 4 --out-dir docs/examples --basename wording-variance-benchmark-sample-current --manifest docs/examples/wording-variance-benchmark-sample-manifest.json --dataset-name deidentified-wording-variance-challenge-sample --dataset-split challenge --project-name \"Pancreatic Signal\" --submission-name external-deidentified-wording-variance-challenge-sample --strength \"Top-ranked positives still cluster around the most actionable lesion and occult-lesion concern cases.\" --strength \"The pack keeps softer wording and optional-sounding follow-up recommendations visible in the same reviewer-facing proof shape.\" --limitation \"Sample remains small and deidentified for repository use.\" --limitation \"One optional-sounding follow-up case remains missed and one pancreatitis confounder remains overcalled.\" --notes \"Repository challenge pack for public proof only. This is not a clinical validation dataset.\"",
+    "artifact_paths": [
+      "docs/examples/wording-variance-benchmark-sample-current.json",
+      "docs/examples/wording-variance-benchmark-sample-current.md"
+    ],
+    "metrics": {
+      "processed": 9,
+      "positives": 6,
+      "flagged": 6,
+      "true_positives": 5,
+      "false_positives": 1,
+      "true_negatives": 2,
+      "false_negatives": 1,
+      "precision": 0.8333,
+      "recall": 0.8333,
+      "f1": 0.8333,
+      "precision_at_top_k": 1.0,
+      "sensitivity_at_top_k": 0.6667,
+      "reviewer_yield_at_top_k": 1.0,
+      "false_negative_buckets": {
+        "recommendation_language_missed": 1
+      }
+    },
+    "notable_strengths": [
+      "Top-ranked positives still cluster around the most actionable lesion and occult-lesion concern cases.",
+      "The pack keeps softer wording and optional-sounding follow-up recommendations visible in the same reviewer-facing proof shape."
+    ],
+    "known_limitations": [
+      "Sample remains small and deidentified for repository use.",
+      "One optional-sounding follow-up case remains missed and one pancreatitis confounder remains overcalled."
+    ],
+    "notes": "Repository challenge pack for public proof only. This is not a clinical validation dataset."
+  }
+}
