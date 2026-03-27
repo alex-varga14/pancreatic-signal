@@ -96,7 +96,8 @@ export default async function HomePage() {
               {externalEvaluation && externalSummary && primaryExternalEntry ? (
                 <p className={styles.heroProofMetric}>
                   Published external packs: <strong>{availableExternalBenchmarkEntries.length}</strong> live from{" "}
-                  <strong>{configuredExternalBenchmarkEntries}</strong> configured.{" "}
+                  <strong>{configuredExternalBenchmarkEntries}</strong> configured, with side-by-side comparison now on{" "}
+                  <strong>/proof</strong>.{" "}
                   {primaryExternalEntry.descriptor.label}: external recall <strong>{formatPercent(externalEvaluation.recall)}</strong> and F1{" "}
                   <strong>{formatPercent(externalEvaluation.f1)}</strong> across{" "}
                   <strong>{externalSummary.report_count}</strong> checked-in reports in{" "}
@@ -248,8 +249,8 @@ docker compose up --build`}
                 <span className={styles.inlineCode}>/proof</span>
               </h3>
               <p className={styles.cardText}>
-                Review the checked-in demo comparison, the registry-driven external benchmark packs, and the exact commands
-                used to reproduce each proof story.
+                Review the checked-in demo comparison, compare published external benchmark packs side by side, and inspect
+                the exact commands used to reproduce each proof story.
               </p>
               <p className={styles.routeMeta}>Best first stop for outside collaborators</p>
             </Link>

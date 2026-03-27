@@ -122,7 +122,7 @@ make benchmark-external-wording-sample
 make refresh-external-wording-sample-proof
 ```
 
-The public `/proof` page now renders the checked-in demo comparison plus the registry of published external benchmark packs in `docs/examples/published-external-benchmarks.json`, which currently includes the retrospective-style multi-cohort sample and a wording-variance challenge pack.
+The public `/proof` page now renders the checked-in demo comparison plus a side-by-side comparison of the published external benchmark packs listed in `docs/examples/published-external-benchmarks.json`, which currently includes the retrospective-style multi-cohort sample and a wording-variance challenge pack.
 
 ### API
 

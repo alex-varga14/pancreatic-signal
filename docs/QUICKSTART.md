@@ -103,7 +103,7 @@ Those commands write and refresh:
 - `docs/examples/wording-variance-benchmark-sample-current.json`
 - `docs/examples/wording-variance-benchmark-sample-current.md`
 
-The `/proof` page now reads the published demo proof plus every external pack listed in `docs/examples/published-external-benchmarks.json`, so the public web surface can grow beyond a single checked-in sample without more one-off UI wiring. Registry entries should keep unique `id` values, point at checked-in relative JSON snapshot paths, and stay green under `make validate-strict`.
+The `/proof` page now reads the published demo proof plus every external pack listed in `docs/examples/published-external-benchmarks.json`, compares those packs side by side, and still links into each full casebook section. Registry entries should keep unique `id` values, point at checked-in relative JSON snapshot paths, and stay green under `make validate-strict`.
 
 - product framing: [README.md](../README.md)
 - benchmark philosophy: [EVALUATION.md](./EVALUATION.md)

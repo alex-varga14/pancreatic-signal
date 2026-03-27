@@ -74,6 +74,24 @@
   font-weight: 600;
 }
 
+.chipLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(13, 91, 83, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink-strong);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.chipLink:hover {
+  transform: translateY(-1px);
+}
+
 .ctaRow {
   display: flex;
   flex-wrap: wrap;
@@ -492,6 +510,15 @@
 
 .table td {
   color: var(--ink-strong);
+}
+
+.tableLink {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.tableLink:hover {
+  text-decoration: underline;
 }
 
 .inlineCode {

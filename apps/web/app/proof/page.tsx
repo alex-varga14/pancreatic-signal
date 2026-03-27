@@ -65,6 +65,23 @@ function formatFalseNegativeBuckets(buckets: Record<string, number>): string {
   return entries.length ? entries.map(([bucket, count]) => `${bucket}: ${count}`).join(", ") : "none";
 }
 
+function formatPrimaryMissBucket(buckets: Record<string, number>): string {
+  const entries = Object.entries(buckets).sort(([leftBucket, leftCount], [rightBucket, rightCount]) => {
+    if (rightCount !== leftCount) {
+      return rightCount - leftCount;
+    }
+
+    return leftBucket.localeCompare(rightBucket);
+  });
+
+  if (!entries.length) {
+    return "none";
+  }
+
+  const [bucket, count] = entries[0];
+  return `${bucket} (${count})`;
+}
+
 function renderModeSummary(mode: DemoBenchmarkCaseMode): string {
   return `${formatOutcomeLabel(mode.outcome)} at ${formatScore(mode.score)} with cues ${formatCodeList(mode.rationale_codes)}`;
 }
@@ -83,11 +100,24 @@ function renderQueueSummary(entry: PublishedBenchmarkQueueEntry): string {
   return parts.join(" • ");
 }
 
-type ExternalBenchmarkProofSectionProps = {
-  entry: PublishedExternalBenchmarkEntry & { snapshot: ExternalBenchmarkSnapshot };
+function buildPackAnchor(descriptorId: string): string {
+  return `proof-pack-${descriptorId}`;
+}
+
+type ExternalBenchmarkComparisonRow = {
+  anchorId: string;
+  descriptor: PublishedExternalBenchmarkEntry["descriptor"];
+  snapshot: ExternalBenchmarkSnapshot;
+  cohortCount: number;
+  primaryMissBucket: string;
 };
 
-function ExternalBenchmarkProofSection({ entry }: ExternalBenchmarkProofSectionProps) {
+type ExternalBenchmarkProofSectionProps = {
+  entry: PublishedExternalBenchmarkEntry & { snapshot: ExternalBenchmarkSnapshot };
+  anchorId: string;
+};
+
+function ExternalBenchmarkProofSection({ entry, anchorId }: ExternalBenchmarkProofSectionProps) {
   const { descriptor, snapshot } = entry;
   const cohortNotes = snapshot.dataset_summary.cohort_counts?.filter((item) => Boolean(item.description)) ?? [];
   const bucketNotes = snapshot.dataset_summary.bucket_counts.filter((item) => Boolean(item.description));
@@ -101,7 +131,7 @@ function ExternalBenchmarkProofSection({ entry }: ExternalBenchmarkProofSectionP
 
   return (
     <>
-      <section className={styles.section}>
+      <section id={anchorId} className={styles.section}>
         <div className={styles.sectionHeader}>
           <div>
             <p className={styles.eyebrow}>{descriptor.label}</p>
@@ -442,6 +472,15 @@ export default async function ProofPage() {
       .filter((entry) => entry.snapshot === null)
       .map((entry) => entry.descriptor.snapshot_path),
   ].filter((value): value is string => Boolean(value));
+  const comparisonRows: ExternalBenchmarkComparisonRow[] = availableExternalBenchmarkEntries.map((entry) => ({
+    anchorId: buildPackAnchor(entry.descriptor.id),
+    descriptor: entry.descriptor,
+    snapshot: entry.snapshot,
+    cohortCount: entry.snapshot.dataset_summary.cohort_counts?.length ?? 0,
+    primaryMissBucket: formatPrimaryMissBucket(entry.snapshot.evaluation.false_negative_buckets),
+  }));
+  const comparisonGridClass =
+    comparisonRows.length >= 3 ? styles.gridThree : comparisonRows.length === 2 ? styles.gridTwo : styles.grid;
 
   return (
     <main className={styles.page}>
@@ -826,8 +865,105 @@ python scripts/run_demo_eval.py --compare --json`}
           </section>
         ) : null}
 
+        {comparisonRows.length ? (
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.eyebrow}>Cross-Pack Comparison</p>
+                <h2 className={styles.sectionTitle}>Compare published external packs before diving into each casebook.</h2>
+                <p className={styles.sectionText}>
+                  The registry is now large enough that collaborators should be able to scan pack-to-pack tradeoffs,
+                  challenge cases, and operating points from one place before reading the full per-pack proof sections.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.chipRow}>
+              {comparisonRows.map((row) => (
+                <a key={row.descriptor.id} href={`#${row.anchorId}`} className={styles.chipLink}>
+                  {row.descriptor.label}
+                </a>
+              ))}
+            </div>
+
+            <div className={`${styles.grid} ${comparisonGridClass}`}>
+              {comparisonRows.map((row) => (
+                <article key={row.descriptor.id} className={styles.card}>
+                  <p className={styles.statLabel}>{row.descriptor.label}</p>
+                  <p className={styles.statValue}>{formatPercent(row.snapshot.evaluation.f1)}</p>
+                  <p className={styles.statNote}>
+                    {row.snapshot.dataset.dataset_name} on the {row.snapshot.dataset.dataset_split} split with{" "}
+                    <strong>{formatPercent(row.snapshot.evaluation.recall)}</strong> recall and{" "}
+                    <strong>{formatPercent(row.snapshot.evaluation.precision)}</strong> precision.
+                  </p>
+                  <div className={styles.miniChipRow}>
+                    <span className={styles.miniChip}>{row.snapshot.dataset_summary.report_count} reports</span>
+                    <span className={styles.miniChip}>{row.cohortCount} cohorts</span>
+                    <span className={styles.miniChip}>{row.snapshot.evaluation.false_negatives} misses</span>
+                    <span className={styles.miniChip}>{row.snapshot.evaluation.false_positives} false positives</span>
+                  </div>
+                  <p className={styles.routeMeta}>
+                    Recommended threshold {row.snapshot.sweep.recommendation.recommended_threshold.toFixed(2)}. Primary miss
+                    focus: {row.primaryMissBucket}.
+                  </p>
+                  <a href={`#${row.anchorId}`} className={styles.ghostLink}>
+                    Jump to {row.descriptor.label}
+                  </a>
+                </article>
+              ))}
+            </div>
+
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Pack</th>
+                    <th>Reports</th>
+                    <th>Cohorts</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1</th>
+                    <th>False Negatives</th>
+                    <th>False Positives</th>
+                    <th>Top-k</th>
+                    <th>Top-k Sensitivity</th>
+                    <th>Threshold</th>
+                    <th>Primary Miss Bucket</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparisonRows.map((row) => (
+                    <tr key={`comparison-${row.descriptor.id}`}>
+                      <td>
+                        <a href={`#${row.anchorId}`} className={styles.tableLink}>
+                          {row.descriptor.label}
+                        </a>
+                      </td>
+                      <td>{row.snapshot.dataset_summary.report_count}</td>
+                      <td>{row.cohortCount}</td>
+                      <td>{formatPercent(row.snapshot.evaluation.precision)}</td>
+                      <td>{formatPercent(row.snapshot.evaluation.recall)}</td>
+                      <td>{formatPercent(row.snapshot.evaluation.f1)}</td>
+                      <td>{row.snapshot.evaluation.false_negatives}</td>
+                      <td>{row.snapshot.evaluation.false_positives}</td>
+                      <td>{row.snapshot.evaluation.top_k}</td>
+                      <td>{formatPercent(row.snapshot.evaluation.sensitivity_at_top_k)}</td>
+                      <td>{row.snapshot.sweep.recommendation.recommended_threshold.toFixed(2)}</td>
+                      <td>{row.primaryMissBucket}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
         {availableExternalBenchmarkEntries.map((entry) => (
-          <ExternalBenchmarkProofSection key={entry.descriptor.id} entry={entry} />
+          <ExternalBenchmarkProofSection
+            key={entry.descriptor.id}
+            entry={entry}
+            anchorId={buildPackAnchor(entry.descriptor.id)}
+          />
         ))}
       </div>
     </main>
