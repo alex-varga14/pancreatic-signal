@@ -91,7 +91,8 @@ export default async function HomePage() {
                 <p className={styles.heroProofMetric}>
                   Retrospective sample: external recall <strong>{formatPercent(retrospectiveEvaluation.recall)}</strong> and F1{" "}
                   <strong>{formatPercent(retrospectiveEvaluation.f1)}</strong> across{" "}
-                  <strong>{retrospectiveSummary.report_count}</strong> deidentified reports.
+                  <strong>{retrospectiveSummary.report_count}</strong> deidentified reports in{" "}
+                  <strong>{retrospectiveSummary.cohort_counts?.length ?? 0}</strong> cohorts.
                 </p>
               ) : null}
               <p className={styles.heroProofMetric}>
@@ -134,7 +135,10 @@ export default async function HomePage() {
             <article className={styles.card}>
               <p className={styles.statLabel}>Retro Reports</p>
               <p className={styles.statValue}>{retrospectiveSummary.report_count}</p>
-              <p className={styles.statNote}>Checked-in deidentified retrospective-style sample on the proof page.</p>
+              <p className={styles.statNote}>
+                Checked-in deidentified retrospective-style sample on the proof page across{" "}
+                {retrospectiveSummary.cohort_counts?.length ?? 0} cohorts.
+              </p>
             </article>
             <article className={styles.card}>
               <p className={styles.statLabel}>Retro Recall</p>

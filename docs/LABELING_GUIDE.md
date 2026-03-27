@@ -17,6 +17,7 @@ Each line is one JSON object with these fields:
 Optional reviewer-facing fields:
 
 - `report_excerpt`
+- `cohort`
 - `benchmark_bucket`
 - `reviewer_focus`
 - `expected_rationale_codes`
@@ -43,6 +44,10 @@ The optional reviewer-facing fields do not change metric calculations, but they 
 ### `report_excerpt`
 
 Use this for a short deidentified report excerpt when you want the generated external casebook to read more like a reviewer packet than a label table. Keep it free of PHI and short enough to scan quickly.
+
+### `cohort`
+
+Use this to record the source cohort or benchmark slice when you want the generated external bundle to publish cohort coverage alongside bucket coverage. Good values are short human-readable labels such as `community CT intake` or `tertiary MRI workup`.
 
 ## Field definitions
 

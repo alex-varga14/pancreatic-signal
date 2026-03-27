@@ -253,6 +253,16 @@ def render_markdown(snapshot: dict[str, object], submission_path: Path) -> str:
             f"{bucket['positive_count']} positive, {bucket['escalation_count']} escalation-tagged"
         )
 
+    cohort_counts = dataset_summary.get("cohort_counts", [])
+    if cohort_counts:
+        lines.extend(["", "## Cohort Coverage", ""])
+        for cohort in cohort_counts:
+            lines.append(
+                f"- `{cohort['cohort']}`: {cohort['case_count']} case(s), "
+                f"{cohort['positive_count']} positive, {cohort['flagged_count']} flagged, "
+                f"{cohort['missed_positive_count']} missed positive"
+            )
+
     lines.extend(
         [
             "",
@@ -325,6 +335,7 @@ def render_markdown(snapshot: dict[str, object], submission_path: Path) -> str:
                 f"### {entry['case_id']} — {entry['benchmark_bucket'] or 'unbucketed'}",
                 "",
                 f"- Report: `{entry['report_id']}`",
+                f"- Cohort: {entry['cohort'] or 'not recorded'}",
                 *([f"- Report excerpt: {entry['report_excerpt']}"] if entry.get("report_excerpt") else []),
                 f"- Reviewer focus: {entry['reviewer_focus'] or 'No reviewer cue recorded.'}",
                 f"- Label note: {entry['label_notes'] or 'No label note recorded.'}",
@@ -352,6 +363,7 @@ def format_false_negative_buckets(buckets: dict[str, int]) -> str:
 
 def build_dataset_summary(summary) -> dict[str, object]:
     bucket_counts: dict[str, dict[str, int | str]] = {}
+    cohort_counts: dict[str, dict[str, int | str]] = {}
 
     for case in summary.cases:
         bucket = case.benchmark_bucket or "unbucketed"
@@ -370,11 +382,31 @@ def build_dataset_summary(summary) -> dict[str, object]:
         if case.expected_escalation:
             entry["escalation_count"] += 1
 
+        if case.cohort:
+            cohort_entry = cohort_counts.setdefault(
+                case.cohort,
+                {
+                    "cohort": case.cohort,
+                    "case_count": 0,
+                    "positive_count": 0,
+                    "flagged_count": 0,
+                    "missed_positive_count": 0,
+                },
+            )
+            cohort_entry["case_count"] += 1
+            if case.expected_positive:
+                cohort_entry["positive_count"] += 1
+            if case.flagged:
+                cohort_entry["flagged_count"] += 1
+            if case.expected_positive and not case.flagged:
+                cohort_entry["missed_positive_count"] += 1
+
     return {
         "report_count": len(summary.cases),
         "positive_count": sum(1 for case in summary.cases if case.expected_positive),
         "escalation_count": sum(1 for case in summary.cases if case.expected_escalation),
         "bucket_counts": sorted(bucket_counts.values(), key=lambda item: str(item["bucket"])),
+        "cohort_counts": sorted(cohort_counts.values(), key=lambda item: str(item["cohort"])),
     }
 
 
@@ -389,6 +421,7 @@ def build_queue_entry(case) -> dict[str, object]:
     return {
         "case_id": case.case_id,
         "report_id": case.report_id,
+        "cohort": case.cohort,
         "benchmark_bucket": case.benchmark_bucket,
         "score": round(case.score, 4),
         "outcome": classify_outcome(case),
@@ -403,6 +436,7 @@ def build_casebook(summary) -> list[dict[str, object]]:
                 "case_id": case.case_id,
                 "report_id": case.report_id,
                 "report_excerpt": case.report_excerpt,
+                "cohort": case.cohort,
                 "benchmark_bucket": case.benchmark_bucket,
                 "reviewer_focus": case.reviewer_focus,
                 "label_notes": case.label_notes,
@@ -440,7 +474,7 @@ def format_queue(entries: list[dict[str, object]]) -> str:
         return "none"
     return " -> ".join(
         (
-            f"{entry['case_id']} ({entry['benchmark_bucket'] or 'unbucketed'}, "
+            f"{entry['case_id']} ({entry.get('cohort') or 'no-cohort'}, {entry['benchmark_bucket'] or 'unbucketed'}, "
             f"{entry['outcome']}, {entry['score']:.4f})"
         )
         for entry in entries

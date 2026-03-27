@@ -18,7 +18,7 @@ The repository already ships with:
 - threshold sweep helpers for review-depth tuning
 - generated benchmark proof artifacts in `docs/examples/`, including dataset coverage, top-k queue previews, and a reviewer-facing casebook
 - an external benchmark bundle writer and submission validator that now preserves the same reviewer-facing casebook fields for collaborator datasets
-- a checked-in deidentified retrospective-style external sample pack with reproducible JSON, Markdown, and submission outputs
+- a checked-in deidentified retrospective-style external sample pack with reproducible JSON, Markdown, and submission outputs, now broadened to 12 reports across 3 cohorts
 
 ## Datasets
 
@@ -26,7 +26,7 @@ Current datasets:
 
 - synthetic demo data in this repository, including explicit malignancy, secondary-sign, follow-up-only, negative-control, and pancreatitis-confounder slices
 - public benchmark templates in `docs/examples/`
-- a checked-in deidentified retrospective-style sample set in `docs/examples/retrospective-benchmark-sample-*.jsonl`
+- a checked-in deidentified retrospective-style multi-cohort sample set in `docs/examples/retrospective-benchmark-sample-*.jsonl`
 
 Next datasets to prioritize:
 
@@ -44,9 +44,9 @@ The current benchmark logic supports labels for:
 
 For benchmark comparison, `should_flag` is derived from the logical OR of those labels so the evaluation can reward important non-malignancy follow-up cases as well as overtly suspicious lesions.
 
-The demo labels can also carry benchmark-bucket, reviewer-focus, and expected-rationale metadata so the published proof artifacts read like an explainable casebook rather than a flat score dump.
+The demo labels can also carry cohort, benchmark-bucket, reviewer-focus, and expected-rationale metadata so the published proof artifacts read like an explainable casebook rather than a flat score dump.
 
-Those same optional fields also now flow through the public external evaluation helper, so outside collaborators can generate a casebook-shaped bundle rather than only a flat metrics summary.
+Those same optional fields also now flow through the public external evaluation helper, so outside collaborators can generate a casebook-shaped bundle with cohort coverage rather than only a flat metrics summary.
 
 ## Metrics
 
@@ -108,7 +108,7 @@ Use these stable buckets when reviewing misses:
 
 ## Published proof surfaces
 
-- the `/proof` web route, which now renders the checked-in demo comparison and the checked-in retrospective-style external sample together
+- the `/proof` web route, which now renders the checked-in demo comparison and the checked-in retrospective-style external sample together, including cohort coverage for the external pack
 - `docs/examples/demo-benchmark-current.json` with dataset coverage, queue previews, and per-case casebook entries
 - `docs/examples/demo-benchmark-current.md` with the same publishable casebook summary in Markdown
 - `docs/LABELING_GUIDE.md`
@@ -138,7 +138,7 @@ Use these stable buckets when reviewing misses:
 
 ## Near-term evaluation work
 
-- expand beyond the current 10-case synthetic/demo casebook and 7-case retrospective-style sample into broader de-identified retrospective sets
+- expand beyond the current 10-case synthetic/demo casebook and 12-case multi-cohort retrospective-style sample into broader de-identified retrospective sets
 - compare more structured-import edge cases under realistic site variability
 - use reviewer feedback and import audit outcomes to refine benchmarking priorities
 - keep public benchmark artifacts aligned with the current hybrid baseline and supported workflows

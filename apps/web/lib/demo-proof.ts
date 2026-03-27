@@ -14,16 +14,26 @@ export type PublishedBenchmarkBucketSummary = {
   escalation_count: number;
 };
 
+export type PublishedBenchmarkCohortSummary = {
+  cohort: string;
+  case_count: number;
+  positive_count: number;
+  flagged_count: number;
+  missed_positive_count: number;
+};
+
 export type PublishedBenchmarkDatasetSummary = {
   report_count: number;
   positive_count: number;
   escalation_count: number;
   bucket_counts: PublishedBenchmarkBucketSummary[];
+  cohort_counts?: PublishedBenchmarkCohortSummary[];
 };
 
 export type PublishedBenchmarkQueueEntry = {
   case_id: string;
   report_id: string;
+  cohort?: string | null;
   benchmark_bucket?: string | null;
   score: number;
   outcome: string;
@@ -90,6 +100,7 @@ export type ExternalBenchmarkCasebookEntry = {
   case_id: string;
   report_id: string;
   report_excerpt?: string | null;
+  cohort?: string | null;
   benchmark_bucket?: string | null;
   reviewer_focus?: string | null;
   label_notes?: string | null;

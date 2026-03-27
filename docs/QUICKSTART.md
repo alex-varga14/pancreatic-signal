@@ -30,7 +30,7 @@ Then open:
 
 - web: `http://localhost:3000`
 - worklist: `http://localhost:3000/cases`
-- benchmark proof: `http://localhost:3000/proof` for the checked-in demo comparison plus the retrospective-style sample
+- benchmark proof: `http://localhost:3000/proof` for the checked-in demo comparison plus the multi-cohort retrospective-style sample
 - imports: `http://localhost:3000/imports`
 - API docs: `http://localhost:8000/docs`
 
@@ -81,7 +81,7 @@ make benchmark-external \
 
 That external helper now emits a casebook-shaped JSON and Markdown bundle with dataset coverage, top-k queue previews, and reviewer-facing notes drawn from the optional label fields.
 
-If you want a checked-in less-synthetic sample rather than the tiny template pack, run:
+If you want a checked-in less-synthetic multi-cohort sample rather than the tiny template pack, run:
 
 ```bash
 make benchmark-external-sample
@@ -95,7 +95,7 @@ That sample writes and refreshes:
 - `docs/examples/retrospective-benchmark-sample-current.json`
 - `docs/examples/retrospective-benchmark-sample-current.md`
 
-The `/proof` page now reads both the published demo proof and this retrospective-style sample, so the public web surface matches the checked-in benchmark artifacts instead of stopping at the synthetic corpus.
+The `/proof` page now reads both the published demo proof and this retrospective-style sample, including cohort coverage, so the public web surface matches the checked-in benchmark artifacts instead of stopping at the synthetic corpus.
 
 - product framing: [README.md](../README.md)
 - benchmark philosophy: [EVALUATION.md](./EVALUATION.md)

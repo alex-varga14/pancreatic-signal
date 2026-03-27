@@ -63,32 +63,32 @@ benchmark-external-sample:
 		--labels docs/examples/retrospective-benchmark-sample-labels.jsonl \
 		--predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl \
 		--threshold 0.30 \
-		--top-k 4 \
+		--top-k 5 \
 		--out-dir artifacts/benchmarks \
 		--basename retrospective-benchmark-sample \
-		--dataset-name deidentified-retrospective-sample \
+		--dataset-name deidentified-retrospective-multicohort-sample \
 		--dataset-split validation \
 		--project-name "Pancreatic Signal" \
-		--strength "High-confidence positives concentrate near the top of the review queue." \
-		--strength "Reviewer-facing label cues remain visible in the generated casebook." \
+		--strength "Three deidentified cohorts now share the same reviewer-facing casebook shape." \
+		--strength "Highest-confidence positives still concentrate near the top of the review queue." \
 		--limitation "Sample remains small and deidentified for repository use." \
-		--limitation "One follow-up-only cyst surveillance case remains below threshold."
+		--limitation "One follow-up-only miss and one pancreatitis confounder overcall remain visible."
 
 refresh-external-sample-proof:
 	$(PYTHON) scripts/run_external_eval.py \
 		--labels docs/examples/retrospective-benchmark-sample-labels.jsonl \
 		--predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl \
 		--threshold 0.30 \
-		--top-k 4 \
+		--top-k 5 \
 		--out-dir docs/examples \
 		--basename retrospective-benchmark-sample-current \
-		--dataset-name deidentified-retrospective-sample \
+		--dataset-name deidentified-retrospective-multicohort-sample \
 		--dataset-split validation \
 		--project-name "Pancreatic Signal" \
-		--strength "High-confidence positives concentrate near the top of the review queue." \
-		--strength "Reviewer-facing label cues remain visible in the generated casebook." \
+		--strength "Three deidentified cohorts now share the same reviewer-facing casebook shape." \
+		--strength "Highest-confidence positives still concentrate near the top of the review queue." \
 		--limitation "Sample remains small and deidentified for repository use." \
-		--limitation "One follow-up-only cyst surveillance case remains below threshold."
+		--limitation "One follow-up-only miss and one pancreatitis confounder overcall remain visible."
 
 pilot-smoke-evidence:
 	@test -n "$(SUMMARY_DIR)" || (echo "Usage: make pilot-smoke-evidence SUMMARY_DIR=path/to/downloaded/pilot-smoke-artifacts [OUT_DIR=path] [HL7_DECISION=pending|keep-manual|promote-default] [HL7_RATIONALE='reason']" && exit 2)

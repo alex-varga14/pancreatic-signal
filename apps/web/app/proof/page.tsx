@@ -73,7 +73,12 @@ function renderExternalModeSummary(mode: ExternalBenchmarkCaseMode): string {
 }
 
 function renderQueueSummary(entry: PublishedBenchmarkQueueEntry): string {
-  return `${entry.case_id} • ${entry.benchmark_bucket || "unbucketed"} • ${formatOutcomeLabel(entry.outcome)}`;
+  const parts = [entry.case_id];
+  if (entry.cohort) {
+    parts.push(entry.cohort);
+  }
+  parts.push(entry.benchmark_bucket || "unbucketed", formatOutcomeLabel(entry.outcome));
+  return parts.join(" • ");
 }
 
 export default async function ProofPage() {
@@ -457,10 +462,10 @@ python scripts/run_demo_eval.py --compare --json`}
               <div className={styles.sectionHeader}>
                 <div>
                   <p className={styles.eyebrow}>Retrospective Sample</p>
-                  <h2 className={styles.sectionTitle}>A less-synthetic external casebook now sits beside the demo proof.</h2>
+                  <h2 className={styles.sectionTitle}>A broader multi-cohort external casebook now sits beside the demo proof.</h2>
                   <p className={styles.sectionText}>
-                    This sample is still intentionally small, but it shows the same proof shape on deidentified retrospective-style
-                    report excerpts instead of only the synthetic demo set.
+                    This sample is still intentionally bounded, but it now shows the same proof shape across multiple
+                    deidentified retrospective-style cohorts instead of only a single undifferentiated pack.
                   </p>
                 </div>
               </div>
@@ -522,9 +527,9 @@ python scripts/run_demo_eval.py --compare --json`}
                   <p className={styles.statNote}>Cases expected to justify escalation rather than passive follow-up.</p>
                 </article>
                 <article className={styles.card}>
-                  <p className={styles.statLabel}>Profile</p>
+                  <p className={styles.statLabel}>Cohorts</p>
                   <p className={styles.statValue}>
-                    {retrospectiveSnapshot.dataset.deidentified ? "De-ID" : "Open"}
+                    {retrospectiveSnapshot.dataset_summary.cohort_counts?.length ?? 0}
                   </p>
                   <p className={styles.statNote}>
                     {retrospectiveSnapshot.dataset.dataset_name} on the {retrospectiveSnapshot.dataset.dataset_split} split.
@@ -539,6 +544,16 @@ python scripts/run_demo_eval.py --compare --json`}
                   </span>
                 ))}
               </div>
+
+              {retrospectiveSnapshot.dataset_summary.cohort_counts?.length ? (
+                <div className={styles.chipRow}>
+                  {retrospectiveSnapshot.dataset_summary.cohort_counts.map((cohort) => (
+                    <span key={cohort.cohort} className={styles.chip}>
+                      {cohort.cohort}: {cohort.case_count}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </section>
 
             <section className={styles.section}>
@@ -546,7 +561,8 @@ python scripts/run_demo_eval.py --compare --json`}
                 <article className={styles.card}>
                   <h3 className={styles.cardTitle}>External Queue</h3>
                   <p className={styles.cardText}>
-                    Current top-{retrospectiveSnapshot.queue_preview.top_k} ranking for the deidentified retrospective sample.
+                    Current top-{retrospectiveSnapshot.queue_preview.top_k} ranking for the deidentified retrospective sample
+                    across its recorded cohorts.
                   </p>
                   <div className={styles.queueList}>
                     {retrospectiveSnapshot.queue_preview.external.map((entry) => (
@@ -651,6 +667,7 @@ python scripts/run_demo_eval.py --compare --json`}
                     <p className={styles.casebookMeta}>{entry.label_notes || "No label note recorded."}</p>
 
                     <div className={styles.miniChipRow}>
+                      {entry.cohort ? <span className={styles.miniChip}>Cohort: {entry.cohort}</span> : null}
                       <span className={styles.miniChip}>Expected positive: {formatBooleanLabel(entry.expected_positive)}</span>
                       <span className={styles.miniChip}>
                         Expected escalation: {formatBooleanLabel(entry.expected_escalation)}
