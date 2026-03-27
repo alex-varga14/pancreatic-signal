@@ -14,6 +14,7 @@ if str(API_ROOT) not in sys.path:
 
 try:
     from app.schemas.benchmark_submission import BenchmarkSubmission
+    from app.schemas.evaluation import ExternalBenchmarkManifest
     from app.services.evaluation import evaluate_external_dataset, sweep_external_thresholds
 except ModuleNotFoundError as exc:  # pragma: no cover - import guard for unprepared environments
     raise SystemExit(
@@ -34,33 +35,39 @@ def parse_args() -> argparse.Namespace:
         help="JSONL external prediction file with report_id, case_id, and score.",
     )
     parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=None,
+        help="Optional JSON manifest that carries collaborator dataset framing and default benchmark settings.",
+    )
+    parser.add_argument(
         "--dataset-name",
         type=str,
-        default="",
-        help="Human-readable dataset name. Defaults to the labels filename stem.",
+        default=None,
+        help="Human-readable dataset name. Defaults to the manifest value or the labels filename stem.",
     )
-    parser.add_argument("--dataset-split", type=str, default="test", help="Dataset split label.")
-    parser.add_argument("--project-name", type=str, default="Pancreatic Signal", help="Project name.")
+    parser.add_argument("--dataset-split", type=str, default=None, help="Dataset split label.")
+    parser.add_argument("--project-name", type=str, default=None, help="Project name.")
     parser.add_argument(
         "--submission-name",
         type=str,
-        default="",
-        help="Submission name. Defaults to a slug derived from the dataset name.",
+        default=None,
+        help="Submission name. Defaults to the manifest value or a slug derived from the dataset name.",
     )
     parser.add_argument("--repository-url", type=str, default=None, help="Optional repository URL.")
     parser.add_argument("--commit-sha", type=str, default=None, help="Optional commit SHA.")
     parser.add_argument(
         "--label-schema-version",
         type=str,
-        default="pancreatic-signal-eval-v1",
+        default=None,
         help="Label schema version string for the generated submission draft.",
     )
-    parser.add_argument("--threshold", type=float, default=0.2, help="Flagging threshold between 0 and 1.")
-    parser.add_argument("--top-k", type=int, default=25, help="Top-k queue depth to analyze.")
+    parser.add_argument("--threshold", type=float, default=None, help="Flagging threshold between 0 and 1.")
+    parser.add_argument("--top-k", type=int, default=None, help="Top-k queue depth to analyze.")
     parser.add_argument(
         "--thresholds",
         type=str,
-        default="",
+        default=None,
         help="Optional comma-separated thresholds for the sweep, for example 0.2,0.3,0.4.",
     )
     parser.add_argument(
@@ -78,7 +85,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--deidentified",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=None,
         help="Whether the evaluated dataset is de-identified.",
     )
     parser.add_argument(
@@ -101,23 +108,45 @@ def main() -> None:
     args = parse_args()
     labels_path = _resolve_input_path(args.labels)
     predictions_path = _resolve_input_path(args.predictions)
+    manifest_path = _resolve_input_path(args.manifest) if args.manifest else None
     out_dir = args.out_dir if args.out_dir.is_absolute() else (ROOT / args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    dataset_name = args.dataset_name or labels_path.stem.replace("_", "-")
-    submission_name = args.submission_name or f"external-{_slugify(dataset_name)}"
-    thresholds = [float(item.strip()) for item in args.thresholds.split(",") if item.strip()] or None
+    manifest = _load_manifest(manifest_path)
+    dataset_name = args.dataset_name or manifest.dataset_name or labels_path.stem.replace("_", "-")
+    dataset_split = args.dataset_split or manifest.dataset_split or "test"
+    project_name = args.project_name or manifest.project_name or "Pancreatic Signal"
+    submission_name = args.submission_name or manifest.submission_name or f"external-{_slugify(dataset_name)}"
+    repository_url = args.repository_url if args.repository_url is not None else manifest.repository_url
+    commit_sha = args.commit_sha if args.commit_sha is not None else manifest.commit_sha
+    label_schema_version = args.label_schema_version or manifest.label_schema_version or "pancreatic-signal-eval-v1"
+    threshold = args.threshold if args.threshold is not None else manifest.threshold
+    if threshold is None:
+        threshold = 0.2
+    top_k = args.top_k if args.top_k is not None else manifest.top_k
+    if top_k is None:
+        top_k = 25
+    if args.thresholds:
+        thresholds = [float(item.strip()) for item in args.thresholds.split(",") if item.strip()] or None
+    else:
+        thresholds = manifest.thresholds or None
+    deidentified = args.deidentified if args.deidentified is not None else manifest.deidentified
+    if deidentified is None:
+        deidentified = True
+    notable_strengths = args.strength or manifest.notable_strengths
+    known_limitations = args.limitation or manifest.known_limitations
+    notes = args.notes if args.notes is not None else manifest.notes
 
     summary = evaluate_external_dataset(
         labels_path=labels_path,
         predictions_path=predictions_path,
-        threshold=args.threshold,
-        top_k=args.top_k,
+        threshold=threshold,
+        top_k=top_k,
     )
     sweep = sweep_external_thresholds(
         labels_path=labels_path,
         predictions_path=predictions_path,
-        top_k=args.top_k,
+        top_k=top_k,
         thresholds=thresholds,
     )
 
@@ -130,33 +159,37 @@ def main() -> None:
         {
             "submission_version": "1.0",
             "submission_name": submission_name,
-            "project_name": args.project_name,
-            "repository_url": args.repository_url,
-            "commit_sha": args.commit_sha,
+            "project_name": project_name,
+            "repository_url": repository_url,
+            "commit_sha": commit_sha,
             "dataset_name": dataset_name,
-            "dataset_split": args.dataset_split,
+            "dataset_split": dataset_split,
             "report_count": summary.processed,
-            "deidentified": args.deidentified,
-            "label_schema_version": args.label_schema_version,
+            "deidentified": deidentified,
+            "label_schema_version": label_schema_version,
             "score_mode": "external",
             "threshold": summary.threshold,
             "top_k": summary.top_k,
             "evaluation_command": _render_command(
                 labels_path=labels_path,
                 predictions_path=predictions_path,
-                threshold=args.threshold,
-                top_k=args.top_k,
+                manifest_path=manifest_path,
+                threshold=threshold,
+                top_k=top_k,
+                thresholds=thresholds,
                 out_dir=out_dir,
                 basename=args.basename,
-                dataset_name=args.dataset_name,
-                dataset_split=args.dataset_split,
-                project_name=args.project_name,
-                repository_url=args.repository_url,
-                commit_sha=args.commit_sha,
-                strengths=args.strength,
-                limitations=args.limitation,
-                notes=args.notes,
-                deidentified=args.deidentified,
+                dataset_name=dataset_name,
+                dataset_split=dataset_split,
+                project_name=project_name,
+                submission_name=submission_name,
+                repository_url=repository_url,
+                commit_sha=commit_sha,
+                label_schema_version=label_schema_version,
+                strengths=notable_strengths,
+                limitations=known_limitations,
+                notes=notes,
+                deidentified=deidentified,
             ),
             "artifact_paths": artifact_paths,
             "metrics": {
@@ -175,10 +208,11 @@ def main() -> None:
                 "reviewer_yield_at_top_k": summary.reviewer_yield_at_top_k,
                 "false_negative_buckets": summary.false_negative_buckets,
             },
-            "notable_strengths": args.strength or ["Replace with a dataset-specific strength before public submission."],
-            "known_limitations": args.limitation
+            "notable_strengths": notable_strengths
+            or ["Replace with a dataset-specific strength before public submission."],
+            "known_limitations": known_limitations
             or ["Replace with a dataset-specific limitation before public submission."],
-            "notes": args.notes
+            "notes": notes
             or (
                 "Generated draft from scripts/run_external_eval.py. Replace placeholder strengths and "
                 "limitations before public submission if you did not pass them explicitly."
@@ -190,13 +224,15 @@ def main() -> None:
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "dataset": {
             "dataset_name": dataset_name,
-            "dataset_split": args.dataset_split,
-            "deidentified": args.deidentified,
-            "label_schema_version": args.label_schema_version,
+            "dataset_split": dataset_split,
+            "deidentified": deidentified,
+            "label_schema_version": label_schema_version,
             "labels_path": _display_path(labels_path),
             "predictions_path": _display_path(predictions_path),
+            "manifest_path": _display_path(manifest_path) if manifest_path is not None else None,
         },
-        "dataset_summary": build_dataset_summary(summary),
+        "dataset_context": build_dataset_context(manifest),
+        "dataset_summary": build_dataset_summary(summary, manifest=manifest),
         "queue_preview": build_queue_preview(summary),
         "evaluation": summary.model_dump(mode="json"),
         "sweep": sweep.model_dump(mode="json"),
@@ -236,31 +272,51 @@ def render_markdown(snapshot: dict[str, object], submission_path: Path) -> str:
         f"- De-identified: {dataset['deidentified']}",
         f"- Labels: `{dataset['labels_path']}`",
         f"- Predictions: `{dataset['predictions_path']}`",
+        *([f"- Manifest: `{dataset['manifest_path']}`"] if dataset.get("manifest_path") else []),
         f"- Threshold: {summary['threshold']:.2f}",
         f"- Top-k: {summary['top_k']}",
-        "",
-        "## Dataset Coverage",
-        "",
-        f"- Reports in casebook: {dataset_summary['report_count']}",
-        f"- Positive labels: {dataset_summary['positive_count']}",
-        f"- Escalation labels: {dataset_summary['escalation_count']}",
-        f"- Benchmark buckets: {len(dataset_summary['bucket_counts'])}",
     ]
 
+    dataset_context = snapshot.get("dataset_context") or {}
+    if any(dataset_context.get(key) for key in ["dataset_description", "labeling_policy", "notes"]):
+        lines.extend(["", "## Dataset Framing", ""])
+        if dataset_context.get("dataset_description"):
+            lines.append(f"- Dataset description: {dataset_context['dataset_description']}")
+        if dataset_context.get("labeling_policy"):
+            lines.append(f"- Labeling policy: {dataset_context['labeling_policy']}")
+        if dataset_context.get("notes"):
+            lines.append(f"- Notes: {dataset_context['notes']}")
+
+    lines.extend(
+        [
+            "",
+            "## Dataset Coverage",
+            "",
+            f"- Reports in casebook: {dataset_summary['report_count']}",
+            f"- Positive labels: {dataset_summary['positive_count']}",
+            f"- Escalation labels: {dataset_summary['escalation_count']}",
+            f"- Benchmark buckets: {len(dataset_summary['bucket_counts'])}",
+        ]
+    )
+
     for bucket in dataset_summary["bucket_counts"]:
+        description = f" — {bucket['description']}" if bucket.get("description") else ""
         lines.append(
             f"- `{bucket['bucket']}`: {bucket['case_count']} case(s), "
             f"{bucket['positive_count']} positive, {bucket['escalation_count']} escalation-tagged"
+            f"{description}"
         )
 
     cohort_counts = dataset_summary.get("cohort_counts", [])
     if cohort_counts:
         lines.extend(["", "## Cohort Coverage", ""])
         for cohort in cohort_counts:
+            description = f" — {cohort['description']}" if cohort.get("description") else ""
             lines.append(
                 f"- `{cohort['cohort']}`: {cohort['case_count']} case(s), "
                 f"{cohort['positive_count']} positive, {cohort['flagged_count']} flagged, "
                 f"{cohort['missed_positive_count']} missed positive"
+                f"{description}"
             )
 
     lines.extend(
@@ -361,9 +417,15 @@ def format_false_negative_buckets(buckets: dict[str, int]) -> str:
     return ", ".join(f"{bucket}={count}" for bucket, count in sorted(buckets.items()))
 
 
-def build_dataset_summary(summary) -> dict[str, object]:
+def build_dataset_summary(summary, *, manifest: ExternalBenchmarkManifest) -> dict[str, object]:
     bucket_counts: dict[str, dict[str, int | str]] = {}
     cohort_counts: dict[str, dict[str, int | str]] = {}
+    bucket_descriptions = {
+        item.bucket.lower(): item.description for item in manifest.benchmark_bucket_descriptions
+    }
+    cohort_descriptions = {
+        item.cohort.lower(): item.description for item in manifest.cohort_descriptions
+    }
 
     for case in summary.cases:
         bucket = case.benchmark_bucket or "unbucketed"
@@ -374,6 +436,7 @@ def build_dataset_summary(summary) -> dict[str, object]:
                 "case_count": 0,
                 "positive_count": 0,
                 "escalation_count": 0,
+                "description": bucket_descriptions.get(bucket.lower()),
             },
         )
         entry["case_count"] += 1
@@ -391,6 +454,7 @@ def build_dataset_summary(summary) -> dict[str, object]:
                     "positive_count": 0,
                     "flagged_count": 0,
                     "missed_positive_count": 0,
+                    "description": cohort_descriptions.get(case.cohort.lower()),
                 },
             )
             cohort_entry["case_count"] += 1
@@ -408,6 +472,17 @@ def build_dataset_summary(summary) -> dict[str, object]:
         "bucket_counts": sorted(bucket_counts.values(), key=lambda item: str(item["bucket"])),
         "cohort_counts": sorted(cohort_counts.values(), key=lambda item: str(item["cohort"])),
     }
+
+
+def build_dataset_context(manifest: ExternalBenchmarkManifest) -> dict[str, object] | None:
+    payload = {
+        "dataset_description": manifest.dataset_description,
+        "labeling_policy": manifest.labeling_policy,
+        "notes": manifest.notes,
+    }
+    if not any(payload.values()):
+        return None
+    return payload
 
 
 def build_queue_preview(summary) -> dict[str, object]:
@@ -489,6 +564,13 @@ def _resolve_input_path(path: Path) -> Path:
     return path if path.is_absolute() else (ROOT / path).resolve()
 
 
+def _load_manifest(path: Path | None) -> ExternalBenchmarkManifest:
+    if path is None:
+        return ExternalBenchmarkManifest()
+
+    return ExternalBenchmarkManifest.model_validate(json.loads(path.read_text()))
+
+
 def _display_path(path: Path) -> str:
     try:
         return str(path.relative_to(ROOT))
@@ -500,15 +582,19 @@ def _render_command(
     *,
     labels_path: Path,
     predictions_path: Path,
+    manifest_path: Path | None,
     threshold: float,
     top_k: int,
+    thresholds: list[float] | None,
     out_dir: Path,
     basename: str,
     dataset_name: str,
     dataset_split: str,
     project_name: str,
+    submission_name: str,
     repository_url: str | None,
     commit_sha: str | None,
+    label_schema_version: str,
     strengths: list[str],
     limitations: list[str],
     notes: str | None,
@@ -523,16 +609,24 @@ def _render_command(
         f"--out-dir {_shell_quote(_display_path(out_dir))}",
         f"--basename {_shell_quote(basename)}",
     ]
+    if manifest_path is not None:
+        parts.append(f"--manifest {_shell_quote(_display_path(manifest_path))}")
     if dataset_name:
         parts.append(f"--dataset-name {_shell_quote(dataset_name)}")
     if dataset_split:
         parts.append(f"--dataset-split {_shell_quote(dataset_split)}")
     if project_name:
         parts.append(f"--project-name {_shell_quote(project_name)}")
+    if submission_name:
+        parts.append(f"--submission-name {_shell_quote(submission_name)}")
     if repository_url:
         parts.append(f"--repository-url {_shell_quote(repository_url)}")
     if commit_sha:
         parts.append(f"--commit-sha {_shell_quote(commit_sha)}")
+    if label_schema_version != "pancreatic-signal-eval-v1":
+        parts.append(f"--label-schema-version {_shell_quote(label_schema_version)}")
+    if thresholds:
+        parts.append(f"--thresholds {_shell_quote(','.join(f'{item:.2f}' for item in thresholds))}")
     if not deidentified:
         parts.append("--no-deidentified")
     for strength in strengths:

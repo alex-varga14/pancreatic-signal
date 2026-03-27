@@ -1,12 +1,19 @@
 # External Benchmark Snapshot
 
-- Generated at: 2026-03-26T06:08:13.888758Z
+- Generated at: 2026-03-27T06:05:36.583179Z
 - Dataset: deidentified-retrospective-multicohort-sample (validation)
 - De-identified: True
 - Labels: `docs/examples/retrospective-benchmark-sample-labels.jsonl`
 - Predictions: `docs/examples/retrospective-benchmark-sample-predictions.jsonl`
+- Manifest: `docs/examples/retrospective-benchmark-sample-manifest.json`
 - Threshold: 0.30
 - Top-k: 5
+
+## Dataset Framing
+
+- Dataset description: Checked-in retrospective-style benchmark sample used to show how a less-synthetic collaborator pack can preserve the same reviewer-facing proof shape as the demo benchmark.
+- Labeling policy: This sample remains deidentified and intentionally bounded for repository use. Labels emphasize reviewer-visible pancreatic risk, actionable follow-up, and escalation cues rather than autonomous diagnostic claims.
+- Notes: Repository sample for public proof only. This is not a clinical validation dataset.
 
 ## Dataset Coverage
 
@@ -14,17 +21,17 @@
 - Positive labels: 8
 - Escalation labels: 5
 - Benchmark buckets: 5
-- `explicit malignancy`: 3 case(s), 3 positive, 3 escalation-tagged
-- `follow-up only`: 3 case(s), 3 positive, 0 escalation-tagged
-- `negative control`: 2 case(s), 0 positive, 0 escalation-tagged
-- `pancreatitis confounder`: 2 case(s), 0 positive, 0 escalation-tagged
-- `secondary signs`: 2 case(s), 2 positive, 2 escalation-tagged
+- `explicit malignancy`: 3 case(s), 3 positive, 3 escalation-tagged — Reports with overt lesion or malignancy wording that should stay easy to justify in a reviewed queue.
+- `follow-up only`: 3 case(s), 3 positive, 0 escalation-tagged — Cases where the operational signal is pancreatic follow-up or workup language rather than explicit malignancy wording.
+- `negative control`: 2 case(s), 0 positive, 0 escalation-tagged — Clearly nonsuspicious pancreatic reports that should stay out of the flagged worklist.
+- `pancreatitis confounder`: 2 case(s), 0 positive, 0 escalation-tagged — Specificity checks where inflammatory language can look worrisome without supporting suspicious morphology.
+- `secondary signs`: 2 case(s), 2 positive, 2 escalation-tagged — Cases driven by ductal obstruction, atrophy, or related pancreatic risk cues without always naming a mass.
 
 ## Cohort Coverage
 
-- `community CT intake`: 4 case(s), 2 positive, 2 flagged, 0 missed positive
-- `referral pancreas review`: 4 case(s), 2 positive, 3 flagged, 0 missed positive
-- `tertiary MRI workup`: 4 case(s), 4 positive, 3 flagged, 1 missed positive
+- `community CT intake`: 4 case(s), 2 positive, 2 flagged, 0 missed positive — Front-door abdomen CT intake cases that mix overt lesions, secondary-sign patterns, and negative controls.
+- `referral pancreas review`: 4 case(s), 2 positive, 3 flagged, 0 missed positive — Navigator-style referral review cases that keep reviewer-facing excerpts and confounders visible in the same proof shape.
+- `tertiary MRI workup`: 4 case(s), 4 positive, 3 flagged, 1 missed positive — Referral MRI workup cases with richer pancreatic follow-up cues and one intentional follow-up-only miss.
 
 ## Summary
 

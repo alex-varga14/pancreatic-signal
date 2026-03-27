@@ -1,0 +1,56 @@
+{
+  "dataset_name": "deidentified-retrospective-multicohort-sample",
+  "dataset_split": "validation",
+  "project_name": "Pancreatic Signal",
+  "submission_name": "external-deidentified-retrospective-multicohort-sample",
+  "threshold": 0.3,
+  "top_k": 5,
+  "deidentified": true,
+  "dataset_description": "Checked-in retrospective-style benchmark sample used to show how a less-synthetic collaborator pack can preserve the same reviewer-facing proof shape as the demo benchmark.",
+  "labeling_policy": "This sample remains deidentified and intentionally bounded for repository use. Labels emphasize reviewer-visible pancreatic risk, actionable follow-up, and escalation cues rather than autonomous diagnostic claims.",
+  "notes": "Repository sample for public proof only. This is not a clinical validation dataset.",
+  "notable_strengths": [
+    "Three deidentified cohorts now share the same reviewer-facing casebook shape.",
+    "Highest-confidence positives still concentrate near the top of the review queue."
+  ],
+  "known_limitations": [
+    "Sample remains small and deidentified for repository use.",
+    "One follow-up-only miss and one pancreatitis confounder overcall remain visible."
+  ],
+  "cohort_descriptions": [
+    {
+      "cohort": "community CT intake",
+      "description": "Front-door abdomen CT intake cases that mix overt lesions, secondary-sign patterns, and negative controls."
+    },
+    {
+      "cohort": "tertiary MRI workup",
+      "description": "Referral MRI workup cases with richer pancreatic follow-up cues and one intentional follow-up-only miss."
+    },
+    {
+      "cohort": "referral pancreas review",
+      "description": "Navigator-style referral review cases that keep reviewer-facing excerpts and confounders visible in the same proof shape."
+    }
+  ],
+  "benchmark_bucket_descriptions": [
+    {
+      "bucket": "explicit malignancy",
+      "description": "Reports with overt lesion or malignancy wording that should stay easy to justify in a reviewed queue."
+    },
+    {
+      "bucket": "secondary signs",
+      "description": "Cases driven by ductal obstruction, atrophy, or related pancreatic risk cues without always naming a mass."
+    },
+    {
+      "bucket": "follow-up only",
+      "description": "Cases where the operational signal is pancreatic follow-up or workup language rather than explicit malignancy wording."
+    },
+    {
+      "bucket": "pancreatitis confounder",
+      "description": "Specificity checks where inflammatory language can look worrisome without supporting suspicious morphology."
+    },
+    {
+      "bucket": "negative control",
+      "description": "Clearly nonsuspicious pancreatic reports that should stay out of the flagged worklist."
+    }
+  ]
+}

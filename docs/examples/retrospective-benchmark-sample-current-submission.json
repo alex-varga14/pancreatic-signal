@@ -12,7 +12,7 @@
   "score_mode": "external",
   "threshold": 0.3,
   "top_k": 5,
-  "evaluation_command": "python scripts/run_external_eval.py --labels docs/examples/retrospective-benchmark-sample-labels.jsonl --predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl --threshold 0.30 --top-k 5 --out-dir docs/examples --basename retrospective-benchmark-sample-current --dataset-name deidentified-retrospective-multicohort-sample --dataset-split validation --project-name \"Pancreatic Signal\" --strength \"Three deidentified cohorts now share the same reviewer-facing casebook shape.\" --strength \"Highest-confidence positives still concentrate near the top of the review queue.\" --limitation \"Sample remains small and deidentified for repository use.\" --limitation \"One follow-up-only miss and one pancreatitis confounder overcall remain visible.\"",
+  "evaluation_command": "python scripts/run_external_eval.py --labels docs/examples/retrospective-benchmark-sample-labels.jsonl --predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl --threshold 0.30 --top-k 5 --out-dir docs/examples --basename retrospective-benchmark-sample-current --manifest docs/examples/retrospective-benchmark-sample-manifest.json --dataset-name deidentified-retrospective-multicohort-sample --dataset-split validation --project-name \"Pancreatic Signal\" --submission-name external-deidentified-retrospective-multicohort-sample --strength \"Three deidentified cohorts now share the same reviewer-facing casebook shape.\" --strength \"Highest-confidence positives still concentrate near the top of the review queue.\" --limitation \"Sample remains small and deidentified for repository use.\" --limitation \"One follow-up-only miss and one pancreatitis confounder overcall remain visible.\" --notes \"Repository sample for public proof only. This is not a clinical validation dataset.\"",
   "artifact_paths": [
     "docs/examples/retrospective-benchmark-sample-current.json",
     "docs/examples/retrospective-benchmark-sample-current.md"
@@ -43,5 +43,5 @@
     "Sample remains small and deidentified for repository use.",
     "One follow-up-only miss and one pancreatitis confounder overcall remain visible."
   ],
-  "notes": "Generated draft from scripts/run_external_eval.py. Replace placeholder strengths and limitations before public submission if you did not pass them explicitly."
+  "notes": "Repository sample for public proof only. This is not a clinical validation dataset."
 }

@@ -23,6 +23,7 @@ Optional reviewer-facing fields:
 - `expected_rationale_codes`
 
 See the minimal template in [`docs/examples/benchmark-label-template.jsonl`](./examples/benchmark-label-template.jsonl). To run the new comparable external evaluation helper, pair that label file with a score file that follows [`docs/examples/benchmark-prediction-template.jsonl`](./examples/benchmark-prediction-template.jsonl).
+If you also want the generated external bundle to carry dataset framing, labeling-policy notes, or cohort descriptions, pair the label and prediction files with the optional manifest template in [`docs/examples/benchmark-manifest-template.json`](./examples/benchmark-manifest-template.json).
 
 ## How the benchmark interprets labels
 

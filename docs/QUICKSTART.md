@@ -76,7 +76,8 @@ Hosted pilot evidence currently flows through the `Pilot Smoke` workflow with ma
 ```bash
 make benchmark-external \
   LABELS=docs/examples/benchmark-label-template.jsonl \
-  PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl
+  PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl \
+  MANIFEST=docs/examples/benchmark-manifest-template.json
 ```
 
 That external helper now emits a casebook-shaped JSON and Markdown bundle with dataset coverage, top-k queue previews, and reviewer-facing notes drawn from the optional label fields.

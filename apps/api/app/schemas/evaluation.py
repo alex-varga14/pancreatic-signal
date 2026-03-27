@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 DemoScoreMode = Literal["rules", "hybrid"]
 ScoreMode = Literal["rules", "hybrid", "external"]
@@ -152,3 +152,46 @@ class ExternalThresholdSweepSummary(BaseModel):
     thresholds: list[float]
     points: list[ExternalThresholdSweepPoint]
     recommendation: ExternalThresholdRecommendation
+
+
+class ExternalBenchmarkCohortDescription(BaseModel):
+    cohort: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+
+
+class ExternalBenchmarkBucketDescription(BaseModel):
+    bucket: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+
+
+class ExternalBenchmarkManifest(BaseModel):
+    dataset_name: str | None = Field(default=None, min_length=3)
+    dataset_split: str | None = Field(default=None, min_length=2)
+    project_name: str | None = Field(default=None, min_length=2)
+    submission_name: str | None = Field(default=None, min_length=3)
+    repository_url: str | None = None
+    commit_sha: str | None = None
+    label_schema_version: str | None = Field(default=None, min_length=3)
+    threshold: float | None = Field(default=None, ge=0.0, le=1.0)
+    top_k: int | None = Field(default=None, ge=1)
+    thresholds: list[float] = Field(default_factory=list)
+    deidentified: bool | None = None
+    dataset_description: str | None = None
+    labeling_policy: str | None = None
+    notes: str | None = None
+    notable_strengths: list[str] = Field(default_factory=list)
+    known_limitations: list[str] = Field(default_factory=list)
+    cohort_descriptions: list[ExternalBenchmarkCohortDescription] = Field(default_factory=list)
+    benchmark_bucket_descriptions: list[ExternalBenchmarkBucketDescription] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_unique_named_descriptions(self) -> "ExternalBenchmarkManifest":
+        cohort_names = [item.cohort.lower() for item in self.cohort_descriptions]
+        if len(cohort_names) != len(set(cohort_names)):
+            raise ValueError("cohort_descriptions cannot contain duplicate cohort names.")
+
+        bucket_names = [item.bucket.lower() for item in self.benchmark_bucket_descriptions]
+        if len(bucket_names) != len(set(bucket_names)):
+            raise ValueError("benchmark_bucket_descriptions cannot contain duplicate bucket names.")
+
+        return self

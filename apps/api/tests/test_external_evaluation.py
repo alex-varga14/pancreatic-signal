@@ -204,3 +204,94 @@ def test_run_external_eval_sample_bundle_includes_report_excerpts(tmp_path: Path
     assert "### C-RETRO-007 — follow-up only" in markdown
     assert "- Cohort: tertiary MRI workup" in markdown
     assert "- Report excerpt: MRI abdomen:" in markdown
+
+
+def test_run_external_eval_manifest_enriches_bundle_and_accepts_cli_overrides(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "dataset_name": "collaborator-pilot-sample",
+                "dataset_split": "pilot-validation",
+                "project_name": "Manifest Project",
+                "threshold": 0.4,
+                "top_k": 2,
+                "dataset_description": "Small collaborator-supplied pilot set packaged for reviewer-facing comparison.",
+                "labeling_policy": "Two reviewers adjudicated disagreements with phrase-level notes.",
+                "notes": "Manifest note for generated submission draft.",
+                "notable_strengths": ["Manifest-preserved dataset framing."],
+                "known_limitations": ["Manifest example remains intentionally tiny."],
+                "cohort_descriptions": [
+                    {
+                        "cohort": "template workup",
+                        "description": "Template cohort used to mimic a structured outside workup slice.",
+                    }
+                ],
+                "benchmark_bucket_descriptions": [
+                    {
+                        "bucket": "follow-up only",
+                        "description": "Cases where the key operational signal is recommended pancreatic follow-up.",
+                    }
+                ],
+            }
+        )
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--labels",
+            str(LABEL_TEMPLATE_PATH),
+            "--predictions",
+            str(PREDICTION_TEMPLATE_PATH),
+            "--manifest",
+            str(manifest_path),
+            "--threshold",
+            "0.2",
+            "--project-name",
+            "CLI Project",
+            "--out-dir",
+            str(tmp_path),
+            "--basename",
+            "manifest-external",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=ROOT,
+    )
+
+    json_path = tmp_path / "manifest-external.json"
+    markdown_path = tmp_path / "manifest-external.md"
+    submission_path = tmp_path / "manifest-external-submission.json"
+
+    assert "Wrote" in result.stdout
+    snapshot = json.loads(json_path.read_text())
+    submission = BenchmarkSubmission.model_validate(json.loads(submission_path.read_text()))
+    cohort_by_name = {entry["cohort"]: entry for entry in snapshot["dataset_summary"]["cohort_counts"]}
+    bucket_by_name = {entry["bucket"]: entry for entry in snapshot["dataset_summary"]["bucket_counts"]}
+
+    assert snapshot["dataset"]["dataset_name"] == "collaborator-pilot-sample"
+    assert snapshot["dataset"]["dataset_split"] == "pilot-validation"
+    assert snapshot["dataset"]["manifest_path"].endswith("manifest.json")
+    assert snapshot["dataset_context"]["dataset_description"].startswith("Small collaborator-supplied pilot set")
+    assert snapshot["dataset_context"]["labeling_policy"].startswith("Two reviewers adjudicated")
+    assert snapshot["queue_preview"]["top_k"] == 2
+    assert snapshot["evaluation"]["threshold"] == 0.2
+    assert cohort_by_name["template workup"]["description"].startswith("Template cohort used")
+    assert bucket_by_name["follow-up only"]["description"].startswith("Cases where the key operational signal")
+    assert submission.project_name == "CLI Project"
+    assert submission.dataset_name == "collaborator-pilot-sample"
+    assert submission.top_k == 2
+    assert submission.threshold == 0.2
+    assert submission.notable_strengths == ["Manifest-preserved dataset framing."]
+    assert submission.known_limitations == ["Manifest example remains intentionally tiny."]
+    assert submission.notes == "Manifest note for generated submission draft."
+    assert "--manifest" in submission.evaluation_command
+
+    markdown = markdown_path.read_text()
+    assert "## Dataset Framing" in markdown
+    assert "Small collaborator-supplied pilot set packaged for reviewer-facing comparison." in markdown
+    assert "## Cohort Coverage" in markdown
+    assert "Template cohort used to mimic a structured outside workup slice." in markdown

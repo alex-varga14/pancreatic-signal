@@ -1,0 +1,30 @@
+{
+  "dataset_name": "example-collaborator-benchmark",
+  "dataset_split": "validation",
+  "project_name": "Example Collaborator",
+  "submission_name": "external-example-collaborator-benchmark",
+  "threshold": 0.2,
+  "top_k": 25,
+  "deidentified": true,
+  "dataset_description": "Short collaborator-facing summary of what this dataset represents and why it is useful.",
+  "labeling_policy": "Brief note about who labeled the reports, how disagreements were resolved, and what safety constraints apply.",
+  "notes": "Optional submission note carried into the generated draft.",
+  "notable_strengths": [
+    "Replace this with a real dataset-specific strength before sharing the generated submission."
+  ],
+  "known_limitations": [
+    "Replace this with a real dataset-specific limitation before sharing the generated submission."
+  ],
+  "cohort_descriptions": [
+    {
+      "cohort": "community CT intake",
+      "description": "Use short human-readable cohort names so the generated casebook can publish coverage and context together."
+    }
+  ],
+  "benchmark_bucket_descriptions": [
+    {
+      "bucket": "follow-up only",
+      "description": "Optional description that explains why this benchmark slice matters to reviewers."
+    }
+  ]
+}

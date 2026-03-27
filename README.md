@@ -109,7 +109,8 @@ For a comparable external results bundle:
 ```bash
 make benchmark-external \
   LABELS=docs/examples/benchmark-label-template.jsonl \
-  PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl
+  PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl \
+  MANIFEST=docs/examples/benchmark-manifest-template.json
 ```
 
 For a checked-in less-synthetic multi-cohort sample bundle with deidentified report excerpts and a reviewer-facing external casebook:

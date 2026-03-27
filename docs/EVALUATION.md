@@ -19,6 +19,7 @@ The repository already ships with:
 - generated benchmark proof artifacts in `docs/examples/`, including dataset coverage, top-k queue previews, and a reviewer-facing casebook
 - an external benchmark bundle writer and submission validator that now preserves the same reviewer-facing casebook fields for collaborator datasets
 - a checked-in deidentified retrospective-style external sample pack with reproducible JSON, Markdown, and submission outputs, now broadened to 12 reports across 3 cohorts
+- optional manifest-driven collaborator framing so external bundles can carry dataset notes, cohort descriptions, and labeling policy without custom hand editing
 
 ## Datasets
 
@@ -26,6 +27,7 @@ Current datasets:
 
 - synthetic demo data in this repository, including explicit malignancy, secondary-sign, follow-up-only, negative-control, and pancreatitis-confounder slices
 - public benchmark templates in `docs/examples/`
+- an optional manifest template in `docs/examples/benchmark-manifest-template.json`
 - a checked-in deidentified retrospective-style multi-cohort sample set in `docs/examples/retrospective-benchmark-sample-*.jsonl`
 
 Next datasets to prioritize:
@@ -97,7 +99,7 @@ Use these stable buckets when reviewing misses:
 ### External benchmark workflow
 
 - `python scripts/run_external_eval.py --labels docs/examples/benchmark-label-template.jsonl --predictions docs/examples/benchmark-prediction-template.jsonl`
-- `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl`
+- `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl MANIFEST=docs/examples/benchmark-manifest-template.json`
 - `make benchmark-external-sample`
 - `make refresh-external-sample-proof`
 - `make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission-template.json`

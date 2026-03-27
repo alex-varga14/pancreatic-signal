@@ -42,13 +42,14 @@ refresh-demo-proof:
 	$(PYTHON) scripts/write_demo_benchmark.py --out-dir docs/examples --basename demo-benchmark-current
 
 benchmark-external:
-	@test -n "$(LABELS)" || (echo "Usage: make benchmark-external LABELS=path/to/labels.jsonl PREDICTIONS=path/to/predictions.jsonl" && exit 2)
-	@test -n "$(PREDICTIONS)" || (echo "Usage: make benchmark-external LABELS=path/to/labels.jsonl PREDICTIONS=path/to/predictions.jsonl" && exit 2)
+	@test -n "$(LABELS)" || (echo "Usage: make benchmark-external LABELS=path/to/labels.jsonl PREDICTIONS=path/to/predictions.jsonl [MANIFEST=path/to/manifest.json]" && exit 2)
+	@test -n "$(PREDICTIONS)" || (echo "Usage: make benchmark-external LABELS=path/to/labels.jsonl PREDICTIONS=path/to/predictions.jsonl [MANIFEST=path/to/manifest.json]" && exit 2)
 	$(PYTHON) scripts/run_external_eval.py \
 		--labels "$(LABELS)" \
 		--predictions "$(PREDICTIONS)" \
-		--threshold "$(or $(THRESHOLD),0.2)" \
-		--top-k "$(or $(TOP_K),25)" \
+		$(if $(MANIFEST),--manifest "$(MANIFEST)",) \
+		$(if $(THRESHOLD),--threshold "$(THRESHOLD)",) \
+		$(if $(TOP_K),--top-k "$(TOP_K)",) \
 		$(if $(OUT_DIR),--out-dir "$(OUT_DIR)",) \
 		$(if $(BASENAME),--basename "$(BASENAME)",) \
 		$(if $(DATASET_NAME),--dataset-name "$(DATASET_NAME)",) \
@@ -62,33 +63,17 @@ benchmark-external-sample:
 	$(PYTHON) scripts/run_external_eval.py \
 		--labels docs/examples/retrospective-benchmark-sample-labels.jsonl \
 		--predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl \
-		--threshold 0.30 \
-		--top-k 5 \
+		--manifest docs/examples/retrospective-benchmark-sample-manifest.json \
 		--out-dir artifacts/benchmarks \
-		--basename retrospective-benchmark-sample \
-		--dataset-name deidentified-retrospective-multicohort-sample \
-		--dataset-split validation \
-		--project-name "Pancreatic Signal" \
-		--strength "Three deidentified cohorts now share the same reviewer-facing casebook shape." \
-		--strength "Highest-confidence positives still concentrate near the top of the review queue." \
-		--limitation "Sample remains small and deidentified for repository use." \
-		--limitation "One follow-up-only miss and one pancreatitis confounder overcall remain visible."
+		--basename retrospective-benchmark-sample
 
 refresh-external-sample-proof:
 	$(PYTHON) scripts/run_external_eval.py \
 		--labels docs/examples/retrospective-benchmark-sample-labels.jsonl \
 		--predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl \
-		--threshold 0.30 \
-		--top-k 5 \
+		--manifest docs/examples/retrospective-benchmark-sample-manifest.json \
 		--out-dir docs/examples \
-		--basename retrospective-benchmark-sample-current \
-		--dataset-name deidentified-retrospective-multicohort-sample \
-		--dataset-split validation \
-		--project-name "Pancreatic Signal" \
-		--strength "Three deidentified cohorts now share the same reviewer-facing casebook shape." \
-		--strength "Highest-confidence positives still concentrate near the top of the review queue." \
-		--limitation "Sample remains small and deidentified for repository use." \
-		--limitation "One follow-up-only miss and one pancreatitis confounder overcall remain visible."
+		--basename retrospective-benchmark-sample-current
 
 pilot-smoke-evidence:
 	@test -n "$(SUMMARY_DIR)" || (echo "Usage: make pilot-smoke-evidence SUMMARY_DIR=path/to/downloaded/pilot-smoke-artifacts [OUT_DIR=path] [HL7_DECISION=pending|keep-manual|promote-default] [HL7_RATIONALE='reason']" && exit 2)

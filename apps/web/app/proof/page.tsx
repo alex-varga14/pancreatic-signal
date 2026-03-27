@@ -105,6 +105,10 @@ export default async function ProofPage() {
     !demoSnapshot ? PUBLISHED_DEMO_PROOF_PATH : null,
     !retrospectiveSnapshot ? PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH : null,
   ].filter((value): value is string => Boolean(value));
+  const retrospectiveCohortNotes =
+    retrospectiveSnapshot?.dataset_summary.cohort_counts?.filter((item) => Boolean(item.description)) ?? [];
+  const retrospectiveBucketNotes =
+    retrospectiveSnapshot?.dataset_summary.bucket_counts.filter((item) => Boolean(item.description)) ?? [];
 
   return (
     <main className={styles.page}>
@@ -555,6 +559,70 @@ python scripts/run_demo_eval.py --compare --json`}
                 </div>
               ) : null}
             </section>
+
+            {retrospectiveSnapshot.dataset_context ||
+            retrospectiveCohortNotes.length ||
+            retrospectiveBucketNotes.length ? (
+              <section className={styles.section}>
+                <div className={`${styles.grid} ${styles.gridTwo}`}>
+                  {retrospectiveSnapshot.dataset_context ? (
+                    <article className={styles.card}>
+                      <h3 className={styles.cardTitle}>Dataset Framing</h3>
+                      {retrospectiveSnapshot.dataset_context.dataset_description ? (
+                        <p className={styles.cardText}>{retrospectiveSnapshot.dataset_context.dataset_description}</p>
+                      ) : null}
+                      {retrospectiveSnapshot.dataset_context.labeling_policy ? (
+                        <>
+                          <p className={styles.casebookMeta}>Labeling policy</p>
+                          <p className={styles.cardText}>{retrospectiveSnapshot.dataset_context.labeling_policy}</p>
+                        </>
+                      ) : null}
+                      {retrospectiveSnapshot.dataset_context.notes ? (
+                        <>
+                          <p className={styles.casebookMeta}>Notes</p>
+                          <p className={styles.cardText}>{retrospectiveSnapshot.dataset_context.notes}</p>
+                        </>
+                      ) : null}
+                      {retrospectiveSnapshot.dataset.manifest_path ? (
+                        <p className={styles.casebookMeta}>
+                          Manifest: <span className={styles.inlineCode}>{retrospectiveSnapshot.dataset.manifest_path}</span>
+                        </p>
+                      ) : null}
+                    </article>
+                  ) : null}
+
+                  {retrospectiveCohortNotes.length || retrospectiveBucketNotes.length ? (
+                    <article className={styles.card}>
+                      <h3 className={styles.cardTitle}>Benchmark Notes</h3>
+                      {retrospectiveCohortNotes.length ? (
+                        <>
+                          <p className={styles.casebookMeta}>Cohorts</p>
+                          <ul className={styles.list}>
+                            {retrospectiveCohortNotes.map((cohort) => (
+                              <li key={cohort.cohort}>
+                                {cohort.cohort}: {cohort.description}
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : null}
+                      {retrospectiveBucketNotes.length ? (
+                        <>
+                          <p className={styles.casebookMeta}>Buckets</p>
+                          <ul className={styles.list}>
+                            {retrospectiveBucketNotes.map((bucket) => (
+                              <li key={bucket.bucket}>
+                                {bucket.bucket}: {bucket.description}
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : null}
+                    </article>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
 
             <section className={styles.section}>
               <div className={`${styles.grid} ${styles.gridTwo}`}>

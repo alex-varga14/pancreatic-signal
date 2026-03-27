@@ -12,6 +12,7 @@ export type PublishedBenchmarkBucketSummary = {
   case_count: number;
   positive_count: number;
   escalation_count: number;
+  description?: string | null;
 };
 
 export type PublishedBenchmarkCohortSummary = {
@@ -20,6 +21,7 @@ export type PublishedBenchmarkCohortSummary = {
   positive_count: number;
   flagged_count: number;
   missed_positive_count: number;
+  description?: string | null;
 };
 
 export type PublishedBenchmarkDatasetSummary = {
@@ -114,6 +116,13 @@ export type ExternalBenchmarkSubmission = {
   evaluation_command: string;
   notable_strengths: string[];
   known_limitations: string[];
+  notes?: string | null;
+};
+
+export type ExternalBenchmarkDatasetContext = {
+  dataset_description?: string | null;
+  labeling_policy?: string | null;
+  notes?: string | null;
 };
 
 export type RetrospectiveBenchmarkSnapshot = {
@@ -125,7 +134,9 @@ export type RetrospectiveBenchmarkSnapshot = {
     label_schema_version: string;
     labels_path: string;
     predictions_path: string;
+    manifest_path?: string | null;
   };
+  dataset_context?: ExternalBenchmarkDatasetContext | null;
   dataset_summary: PublishedBenchmarkDatasetSummary;
   queue_preview: ExternalBenchmarkQueuePreview;
   evaluation: EvaluationSummary;

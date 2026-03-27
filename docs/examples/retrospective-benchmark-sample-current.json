@@ -1,12 +1,18 @@
 {
-  "generated_at": "2026-03-26T06:08:13.888758Z",
+  "generated_at": "2026-03-27T06:05:36.583179Z",
   "dataset": {
     "dataset_name": "deidentified-retrospective-multicohort-sample",
     "dataset_split": "validation",
     "deidentified": true,
     "label_schema_version": "pancreatic-signal-eval-v1",
     "labels_path": "docs/examples/retrospective-benchmark-sample-labels.jsonl",
-    "predictions_path": "docs/examples/retrospective-benchmark-sample-predictions.jsonl"
+    "predictions_path": "docs/examples/retrospective-benchmark-sample-predictions.jsonl",
+    "manifest_path": "docs/examples/retrospective-benchmark-sample-manifest.json"
+  },
+  "dataset_context": {
+    "dataset_description": "Checked-in retrospective-style benchmark sample used to show how a less-synthetic collaborator pack can preserve the same reviewer-facing proof shape as the demo benchmark.",
+    "labeling_policy": "This sample remains deidentified and intentionally bounded for repository use. Labels emphasize reviewer-visible pancreatic risk, actionable follow-up, and escalation cues rather than autonomous diagnostic claims.",
+    "notes": "Repository sample for public proof only. This is not a clinical validation dataset."
   },
   "dataset_summary": {
     "report_count": 12,
@@ -17,31 +23,36 @@
         "bucket": "explicit malignancy",
         "case_count": 3,
         "positive_count": 3,
-        "escalation_count": 3
+        "escalation_count": 3,
+        "description": "Reports with overt lesion or malignancy wording that should stay easy to justify in a reviewed queue."
       },
       {
         "bucket": "follow-up only",
         "case_count": 3,
         "positive_count": 3,
-        "escalation_count": 0
+        "escalation_count": 0,
+        "description": "Cases where the operational signal is pancreatic follow-up or workup language rather than explicit malignancy wording."
       },
       {
         "bucket": "negative control",
         "case_count": 2,
         "positive_count": 0,
-        "escalation_count": 0
+        "escalation_count": 0,
+        "description": "Clearly nonsuspicious pancreatic reports that should stay out of the flagged worklist."
       },
       {
         "bucket": "pancreatitis confounder",
         "case_count": 2,
         "positive_count": 0,
-        "escalation_count": 0
+        "escalation_count": 0,
+        "description": "Specificity checks where inflammatory language can look worrisome without supporting suspicious morphology."
       },
       {
         "bucket": "secondary signs",
         "case_count": 2,
         "positive_count": 2,
-        "escalation_count": 2
+        "escalation_count": 2,
+        "description": "Cases driven by ductal obstruction, atrophy, or related pancreatic risk cues without always naming a mass."
       }
     ],
     "cohort_counts": [
@@ -50,21 +61,24 @@
         "case_count": 4,
         "positive_count": 2,
         "flagged_count": 2,
-        "missed_positive_count": 0
+        "missed_positive_count": 0,
+        "description": "Front-door abdomen CT intake cases that mix overt lesions, secondary-sign patterns, and negative controls."
       },
       {
         "cohort": "referral pancreas review",
         "case_count": 4,
         "positive_count": 2,
         "flagged_count": 3,
-        "missed_positive_count": 0
+        "missed_positive_count": 0,
+        "description": "Navigator-style referral review cases that keep reviewer-facing excerpts and confounders visible in the same proof shape."
       },
       {
         "cohort": "tertiary MRI workup",
         "case_count": 4,
         "positive_count": 4,
         "flagged_count": 3,
-        "missed_positive_count": 1
+        "missed_positive_count": 1,
+        "description": "Referral MRI workup cases with richer pancreatic follow-up cues and one intentional follow-up-only miss."
       }
     ]
   },
@@ -778,7 +792,7 @@
     "score_mode": "external",
     "threshold": 0.3,
     "top_k": 5,
-    "evaluation_command": "python scripts/run_external_eval.py --labels docs/examples/retrospective-benchmark-sample-labels.jsonl --predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl --threshold 0.30 --top-k 5 --out-dir docs/examples --basename retrospective-benchmark-sample-current --dataset-name deidentified-retrospective-multicohort-sample --dataset-split validation --project-name \"Pancreatic Signal\" --strength \"Three deidentified cohorts now share the same reviewer-facing casebook shape.\" --strength \"Highest-confidence positives still concentrate near the top of the review queue.\" --limitation \"Sample remains small and deidentified for repository use.\" --limitation \"One follow-up-only miss and one pancreatitis confounder overcall remain visible.\"",
+    "evaluation_command": "python scripts/run_external_eval.py --labels docs/examples/retrospective-benchmark-sample-labels.jsonl --predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl --threshold 0.30 --top-k 5 --out-dir docs/examples --basename retrospective-benchmark-sample-current --manifest docs/examples/retrospective-benchmark-sample-manifest.json --dataset-name deidentified-retrospective-multicohort-sample --dataset-split validation --project-name \"Pancreatic Signal\" --submission-name external-deidentified-retrospective-multicohort-sample --strength \"Three deidentified cohorts now share the same reviewer-facing casebook shape.\" --strength \"Highest-confidence positives still concentrate near the top of the review queue.\" --limitation \"Sample remains small and deidentified for repository use.\" --limitation \"One follow-up-only miss and one pancreatitis confounder overcall remain visible.\" --notes \"Repository sample for public proof only. This is not a clinical validation dataset.\"",
     "artifact_paths": [
       "docs/examples/retrospective-benchmark-sample-current.json",
       "docs/examples/retrospective-benchmark-sample-current.md"
@@ -809,6 +823,6 @@
       "Sample remains small and deidentified for repository use.",
       "One follow-up-only miss and one pancreatitis confounder overcall remain visible."
     ],
-    "notes": "Generated draft from scripts/run_external_eval.py. Replace placeholder strengths and limitations before public submission if you did not pass them explicitly."
+    "notes": "Repository sample for public proof only. This is not a clinical validation dataset."
   }
 }

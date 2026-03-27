@@ -1,6 +1,6 @@
 # Codex Handoff
 
-Updated: 2026-03-25
+Updated: 2026-03-26
 
 This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, Phase 6 hosted smoke evidence capture is now complete, and the first post-Phase-6 benchmark-realism slices are also in place. The best next work should now move from the expanded synthetic proof set, stronger external starter pack, and checked-in multi-cohort retrospective-style sample toward broader de-identified or externally supplied benchmark inputs on top of the existing pilot packaging, proof surfaces, public benchmark pack, and external evaluation bundle writer.
 
@@ -13,6 +13,7 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 - The repo now includes an adoption-facing quickstart, checked-in benchmark snapshots in `docs/examples/demo-benchmark-current.json` and `docs/examples/demo-benchmark-current.md`, and a refresh path through `make benchmark-demo` plus `make refresh-demo-proof`; that published proof now carries benchmark buckets, reviewer cues, expected rationale codes, per-case rules-versus-hybrid outcomes, and an expanded 10-report casebook spanning 5 recurring benchmark buckets.
 - The repo also now includes a public benchmark pack: `docs/LABELING_GUIDE.md`, `docs/BENCHMARK_SUBMISSIONS.md`, checked-in label and submission templates, a Pydantic benchmark submission schema, and a validator entrypoint through `make validate-benchmark-submission SUBMISSION=...`.
 - The repo now also includes a comparable external evaluation bundle writer through `scripts/run_external_eval.py` plus `make benchmark-external`, producing JSON, Markdown, and validator-compatible submission-draft artifacts from label and prediction JSONL inputs; that external path now also preserves cohort labels, benchmark buckets, reviewer focus, expected rationale cues, optional deidentified report excerpts, dataset coverage, queue previews, and a reviewer-facing casebook in its generated outputs.
+- The external benchmark helper now also accepts an optional manifest JSON so collaborator-supplied datasets can carry dataset framing, labeling-policy notes, cohort descriptions, benchmark-bucket descriptions, and default operating-point metadata into the generated JSON, Markdown, submission draft, and checked-in proof sample without ad hoc hand editing.
 - The repo now also carries a checked-in deidentified retrospective-style multi-cohort sample pack under `docs/examples/retrospective-benchmark-sample-*`, with reproducible JSON, Markdown, and submission outputs refreshed by `make refresh-external-sample-proof`.
 - The release-facing docs now also include a concrete operator runbook in `docs/RELEASE_RUNBOOK.md` plus a reusable `docs/RELEASE_NOTES_TEMPLATE.md` so the remaining hosted smoke evidence path is explicit rather than tribal.
 - FHIR `DiagnosticReport` imports now preserve patient, encounter, and accession metadata from inline `Reference.identifier` values when upstream payloads omit fully resolved `Patient`, `Encounter`, or `ServiceRequest` resources.
@@ -24,11 +25,11 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 
 ## Fresh Validation Status
 
-Confirmed on 2026-03-25:
+Confirmed on 2026-03-26:
 
 - `make validate-strict` passes
 - Summary: `9 pass, 0 warn, 0 fail`
-- API tests: `139 passed`
+- API tests: `140 passed`
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_imports.py -q` passed with `34 passed`, including split, overlapping, bundled or contained `Binary`-backed FHIR `presentedForm`, grouped and cycle-safe `Observation.hasMember`, `conclusionCode`, measurement `interpretation` plus `referenceRange`, and `Observation.component` coverage
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_summarize_pilot_smoke.py apps/api/tests/test_smoke_proxy_auth.py -q` passed with `23 passed`, covering the hosted smoke summary parser plus the attachment-backed FHIR smoke fixture and its expected `presentedForm` payload shape
 - `apps/api/.venv/bin/python -m pytest apps/api/tests/test_smoke_proxy_auth.py -q` passed with `21 passed`, covering the attachment-backed FHIR smoke fixture and its expected `presentedForm` payload shape
@@ -41,6 +42,7 @@ Confirmed on 2026-03-25:
 - `make validate-benchmark-submission SUBMISSION=docs/examples/benchmark-submission-template.json` passed
 - `cd apps/api && .venv/bin/python -m pytest tests/test_benchmark_submission.py -q` passed
 - `make benchmark-external LABELS=docs/examples/benchmark-label-template.jsonl PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl OUT_DIR=/tmp/pancreatic-signal-external-eval BASENAME=template-external TOP_K=2` passed and wrote JSON, Markdown, and submission-draft artifacts
+- `apps/api/.venv/bin/python -m pytest apps/api/tests/test_external_evaluation.py -q` passed with `6 passed`, covering manifest-driven dataset framing plus CLI override precedence for collaborator benchmark bundles
 - `make benchmark-external-sample` passed and wrote a retrospective-style external bundle from the checked-in sample pack
 - `make refresh-external-sample-proof` passed and refreshed the checked-in retrospective-style external benchmark proof under `docs/examples/`
 - `make validate-benchmark-submission SUBMISSION=/tmp/pancreatic-signal-external-eval/template-external-submission.json` passed against the generated draft

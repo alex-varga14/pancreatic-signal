@@ -20,6 +20,7 @@ At minimum, prepare:
 2. A prediction file that follows [`docs/examples/benchmark-prediction-template.jsonl`](./examples/benchmark-prediction-template.jsonl)
 3. A benchmark submission JSON that follows [`docs/examples/benchmark-submission-template.json`](./examples/benchmark-submission-template.json) or the generated `*-submission.json` draft from `scripts/run_external_eval.py`
 4. Any supporting benchmark artifacts you want others to inspect, such as the generated external casebook bundle, confusion-matrix exports, or case-level outputs
+5. An optional benchmark manifest JSON when you want the generated bundle to carry dataset framing, cohort notes, or default operating-point metadata without a long CLI invocation
 
 ## Prediction file format
 
@@ -57,12 +58,22 @@ The repository also now includes a checked-in deidentified retrospective-style m
 
 ## Generate the bundle
 
+If you have richer collaborator metadata, start from the optional manifest template in [`docs/examples/benchmark-manifest-template.json`](./examples/benchmark-manifest-template.json). The manifest can carry:
+
+- dataset and project names
+- threshold and top-k defaults
+- dataset framing and labeling-policy notes
+- cohort descriptions
+- benchmark-bucket descriptions
+- strengths, limitations, and draft submission notes
+
 Use the built-in external evaluation helper:
 
 ```bash
 make benchmark-external \
   LABELS=docs/examples/benchmark-label-template.jsonl \
-  PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl
+  PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl \
+  MANIFEST=docs/examples/benchmark-manifest-template.json
 ```
 
 For the checked-in less-synthetic sample pack:
@@ -82,6 +93,7 @@ The JSON and Markdown outputs now include:
 
 - cohort coverage when `cohort` is populated
 - dataset coverage by benchmark bucket
+- optional dataset framing when a manifest is provided
 - top-k queue previews
 - a reviewer-facing external casebook with label notes, reviewer focus, expected rationale cues, and recorded miss buckets
 
