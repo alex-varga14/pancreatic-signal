@@ -113,7 +113,7 @@ Use these stable buckets when reviewing misses:
 
 ## Published proof surfaces
 
-- the `/proof` web route, which now renders the checked-in demo comparison plus every published external benchmark pack listed in `docs/examples/published-external-benchmarks.json`
+- the `/proof` web route, which now renders the checked-in demo comparison plus a side-by-side comparison of every published external benchmark pack listed in `docs/examples/published-external-benchmarks.json`
 - `docs/examples/demo-benchmark-current.json` with dataset coverage, queue previews, and per-case casebook entries
 - `docs/examples/demo-benchmark-current.md` with the same publishable casebook summary in Markdown
 - `docs/LABELING_GUIDE.md`
