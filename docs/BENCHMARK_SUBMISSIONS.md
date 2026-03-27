@@ -41,13 +41,14 @@ See the minimal template in [`docs/examples/benchmark-prediction-template.jsonl`
 The public label template now also supports optional reviewer-facing fields:
 
 - `report_excerpt`
+- `cohort`
 - `benchmark_bucket`
 - `reviewer_focus`
 - `expected_rationale_codes`
 
-These fields are not required for metric validity, but they let the generated external bundle publish dataset coverage, queue previews, and a reviewer-facing casebook instead of only a score table.
+These fields are not required for metric validity, but they let the generated external bundle publish cohort coverage, dataset coverage, queue previews, and a reviewer-facing casebook instead of only a score table.
 
-The repository also now includes a checked-in deidentified retrospective-style sample pack that uses those fields:
+The repository also now includes a checked-in deidentified retrospective-style multi-cohort sample pack that uses those fields:
 
 - `docs/examples/retrospective-benchmark-sample-labels.jsonl`
 - `docs/examples/retrospective-benchmark-sample-predictions.jsonl`
@@ -79,6 +80,7 @@ This writes:
 
 The JSON and Markdown outputs now include:
 
+- cohort coverage when `cohort` is populated
 - dataset coverage by benchmark bucket
 - top-k queue previews
 - a reviewer-facing external casebook with label notes, reviewer focus, expected rationale cues, and recorded miss buckets

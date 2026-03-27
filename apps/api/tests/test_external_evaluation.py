@@ -42,6 +42,7 @@ def test_external_evaluation_template_metrics_are_comparable() -> None:
     assert summary.f1 == 0.8
     case_by_id = {case.case_id: case for case in summary.cases}
     assert case_by_id["C-TEMPLATE-002"].benchmark_bucket == "secondary signs"
+    assert case_by_id["C-TEMPLATE-002"].cohort == "template workup"
     assert case_by_id["C-TEMPLATE-003"].reviewer_focus.startswith("Keep pancreatic follow-up")
     assert case_by_id["C-TEMPLATE-003"].false_negative_bucket == "recommendation_language_missed"
     assert case_by_id["C-TEMPLATE-003"].expected_rationale_codes == ["FOLLOWUP_RECOMMENDED"]
@@ -69,22 +70,24 @@ def test_retrospective_external_sample_carries_casebook_context() -> None:
         labels_path=RETRO_LABELS_PATH,
         predictions_path=RETRO_PREDICTIONS_PATH,
         threshold=0.3,
-        top_k=4,
+        top_k=5,
     )
 
-    assert summary.processed == 7
-    assert summary.positives == 5
-    assert summary.flagged == 4
-    assert summary.true_positives == 4
-    assert summary.false_positives == 0
+    assert summary.processed == 12
+    assert summary.positives == 8
+    assert summary.flagged == 8
+    assert summary.true_positives == 7
+    assert summary.false_positives == 1
     assert summary.false_negatives == 1
-    assert summary.precision == 1.0
-    assert summary.recall == 0.8
-    assert summary.f1 == 0.8889
+    assert summary.precision == 0.875
+    assert summary.recall == 0.875
+    assert summary.f1 == 0.875
 
     case_by_id = {case.case_id: case for case in summary.cases}
     assert case_by_id["C-RETRO-003"].report_excerpt.startswith("Pancreas protocol MRI")
     assert case_by_id["C-RETRO-006"].benchmark_bucket == "explicit malignancy"
+    assert case_by_id["C-RETRO-009"].cohort == "tertiary MRI workup"
+    assert case_by_id["C-RETRO-012"].cohort == "referral pancreas review"
     assert case_by_id["C-RETRO-007"].false_negative_bucket == "recommendation_language_missed"
 
 
@@ -163,13 +166,13 @@ def test_run_external_eval_sample_bundle_includes_report_excerpts(tmp_path: Path
             "--threshold",
             "0.3",
             "--top-k",
-            "4",
+            "5",
             "--out-dir",
             str(tmp_path),
             "--basename",
             "retrospective-sample",
             "--dataset-name",
-            "deidentified-retrospective-sample",
+            "deidentified-retrospective-multicohort-sample",
             "--dataset-split",
             "validation",
         ],
@@ -185,12 +188,19 @@ def test_run_external_eval_sample_bundle_includes_report_excerpts(tmp_path: Path
     assert "Wrote" in result.stdout
     snapshot = json.loads(json_path.read_text())
     casebook_by_id = {entry["case_id"]: entry for entry in snapshot["casebook"]}
+    cohort_by_name = {entry["cohort"]: entry for entry in snapshot["dataset_summary"]["cohort_counts"]}
 
-    assert snapshot["dataset_summary"]["report_count"] == 7
-    assert snapshot["queue_preview"]["top_k"] == 4
+    assert snapshot["dataset_summary"]["report_count"] == 12
+    assert snapshot["queue_preview"]["top_k"] == 5
+    assert len(snapshot["dataset_summary"]["cohort_counts"]) == 3
+    assert cohort_by_name["tertiary MRI workup"]["missed_positive_count"] == 1
     assert casebook_by_id["C-RETRO-001"]["report_excerpt"].startswith("CT abdomen with contrast")
+    assert casebook_by_id["C-RETRO-001"]["cohort"] == "community CT intake"
     assert casebook_by_id["C-RETRO-007"]["external"]["outcome"] == "missed_positive"
+    assert casebook_by_id["C-RETRO-010"]["external"]["outcome"] == "false_positive"
 
     markdown = markdown_path.read_text()
+    assert "## Cohort Coverage" in markdown
     assert "### C-RETRO-007 — follow-up only" in markdown
+    assert "- Cohort: tertiary MRI workup" in markdown
     assert "- Report excerpt: MRI abdomen:" in markdown

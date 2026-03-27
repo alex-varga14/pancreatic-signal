@@ -1,47 +1,47 @@
 {
   "submission_version": "1.0",
-  "submission_name": "external-deidentified-retrospective-sample",
+  "submission_name": "external-deidentified-retrospective-multicohort-sample",
   "project_name": "Pancreatic Signal",
   "repository_url": null,
   "commit_sha": null,
-  "dataset_name": "deidentified-retrospective-sample",
+  "dataset_name": "deidentified-retrospective-multicohort-sample",
   "dataset_split": "validation",
-  "report_count": 7,
+  "report_count": 12,
   "deidentified": true,
   "label_schema_version": "pancreatic-signal-eval-v1",
   "score_mode": "external",
   "threshold": 0.3,
-  "top_k": 4,
-  "evaluation_command": "python scripts/run_external_eval.py --labels docs/examples/retrospective-benchmark-sample-labels.jsonl --predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl --threshold 0.30 --top-k 4 --out-dir docs/examples --basename retrospective-benchmark-sample-current --dataset-name deidentified-retrospective-sample --dataset-split validation --project-name \"Pancreatic Signal\" --strength \"High-confidence positives concentrate near the top of the review queue.\" --strength \"Reviewer-facing label cues remain visible in the generated casebook.\" --limitation \"Sample remains small and deidentified for repository use.\" --limitation \"One follow-up-only cyst surveillance case remains below threshold.\"",
+  "top_k": 5,
+  "evaluation_command": "python scripts/run_external_eval.py --labels docs/examples/retrospective-benchmark-sample-labels.jsonl --predictions docs/examples/retrospective-benchmark-sample-predictions.jsonl --threshold 0.30 --top-k 5 --out-dir docs/examples --basename retrospective-benchmark-sample-current --dataset-name deidentified-retrospective-multicohort-sample --dataset-split validation --project-name \"Pancreatic Signal\" --strength \"Three deidentified cohorts now share the same reviewer-facing casebook shape.\" --strength \"Highest-confidence positives still concentrate near the top of the review queue.\" --limitation \"Sample remains small and deidentified for repository use.\" --limitation \"One follow-up-only miss and one pancreatitis confounder overcall remain visible.\"",
   "artifact_paths": [
     "docs/examples/retrospective-benchmark-sample-current.json",
     "docs/examples/retrospective-benchmark-sample-current.md"
   ],
   "metrics": {
-    "processed": 7,
-    "positives": 5,
-    "flagged": 4,
-    "true_positives": 4,
-    "false_positives": 0,
-    "true_negatives": 2,
+    "processed": 12,
+    "positives": 8,
+    "flagged": 8,
+    "true_positives": 7,
+    "false_positives": 1,
+    "true_negatives": 3,
     "false_negatives": 1,
-    "precision": 1.0,
-    "recall": 0.8,
-    "f1": 0.8889,
+    "precision": 0.875,
+    "recall": 0.875,
+    "f1": 0.875,
     "precision_at_top_k": 1.0,
-    "sensitivity_at_top_k": 0.8,
+    "sensitivity_at_top_k": 0.625,
     "reviewer_yield_at_top_k": 1.0,
     "false_negative_buckets": {
       "recommendation_language_missed": 1
     }
   },
   "notable_strengths": [
-    "High-confidence positives concentrate near the top of the review queue.",
-    "Reviewer-facing label cues remain visible in the generated casebook."
+    "Three deidentified cohorts now share the same reviewer-facing casebook shape.",
+    "Highest-confidence positives still concentrate near the top of the review queue."
   ],
   "known_limitations": [
     "Sample remains small and deidentified for repository use.",
-    "One follow-up-only cyst surveillance case remains below threshold."
+    "One follow-up-only miss and one pancreatitis confounder overcall remain visible."
   ],
   "notes": "Generated draft from scripts/run_external_eval.py. Replace placeholder strengths and limitations before public submission if you did not pass them explicitly."
 }

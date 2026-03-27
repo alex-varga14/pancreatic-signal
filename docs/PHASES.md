@@ -80,7 +80,7 @@ Already completed in this phase:
 
 Goal:
 
-- move from the checked-in deidentified retrospective-style sample toward broader real-world or collaborator-supplied benchmark inputs while preserving the reviewer-facing proof shape
+- move from the checked-in deidentified multi-cohort retrospective sample toward broader real-world or collaborator-supplied benchmark inputs while preserving the reviewer-facing proof shape
 
 ## What is not a current phase target
 

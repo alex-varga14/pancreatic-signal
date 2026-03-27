@@ -112,14 +112,14 @@ make benchmark-external \
   PREDICTIONS=docs/examples/benchmark-prediction-template.jsonl
 ```
 
-For a checked-in less-synthetic sample bundle with deidentified report excerpts and a reviewer-facing external casebook:
+For a checked-in less-synthetic multi-cohort sample bundle with deidentified report excerpts and a reviewer-facing external casebook:
 
 ```bash
 make benchmark-external-sample
 make refresh-external-sample-proof
 ```
 
-The public `/proof` page now renders both the checked-in demo comparison and the checked-in retrospective-style external sample, so outside collaborators can inspect a controlled synthetic casebook and a less-synthetic deidentified sample in one place.
+The public `/proof` page now renders both the checked-in demo comparison and the checked-in retrospective-style external sample, so outside collaborators can inspect a controlled synthetic casebook and a broader multi-cohort deidentified sample in one place.
 
 ### API
 

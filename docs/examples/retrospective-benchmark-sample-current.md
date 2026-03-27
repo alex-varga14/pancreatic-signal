@@ -1,59 +1,65 @@
 # External Benchmark Snapshot
 
-- Generated at: 2026-03-26T04:49:06.513673Z
-- Dataset: deidentified-retrospective-sample (validation)
+- Generated at: 2026-03-26T06:08:13.888758Z
+- Dataset: deidentified-retrospective-multicohort-sample (validation)
 - De-identified: True
 - Labels: `docs/examples/retrospective-benchmark-sample-labels.jsonl`
 - Predictions: `docs/examples/retrospective-benchmark-sample-predictions.jsonl`
 - Threshold: 0.30
-- Top-k: 4
+- Top-k: 5
 
 ## Dataset Coverage
 
-- Reports in casebook: 7
-- Positive labels: 5
-- Escalation labels: 3
+- Reports in casebook: 12
+- Positive labels: 8
+- Escalation labels: 5
 - Benchmark buckets: 5
-- `explicit malignancy`: 2 case(s), 2 positive, 2 escalation-tagged
-- `follow-up only`: 2 case(s), 2 positive, 0 escalation-tagged
-- `negative control`: 1 case(s), 0 positive, 0 escalation-tagged
-- `pancreatitis confounder`: 1 case(s), 0 positive, 0 escalation-tagged
-- `secondary signs`: 1 case(s), 1 positive, 1 escalation-tagged
+- `explicit malignancy`: 3 case(s), 3 positive, 3 escalation-tagged
+- `follow-up only`: 3 case(s), 3 positive, 0 escalation-tagged
+- `negative control`: 2 case(s), 0 positive, 0 escalation-tagged
+- `pancreatitis confounder`: 2 case(s), 0 positive, 0 escalation-tagged
+- `secondary signs`: 2 case(s), 2 positive, 2 escalation-tagged
+
+## Cohort Coverage
+
+- `community CT intake`: 4 case(s), 2 positive, 2 flagged, 0 missed positive
+- `referral pancreas review`: 4 case(s), 2 positive, 3 flagged, 0 missed positive
+- `tertiary MRI workup`: 4 case(s), 4 positive, 3 flagged, 1 missed positive
 
 ## Summary
 
 | Mode | Precision | Recall | F1 | Flagged | Top-k Precision | Top-k Sensitivity |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| External | 1.0000 | 0.8000 | 0.8889 | 4 | 1.0000 | 0.8000 |
+| External | 0.8750 | 0.8750 | 0.8750 | 8 | 1.0000 | 0.6250 |
 
-- Positives: 5 of 7
-- Reviewer yield at top-4: 1.0000
-- Top flagged case IDs: C-RETRO-001, C-RETRO-006, C-RETRO-002, C-RETRO-003
+- Positives: 8 of 12
+- Reviewer yield at top-5: 1.0000
+- Top flagged case IDs: C-RETRO-001, C-RETRO-006, C-RETRO-012, C-RETRO-002, C-RETRO-008
 - Missed positive case IDs: C-RETRO-007
 - False negative buckets: recommendation_language_missed=1
 
 ## Top-k Queue Preview
 
-- External top-4: C-RETRO-001 (explicit malignancy, true_positive, 0.9400) -> C-RETRO-006 (explicit malignancy, true_positive, 0.7900) -> C-RETRO-002 (secondary signs, true_positive, 0.6800) -> C-RETRO-003 (follow-up only, true_positive, 0.3100)
+- External top-5: C-RETRO-001 (community CT intake, explicit malignancy, true_positive, 0.9400) -> C-RETRO-006 (community CT intake, explicit malignancy, true_positive, 0.7900) -> C-RETRO-012 (referral pancreas review, explicit malignancy, true_positive, 0.7400) -> C-RETRO-002 (tertiary MRI workup, secondary signs, true_positive, 0.6800) -> C-RETRO-008 (referral pancreas review, secondary signs, true_positive, 0.5700)
 
 ## Threshold Sweep
 
 | Threshold | Precision | Recall | F1 | Flagged | Top-k Precision | Top-k Sensitivity |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 0.20 | 0.8000 | 0.8000 | 0.8000 | 5 | 1.0000 | 0.8000 |
-| 0.30 | 1.0000 | 0.8000 | 0.8889 | 4 | 1.0000 | 0.8000 |
-| 0.40 | 1.0000 | 0.6000 | 0.7500 | 3 | 1.0000 | 0.8000 |
-| 0.50 | 1.0000 | 0.6000 | 0.7500 | 3 | 1.0000 | 0.8000 |
-| 0.60 | 1.0000 | 0.6000 | 0.7500 | 3 | 1.0000 | 0.8000 |
+| 0.20 | 0.7778 | 0.8750 | 0.8235 | 9 | 1.0000 | 0.6250 |
+| 0.30 | 0.8750 | 0.8750 | 0.8750 | 8 | 1.0000 | 0.6250 |
+| 0.40 | 1.0000 | 0.6250 | 0.7692 | 5 | 1.0000 | 0.6250 |
+| 0.50 | 1.0000 | 0.6250 | 0.7692 | 5 | 1.0000 | 0.6250 |
+| 0.60 | 1.0000 | 0.5000 | 0.6667 | 4 | 1.0000 | 0.6250 |
 
 ## Recommended Operating Point
 
-- External: threshold 0.30, F1 0.8889, recall 0.8000, flagged 4
-- Rationale: Selected threshold 0.30 because it maximizes F1 (0.89) while preserving recall 0.80 with 4 flagged case(s).
+- External: threshold 0.30, F1 0.8750, recall 0.8750, flagged 8
+- Rationale: Selected threshold 0.30 because it maximizes F1 (0.88) while preserving recall 0.88 with 8 flagged case(s).
 
 ## Submission Draft
 
-- Submission name: `external-deidentified-retrospective-sample`
+- Submission name: `external-deidentified-retrospective-multicohort-sample`
 - Project: Pancreatic Signal
 - Submission JSON: `docs/examples/retrospective-benchmark-sample-current-submission.json`
 - Artifact paths: docs/examples/retrospective-benchmark-sample-current.json, docs/examples/retrospective-benchmark-sample-current.md
@@ -63,6 +69,7 @@
 ### C-RETRO-001 — explicit malignancy
 
 - Report: `R-RETRO-001`
+- Cohort: community CT intake
 - Report excerpt: CT abdomen with contrast: Ill-defined pancreatic head mass with abrupt cutoff of the pancreatic duct and upstream biliary dilatation. Impression: Findings highly concerning for pancreatic adenocarcinoma; endoscopic tissue sampling recommended.
 - Reviewer focus: Confirm the mass, duct cutoff, and same-report escalation language remain visible together after de-identification.
 - Label note: Pancreatic head mass with abrupt duct cutoff and same-report tissue recommendation.
@@ -74,6 +81,7 @@
 ### C-RETRO-002 — secondary signs
 
 - Report: `R-RETRO-002`
+- Cohort: tertiary MRI workup
 - Report excerpt: MRI/MRCP: Double duct sign is present with distal pancreatic atrophy. No discretely measurable mass is seen; recommend EUS to exclude occult pancreatic malignancy.
 - Reviewer focus: Escalate the obstructive secondary-sign cluster even though the report stops short of naming a definite mass.
 - Label note: Double-duct obstruction with distal atrophy and EUS recommendation but no discretely measurable mass.
@@ -85,6 +93,7 @@
 ### C-RETRO-003 — follow-up only
 
 - Report: `R-RETRO-003`
+- Cohort: tertiary MRI workup
 - Report excerpt: Pancreas protocol MRI: Stable 1.8 cm side-branch IPMN at the pancreatic neck without enhancing mural nodularity. Impression: Follow-up pancreas MRI in 6 months recommended.
 - Reviewer focus: Keep non-malignant but action-worthy cyst surveillance recommendations in the queue.
 - Label note: Follow-up-worthy side-branch cyst surveillance case that should stay visible to a reviewer.
@@ -96,6 +105,7 @@
 ### C-RETRO-004 — pancreatitis confounder
 
 - Report: `R-RETRO-004`
+- Cohort: community CT intake
 - Report excerpt: CT abdomen: Peripancreatic edema and fluid track along the pancreatic tail, compatible with acute pancreatitis. No focal pancreatic mass or abrupt duct cutoff identified.
 - Reviewer focus: Preserve specificity when inflammatory change is present but suspicious pancreatic morphology is explicitly denied.
 - Label note: Inflammatory pancreatitis confounder with explicit negation of a mass or duct cutoff.
@@ -107,6 +117,7 @@
 ### C-RETRO-005 — negative control
 
 - Report: `R-RETRO-005`
+- Cohort: referral pancreas review
 - Report excerpt: CT abdomen and pelvis: Pancreas enhances normally. No focal pancreatic lesion, no ductal dilatation, and no peripancreatic inflammatory change.
 - Reviewer focus: Keep clearly normal pancreatic reports out of the flagged queue.
 - Label note: Clean negative control with normal pancreas and no follow-up recommendation.
@@ -118,6 +129,7 @@
 ### C-RETRO-006 — explicit malignancy
 
 - Report: `R-RETRO-006`
+- Cohort: community CT intake
 - Report excerpt: Pancreas protocol CT: Focal hypoenhancement in the uncinate process with interruption of the downstream pancreatic duct raises concern for an underlying neoplastic process. Tissue diagnosis is advised.
 - Reviewer focus: Do not miss less formulaic neoplastic wording when it still pairs a focal abnormality with duct interruption and biopsy advice.
 - Label note: Less formulaic malignancy wording with uncinate hypoenhancement, duct interruption, and biopsy recommendation.
@@ -129,6 +141,7 @@
 ### C-RETRO-007 — follow-up only
 
 - Report: `R-RETRO-007`
+- Cohort: tertiary MRI workup
 - Report excerpt: MRI abdomen: Clustered pancreatic tail cysts are again seen, the largest slightly increased in size. Impression: Likely branch duct IPMN; short-interval MR follow-up suggested.
 - Reviewer focus: Surface interval-growth surveillance recommendations even when malignancy language is absent.
 - Label note: Follow-up-only cyst case with interval growth language that is easy to underrank.
@@ -136,3 +149,63 @@
 - Expected rationale cues: FOLLOWUP_RECOMMENDED
 - External: missed_positive at 0.1700 with rationale cues FOLLOWUP_RECOMMENDED
 - Reviewed false-negative bucket: recommendation_language_missed
+
+### C-RETRO-008 — secondary signs
+
+- Report: `R-RETRO-008`
+- Cohort: referral pancreas review
+- Report excerpt: CT pancreas protocol: Mild prominence of the main pancreatic duct with focal distal body atrophy and subtle fullness near the neck. Impression: occult pancreatic lesion remains a concern; recommend EUS correlation.
+- Reviewer focus: Keep subtle obstructive-pattern CT findings visible when the report only hints at an occult lesion.
+- Label note: Subtle ductal prominence plus focal atrophy with EUS recommendation despite no discrete mass callout.
+- Expected positive: `True` | Expected escalation: `True`
+- Expected rationale cues: DUCT_DILATION, FOCAL_ATROPHY, FOLLOWUP_RECOMMENDED
+- External: true_positive at 0.5700 with rationale cues DUCT_DILATION, FOCAL_ATROPHY, FOLLOWUP_RECOMMENDED
+- Reviewed false-negative bucket: none recorded
+
+### C-RETRO-009 — follow-up only
+
+- Report: `R-RETRO-009`
+- Cohort: tertiary MRI workup
+- Report excerpt: MRI pancreas surveillance: Multiloculated 2.1 cm cyst in the uncinate process with thin septations but no nodular enhancement. Impression: interval follow-up MRI in 6 months recommended.
+- Reviewer focus: Surface structured surveillance language even when the report stays firmly in benign cyst follow-up framing.
+- Label note: Surveillance MRI recommendation for a slowly enlarging uncinate cyst should remain reviewable.
+- Expected positive: `True` | Expected escalation: `False`
+- Expected rationale cues: FOLLOWUP_RECOMMENDED
+- External: true_positive at 0.3300 with rationale cues FOLLOWUP_RECOMMENDED
+- Reviewed false-negative bucket: none recorded
+
+### C-RETRO-010 — pancreatitis confounder
+
+- Report: `R-RETRO-010`
+- Cohort: referral pancreas review
+- Report excerpt: CT abdomen: Chronic pancreatitis with scattered pancreatic calcifications and mild ductal irregularity. No focal pancreatic mass is identified; recommend clinical follow-up if symptoms persist.
+- Reviewer focus: Review whether chronic inflammatory duct irregularity is being overcalled as a pancreatic triage signal.
+- Label note: Chronic pancreatitis confounder with duct irregularity but no focal lesion; useful for visible false-positive review.
+- Expected positive: `False` | Expected escalation: `False`
+- Expected rationale cues: none
+- External: false_positive at 0.3400 with rationale cues DUCT_DILATION
+- Reviewed false-negative bucket: none recorded
+
+### C-RETRO-011 — negative control
+
+- Report: `R-RETRO-011`
+- Cohort: community CT intake
+- Report excerpt: Portal venous phase CT: Pancreas is homogeneous without ductal dilatation, focal lesion, or peripancreatic inflammatory change.
+- Reviewer focus: Keep straightforward normal CT intake studies out of the queue.
+- Label note: Clean CT negative control with an explicitly normal pancreas.
+- Expected positive: `False` | Expected escalation: `False`
+- Expected rationale cues: none
+- External: true_negative at 0.0700 with rationale cues none
+- Reviewed false-negative bucket: none recorded
+
+### C-RETRO-012 — explicit malignancy
+
+- Report: `R-RETRO-012`
+- Cohort: referral pancreas review
+- Report excerpt: CT abdomen and pelvis: Hypoenhancing 2.4 cm lesion at the pancreatic neck with upstream duct dilatation and abutment of the SMV. Impression: pancreatic neoplasm is favored; urgent tissue sampling is advised.
+- Reviewer focus: Keep explicit lesion language, ductal obstruction, and urgent tissue follow-up tightly linked for reviewers.
+- Label note: Hypoenhancing pancreatic neck lesion with upstream duct dilatation and urgent tissue recommendation.
+- Expected positive: `True` | Expected escalation: `True`
+- Expected rationale cues: PDAC_EXPLICIT_SUSPICION, PANCREATIC_MASS, DUCT_DILATION, FOLLOWUP_RECOMMENDED
+- External: true_positive at 0.7400 with rationale cues PDAC_EXPLICIT_SUSPICION, PANCREATIC_MASS, DUCT_DILATION, FOLLOWUP_RECOMMENDED
+- Reviewed false-negative bucket: none recorded
