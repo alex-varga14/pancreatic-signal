@@ -1,9 +1,9 @@
 import Link from "next/link";
 import {
   getDemoBenchmarkSnapshot,
-  getRetrospectiveBenchmarkSnapshot,
+  getPublishedExternalBenchmarkEntries,
   PUBLISHED_DEMO_PROOF_PATH,
-  PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH,
+  PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH,
 } from "../lib/demo-proof";
 import styles from "./marketing.module.css";
 
@@ -30,12 +30,18 @@ function formatGeneratedAt(value: string): string {
 
 export default async function HomePage() {
   const demoProof = await getDemoBenchmarkSnapshot();
-  const retrospectiveProof = await getRetrospectiveBenchmarkSnapshot();
+  const externalBenchmarkEntries = await getPublishedExternalBenchmarkEntries();
+  const configuredExternalBenchmarkEntries = externalBenchmarkEntries.length;
+  const availableExternalBenchmarkEntries = externalBenchmarkEntries.filter((entry) => entry.snapshot !== null);
+  const missingExternalBenchmarkEntries =
+    configuredExternalBenchmarkEntries - availableExternalBenchmarkEntries.length;
+  const primaryExternalEntry = availableExternalBenchmarkEntries[0] ?? null;
+  const primaryExternalProof = primaryExternalEntry?.snapshot ?? null;
   const datasetSummary = demoProof?.dataset_summary ?? null;
   const comparison = demoProof?.comparison ?? null;
   const sweep = demoProof?.sweep ?? null;
-  const retrospectiveSummary = retrospectiveProof?.dataset_summary ?? null;
-  const retrospectiveEvaluation = retrospectiveProof?.evaluation ?? null;
+  const externalSummary = primaryExternalProof?.dataset_summary ?? null;
+  const externalEvaluation = primaryExternalProof?.evaluation ?? null;
 
   return (
     <main className={styles.page}>
@@ -87,17 +93,25 @@ export default async function HomePage() {
                 Demo casebook covers <strong>{datasetSummary.report_count}</strong> labeled reports across{" "}
                 <strong>{datasetSummary.bucket_counts.length}</strong> benchmark buckets.
               </p>
-              {retrospectiveEvaluation && retrospectiveSummary ? (
+              {externalEvaluation && externalSummary && primaryExternalEntry ? (
                 <p className={styles.heroProofMetric}>
-                  Retrospective sample: external recall <strong>{formatPercent(retrospectiveEvaluation.recall)}</strong> and F1{" "}
-                  <strong>{formatPercent(retrospectiveEvaluation.f1)}</strong> across{" "}
-                  <strong>{retrospectiveSummary.report_count}</strong> deidentified reports in{" "}
-                  <strong>{retrospectiveSummary.cohort_counts?.length ?? 0}</strong> cohorts.
+                  Published external packs: <strong>{availableExternalBenchmarkEntries.length}</strong> live from{" "}
+                  <strong>{configuredExternalBenchmarkEntries}</strong> configured.{" "}
+                  {primaryExternalEntry.descriptor.label}: external recall <strong>{formatPercent(externalEvaluation.recall)}</strong> and F1{" "}
+                  <strong>{formatPercent(externalEvaluation.f1)}</strong> across{" "}
+                  <strong>{externalSummary.report_count}</strong> checked-in reports in{" "}
+                  <strong>{externalSummary.cohort_counts?.length ?? 0}</strong> cohorts.
+                </p>
+              ) : null}
+              {missingExternalBenchmarkEntries > 0 ? (
+                <p className={styles.heroProofMetric}>
+                  Registry gaps: <strong>{missingExternalBenchmarkEntries}</strong> configured external pack
+                  {missingExternalBenchmarkEntries > 1 ? "s are" : " is"} still missing checked-in snapshot artifacts.
                 </p>
               ) : null}
               <p className={styles.heroProofMetric}>
-                Published snapshots: <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span> and{" "}
-                <span className={styles.inlineCode}>{PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH}</span>.
+                Published proof sources: <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span> and the
+                external registry <span className={styles.inlineCode}>{PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH}</span>.
               </p>
             </div>
           ) : null}
@@ -130,29 +144,30 @@ export default async function HomePage() {
           </section>
         ) : null}
 
-        {retrospectiveEvaluation && retrospectiveSummary ? (
+        {externalEvaluation && externalSummary && primaryExternalEntry ? (
           <section className={`${styles.section} ${styles.grid} ${styles.gridFour}`}>
             <article className={styles.card}>
-              <p className={styles.statLabel}>Retro Reports</p>
-              <p className={styles.statValue}>{retrospectiveSummary.report_count}</p>
+              <p className={styles.statLabel}>Registry Coverage</p>
+              <p className={styles.statValue}>
+                {availableExternalBenchmarkEntries.length}/{configuredExternalBenchmarkEntries}
+              </p>
               <p className={styles.statNote}>
-                Checked-in deidentified retrospective-style sample on the proof page across{" "}
-                {retrospectiveSummary.cohort_counts?.length ?? 0} cohorts.
+                Published external benchmark packs with checked-in snapshots versus total registry entries.
               </p>
             </article>
             <article className={styles.card}>
-              <p className={styles.statLabel}>Retro Recall</p>
-              <p className={styles.statValue}>{formatPercent(retrospectiveEvaluation.recall)}</p>
-              <p className={styles.statNote}>External recall at the current sample operating point.</p>
+              <p className={styles.statLabel}>Primary Recall</p>
+              <p className={styles.statValue}>{formatPercent(externalEvaluation.recall)}</p>
+              <p className={styles.statNote}>{primaryExternalEntry.descriptor.label} at the current operating point.</p>
             </article>
             <article className={styles.card}>
-              <p className={styles.statLabel}>Retro F1</p>
-              <p className={styles.statValue}>{formatPercent(retrospectiveEvaluation.f1)}</p>
-              <p className={styles.statNote}>Reviewer-facing external sample summary, not just the synthetic demo.</p>
+              <p className={styles.statLabel}>Primary F1</p>
+              <p className={styles.statValue}>{formatPercent(externalEvaluation.f1)}</p>
+              <p className={styles.statNote}>Reviewer-facing external proof summary, not just the synthetic demo.</p>
             </article>
             <article className={styles.card}>
-              <p className={styles.statLabel}>Retro Misses</p>
-              <p className={styles.statValue}>{retrospectiveEvaluation.false_negatives}</p>
+              <p className={styles.statLabel}>Primary Misses</p>
+              <p className={styles.statValue}>{externalEvaluation.false_negatives}</p>
               <p className={styles.statNote}>Intentional misses stay visible for reviewer debate and future dataset growth.</p>
             </article>
           </section>
@@ -212,8 +227,8 @@ docker compose up --build`}
             </pre>
             <p className={styles.codeText}>
               The ad hoc benchmark snapshots land in <span className={styles.inlineCode}>artifacts/benchmarks</span>. The
-              published proof used by this site lives at <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span> and{" "}
-              <span className={styles.inlineCode}>{PUBLISHED_RETROSPECTIVE_SAMPLE_PROOF_PATH}</span>.
+              published proof used by this site lives at <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span> and the
+              external registry <span className={styles.inlineCode}>{PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH}</span>.
             </p>
           </div>
         </section>
@@ -233,8 +248,8 @@ docker compose up --build`}
                 <span className={styles.inlineCode}>/proof</span>
               </h3>
               <p className={styles.cardText}>
-                Review the checked-in demo comparison, the deidentified retrospective-style sample, and the exact commands
-                used to reproduce both proof stories.
+                Review the checked-in demo comparison, the registry-driven external benchmark packs, and the exact commands
+                used to reproduce each proof story.
               </p>
               <p className={styles.routeMeta}>Best first stop for outside collaborators</p>
             </Link>

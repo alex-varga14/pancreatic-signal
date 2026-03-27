@@ -1,0 +1,12 @@
+[
+  {
+    "id": "retrospective-sample",
+    "label": "Retrospective Sample",
+    "title": "A broader multi-cohort external casebook now sits beside the demo proof.",
+    "description": "This sample is still intentionally bounded, but it now shows the same proof shape across multiple deidentified retrospective-style cohorts instead of only a single undifferentiated pack.",
+    "snapshot_path": "docs/examples/retrospective-benchmark-sample-current.json",
+    "build_command": "make benchmark-external-sample",
+    "refresh_command": "make refresh-external-sample-proof",
+    "submission_path": "docs/examples/retrospective-benchmark-sample-current-submission.json"
+  }
+]

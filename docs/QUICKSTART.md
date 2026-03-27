@@ -93,10 +93,11 @@ That sample writes and refreshes:
 
 - `artifacts/benchmarks/retrospective-benchmark-sample.json`
 - `artifacts/benchmarks/retrospective-benchmark-sample.md`
+- `docs/examples/published-external-benchmarks.json`
 - `docs/examples/retrospective-benchmark-sample-current.json`
 - `docs/examples/retrospective-benchmark-sample-current.md`
 
-The `/proof` page now reads both the published demo proof and this retrospective-style sample, including cohort coverage, so the public web surface matches the checked-in benchmark artifacts instead of stopping at the synthetic corpus.
+The `/proof` page now reads the published demo proof plus every external pack listed in `docs/examples/published-external-benchmarks.json`, so the public web surface can grow beyond a single checked-in sample without more one-off UI wiring. Registry entries should keep unique `id` values and point at checked-in relative JSON snapshot paths.
 
 - product framing: [README.md](../README.md)
 - benchmark philosophy: [EVALUATION.md](./EVALUATION.md)

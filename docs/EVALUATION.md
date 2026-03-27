@@ -110,7 +110,7 @@ Use these stable buckets when reviewing misses:
 
 ## Published proof surfaces
 
-- the `/proof` web route, which now renders the checked-in demo comparison and the checked-in retrospective-style external sample together, including cohort coverage for the external pack
+- the `/proof` web route, which now renders the checked-in demo comparison plus every published external benchmark pack listed in `docs/examples/published-external-benchmarks.json`
 - `docs/examples/demo-benchmark-current.json` with dataset coverage, queue previews, and per-case casebook entries
 - `docs/examples/demo-benchmark-current.md` with the same publishable casebook summary in Markdown
 - `docs/LABELING_GUIDE.md`
@@ -119,6 +119,7 @@ Use these stable buckets when reviewing misses:
 - `docs/examples/benchmark-prediction-template.jsonl`
 - `docs/examples/benchmark-submission-template.json`
 - generated external benchmark JSON and Markdown bundles from `scripts/run_external_eval.py` with the same dataset coverage, queue preview, and casebook structure
+- `docs/examples/published-external-benchmarks.json` as the registry that powers published external proof packs in the web UI; entries should use unique ids and checked-in relative JSON artifact paths
 - `docs/examples/retrospective-benchmark-sample-current.json`
 - `docs/examples/retrospective-benchmark-sample-current.md`
 - `docs/examples/retrospective-benchmark-sample-current-submission.json`
