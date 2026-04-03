@@ -1,0 +1,17 @@
+{
+  "fetched_at": "2026-04-03T09:04:00Z",
+  "source_url": "https://www.medrxiv.org/",
+  "documents": [
+    {
+      "source_id": "medrxiv",
+      "source_identifier": "medrxiv-pancreas-foundation-model",
+      "document_type": "preprint",
+      "title": "Foundation model pretraining for pancreatic MRI lesion detection and radiomics benchmark transfer",
+      "abstract_text": "A pancreas-focused foundation model improved pancreatic MRI lesion detection and radiomics transfer learning across small cohorts, while the authors note the need for stronger benchmark packs and open evaluation bundles.",
+      "url": "https://www.medrxiv.org/content/10.1101/2026.03.22.demo",
+      "authors": ["J. Moreno", "L. Chen"],
+      "organizations": ["Open Imaging Lab"],
+      "published_at": "2026-03-22T18:45:00Z"
+    }
+  ]
+}

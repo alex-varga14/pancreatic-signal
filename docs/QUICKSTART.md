@@ -73,6 +73,12 @@ To seed the local pancreatic oncology watchtower and generate the first cited di
 make research-intel-refresh
 ```
 
+For the reproducible discovery-ingest path:
+
+```bash
+make research-intel-discovery-fixture
+```
+
 Then explore:
 
 - `/research-intel` for ingest health, topic heat, and recent digest activity

@@ -32,6 +32,18 @@ def parse_args() -> argparse.Namespace:
         help="Include disabled source definitions from the catalog.",
     )
     parser.add_argument(
+        "--mode",
+        choices=["auto", "seeded", "fixture", "live"],
+        default="auto",
+        help="Choose how documents are collected before normalization.",
+    )
+    parser.add_argument(
+        "--max-documents-per-source",
+        type=int,
+        default=None,
+        help="Optional cap on collected documents per source.",
+    )
+    parser.add_argument(
         "--no-artifacts",
         action="store_true",
         help="Skip writing JSON and Markdown artifacts.",
@@ -47,6 +59,8 @@ def main() -> None:
         source_ids=[item.strip() for item in args.source_ids.split(",") if item.strip()] or None,
         include_disabled=args.include_disabled,
         write_artifacts=not args.no_artifacts,
+        mode=args.mode,
+        max_documents_per_source=args.max_documents_per_source,
     )
 
     if args.json:

@@ -441,6 +441,16 @@ export type ResearchSource = {
   description?: string | null;
   polling_config: Record<string, unknown>;
   enabled: boolean;
+  connector_id?: string | null;
+  default_mode?: "auto" | "seeded" | "fixture" | "live" | null;
+  live_ready: boolean;
+  schedule_summary?: string | null;
+  health_status: string;
+  last_run_at?: string | null;
+  last_success_at?: string | null;
+  last_error_at?: string | null;
+  last_error_detail?: string | null;
+  last_document_count?: number | null;
 };
 
 export type ResearchRunItem = {
@@ -507,6 +517,9 @@ export type ResearchDocument = {
   topic_labels: string[];
   entity_tags: string[];
   relevance_scores: Record<string, number>;
+  novelty_score?: number | null;
+  ingest_mode?: string | null;
+  provenance: Record<string, unknown>;
   evidence: ResearchEvidence[];
   created_at: string;
   updated_at: string;
@@ -967,6 +980,8 @@ export async function runResearchIngest(payload?: {
   source_ids?: string[];
   include_disabled?: boolean;
   write_artifacts?: boolean;
+  mode?: "auto" | "seeded" | "fixture" | "live";
+  max_documents_per_source?: number;
 }): Promise<ResearchRunDetail> {
   const res = await apiFetch("/api/v1/research-intel/runs/ingest", {
     method: "POST",

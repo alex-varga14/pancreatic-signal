@@ -2,6 +2,10 @@
 
 Pancreatic Signal now has a second primary pillar beside explainable radiology triage: a cited pancreatic oncology watchtower for documents, digests, opportunities, and case-facing research briefs.
 
+Execution companion:
+
+- [RESEARCH_INTELLIGENCE_EXECUTION_PLAN.md](./RESEARCH_INTELLIGENCE_EXECUTION_PLAN.md)
+
 ## Purpose
 
 Research Intelligence exists to:
@@ -22,10 +26,12 @@ The current implementation includes:
 - manual ingest and digest scripts plus Make targets
 - digest artifacts written under `artifacts/research-intel/`
 - case-level research briefs linked from the existing case detail page
+- discovery-ingest source health, document provenance, and novelty scoring
+- fixture-backed connector feeds for reproducible validation plus opt-in live connector scaffolding
 
 Current status:
 
-- the first slice is seeded and manual-triggered
+- the first slice is manual-triggered and now supports discovery-ingest modes
 - public read endpoints are open for OSS exploration
 - run execution and opportunity promotion require authenticated operator roles
 
@@ -44,6 +50,18 @@ make research-intel-ingest
 make research-intel-digest
 ```
 
+For the reproducible discovery-ingest path:
+
+```bash
+make research-intel-discovery-fixture
+```
+
+For opt-in live connector attempts on supported sources:
+
+```bash
+make research-intel-discovery-live
+```
+
 Then explore:
 
 - `/research-intel` for dashboard and run health
@@ -58,8 +76,9 @@ The current workflow follows five explicit phases.
 ### 1. Collect
 
 - load the source catalog from `data/research/sources.json`
-- select seeded pancreatic oncology documents
+- select fixture-backed or live-discovery pancreatic oncology documents
 - normalize identifiers and source metadata
+- track connector mode, source health, and provenance
 
 ### 2. Structure
 
@@ -93,8 +112,18 @@ The first foundation slice ships with:
 - `7` topic watchlists
 - `7` lightweight graph nodes
 - `7` seeded pancreatic oncology documents
+- `6` discovery fixture feeds for reproducible connector runs
 
-Those assets establish the domain model before live source polling is added.
+Those assets establish the domain model and the reproducible discovery-ingest path before broader live source polling is turned on.
+
+## Phase 1 Discovery Status
+
+Phase 1 is now in progress with these capabilities:
+
+- fixture-backed connector ingestion is available through `auto` and `fixture` modes
+- source health is persisted in the source registry state
+- document provenance and novelty are stored and exposed through the API
+- opt-in live connector code paths exist for Europe PMC and ClinicalTrials.gov, while the remaining sources stay fixture-backed until their live contracts are hardened
 
 ## Opportunity Types
 

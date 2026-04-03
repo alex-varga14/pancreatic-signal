@@ -62,6 +62,7 @@ It is not:
 │   ├── DATA_MODEL.md
 │   ├── EVALUATION.md
 │   ├── RESEARCH_INTELLIGENCE.md
+│   ├── RESEARCH_INTELLIGENCE_EXECUTION_PLAN.md
 │   ├── DEPLOYMENT.md
 │   ├── RELEASE_RUNBOOK.md
 │   ├── RELEASE_READINESS.md
@@ -113,6 +114,12 @@ This validates the repo and writes benchmark artifacts to `artifacts/benchmarks/
 The research-intel refresh path seeds the local pancreatic oncology watch catalog, writes digest artifacts under `artifacts/research-intel/`, and populates the `/research-intel` workspace for local exploration.
 If you want to package a comparable external benchmark, start with [docs/LABELING_GUIDE.md](docs/LABELING_GUIDE.md) and [docs/BENCHMARK_SUBMISSIONS.md](docs/BENCHMARK_SUBMISSIONS.md).
 
+For the discovery-ingest path specifically:
+
+```bash
+make research-intel-discovery-fixture
+```
+
 For a comparable external results bundle:
 
 ```bash
@@ -163,6 +170,7 @@ GitHub Actions now runs the same `make validate-strict` gate on pull requests, o
 For the release-facing evidence path that ties validation, hosted smoke artifacts, and docs updates together, use [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md).
 For a concise outside-collaborator path, see [docs/QUICKSTART.md](docs/QUICKSTART.md).
 For the new oncology watchtower and case-brief workflow, see [docs/RESEARCH_INTELLIGENCE.md](docs/RESEARCH_INTELLIGENCE.md).
+For the long-running phase and context contract, see [docs/RESEARCH_INTELLIGENCE_EXECUTION_PLAN.md](docs/RESEARCH_INTELLIGENCE_EXECUTION_PLAN.md).
 
 ### Research Intelligence
 

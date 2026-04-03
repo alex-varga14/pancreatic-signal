@@ -41,6 +41,10 @@ export default async function ResearchIntelPage() {
 
   const canManage = currentUser?.capabilities.can_manage_research_intel ?? false;
   const latestRun = runs[0] ?? null;
+  const latestRunMode =
+    latestRun && typeof latestRun.metadata?.["requested_mode"] === "string"
+      ? latestRun.metadata["requested_mode"]
+      : null;
   const publishedDigest = digests[0] ?? null;
   const hottestTopics = topics.slice(0, 4);
   const topOpportunities = opportunities.slice(0, 4);
@@ -107,7 +111,11 @@ export default async function ResearchIntelPage() {
       </div>
 
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginBottom: 16 }}>
-        <StatCard label="Tracked sources" value={String(sources.length)} note="Curated public source connectors" />
+        <StatCard
+          label="Tracked sources"
+          value={String(sources.length)}
+          note="Fixture-backed discovery feeds with live-ready connector scaffolding"
+        />
         <StatCard label="Topic watchlists" value={String(topics.length)} note="Rolling pancreatic oncology clusters" />
         <StatCard label="Published digests" value={String(digests.length)} note="Cited summaries with council output" />
         <StatCard label="Open opportunities" value={String(opportunities.length)} note="Human-gated proposals for next work" />
@@ -130,8 +138,8 @@ export default async function ResearchIntelPage() {
             </h2>
             <p style={{ margin: 0, color: "#334155" }}>
               {latestRun
-                ? `Processed ${latestRun.processed} items across ${latestRun.source_scope.length} source bucket(s).`
-                : "Trigger the seeded ingest to load the local pancreatic oncology watch catalog, then build a digest to surface opportunities."}
+                ? `Processed ${latestRun.processed} items across ${latestRun.source_scope.length} source bucket(s)${latestRunMode ? ` using ${latestRunMode} mode` : ""}.`
+                : "Trigger the discovery ingest to load the pancreatic oncology watch catalog, then build a digest to surface opportunities."}
             </p>
           </div>
           {publishedDigest ? (
@@ -262,20 +270,30 @@ export default async function ResearchIntelPage() {
 
           <div style={{ display: "grid", gap: 12 }}>
             {sources.map((source) => (
-              <div key={source.source_id} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, background: "#f8fafc" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
-                  <strong>{source.label}</strong>
-                  <span style={{ fontSize: 12, color: source.enabled ? "#166534" : "#64748b", fontWeight: 700 }}>
-                    {source.enabled ? "enabled" : "disabled"}
-                  </span>
+                <div key={source.source_id} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, background: "#f8fafc" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
+                    <strong>{source.label}</strong>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: source.enabled ? "#166534" : "#64748b",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {source.enabled ? source.health_status : "disabled"}
+                    </span>
+                  </div>
+                  <p style={{ margin: "0 0 6px", color: "#475569" }}>{source.description}</p>
+                  <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
+                    {formatLabel(source.source_kind)} • {formatLabel(source.trust_level)} trust •{" "}
+                    {source.schedule_summary || `every ${String(source.polling_config.interval_hours || "—")}h`}
+                  </p>
+                  <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: 13 }}>
+                    connector {source.connector_id || "unassigned"} • mode {source.default_mode || "fixture"} •{" "}
+                    {source.live_ready ? "live-ready" : "fixture-backed"} • last success {formatDateTime(source.last_success_at)}
+                  </p>
                 </div>
-                <p style={{ margin: "0 0 6px", color: "#475569" }}>{source.description}</p>
-                <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
-                  {formatLabel(source.source_kind)} • {formatLabel(source.trust_level)} trust • every{" "}
-                  {String(source.polling_config.interval_hours || "—")}h
-                </p>
-              </div>
-            ))}
+              ))}
           </div>
         </section>
       </div>

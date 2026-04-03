@@ -1,0 +1,20 @@
+{
+  "fetched_at": "2026-04-03T09:00:00Z",
+  "query": "\"pancreatic cancer\" AND (biomarker OR ctDNA OR screening) sort_date:y",
+  "source_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=%22pancreatic%20cancer%22%20AND%20(biomarker%20OR%20ctDNA%20OR%20screening)%20sort_date:y&format=json&pageSize=5",
+  "documents": [
+    {
+      "source_id": "pubmed",
+      "source_identifier": "pmid-41000001",
+      "document_type": "paper",
+      "title": "Multi-omics blood biomarker panel improves early detection signal enrichment in high-risk pancreatic cohorts",
+      "abstract_text": "A multi-omics blood biomarker and circulating tumor DNA panel improved early detection signal enrichment in high-risk cohort screening for pancreatic ductal adenocarcinoma. The study argues for surveillance workflows that remain transparent about risk stratification.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41000001/",
+      "pmid": "41000001",
+      "doi": "10.1001/pancreas.2026.001",
+      "authors": ["A. Singh", "R. Patel"],
+      "organizations": ["Demo Academic Cancer Center"],
+      "published_at": "2026-03-29T14:00:00Z"
+    }
+  ]
+}

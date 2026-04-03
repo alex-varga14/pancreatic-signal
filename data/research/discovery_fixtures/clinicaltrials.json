@@ -1,0 +1,19 @@
+{
+  "fetched_at": "2026-04-03T09:01:00Z",
+  "query": "pancreatic cancer biomarker trial",
+  "source_url": "https://clinicaltrials.gov/api/v2/studies?query.term=pancreatic%20cancer%20biomarker%20trial&pageSize=5",
+  "documents": [
+    {
+      "source_id": "clinicaltrials",
+      "source_identifier": "NCT06001234",
+      "document_type": "trial",
+      "title": "Phase II neoadjuvant strategy for resectable pancreatic head adenocarcinoma with biomarker-linked eligibility",
+      "abstract_text": "This trial registry update highlights phase II neoadjuvant enrollment for pancreatic head adenocarcinoma and emphasizes explainable eligibility criteria, tissue confirmation, and biomarker-linked cohort assignment.",
+      "url": "https://clinicaltrials.gov/study/NCT06001234",
+      "nct_id": "NCT06001234",
+      "authors": ["ClinicalTrials.gov"],
+      "organizations": ["Cooperative Oncology Group"],
+      "published_at": "2026-03-26T12:00:00Z"
+    }
+  ]
+}

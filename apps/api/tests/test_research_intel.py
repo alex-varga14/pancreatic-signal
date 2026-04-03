@@ -36,7 +36,7 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
 
     response = client.post(
         "/api/v1/research-intel/runs/ingest",
-        json={"write_artifacts": True},
+        json={"mode": "fixture", "write_artifacts": True},
         headers=_auth_headers("research-admin"),
     )
     assert response.status_code == 200
@@ -44,7 +44,8 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert run_payload["run_type"] == "ingest"
     assert run_payload["processed"] >= 6
     assert run_payload["created"] >= 6
-    assert len(run_payload["items"]) == run_payload["processed"]
+    assert run_payload["metadata"]["requested_mode"] == "fixture"
+    assert len(run_payload["items"]) >= run_payload["processed"]
 
     response = client.get(
         "/api/v1/research-intel/runs",
@@ -58,6 +59,18 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     documents = response.json()
     assert any(item["nct_id"] == "NCT06001234" for item in documents)
     assert any("early_detection" in item["topic_ids"] for item in documents)
+    assert all(item["ingest_mode"] == "fixture" for item in documents)
+    assert all(item["provenance"]["connector_id"] for item in documents)
+    assert any(item["novelty_score"] for item in documents)
+
+    response = client.get("/api/v1/research-intel/sources")
+    assert response.status_code == 200
+    sources = response.json()
+    pubmed = next(item for item in sources if item["source_id"] == "pubmed")
+    assert pubmed["health_status"] == "healthy"
+    assert pubmed["last_success_at"]
+    assert pubmed["connector_id"] == "europe_pmc_search"
+    assert pubmed["default_mode"] == "fixture"
 
     response = client.post(
         "/api/v1/research-intel/runs/digest",
@@ -104,7 +117,7 @@ def test_research_intel_case_brief_maps_case_to_topics_and_documents() -> None:
 
     ingest_response = client.post(
         "/api/v1/research-intel/runs/ingest",
-        json={"write_artifacts": False},
+        json={"mode": "fixture", "write_artifacts": False},
         headers=_auth_headers("research-admin"),
     )
     assert ingest_response.status_code == 200
@@ -135,14 +148,14 @@ def test_research_intel_documents_support_filters_and_viewer_cannot_trigger_runs
 
     response = client.post(
         "/api/v1/research-intel/runs/ingest",
-        json={"write_artifacts": False},
+        json={"mode": "fixture", "write_artifacts": False},
         headers=_auth_headers("viewer-a", "viewer"),
     )
     assert response.status_code == 403
 
     response = client.post(
         "/api/v1/research-intel/runs/ingest",
-        json={"write_artifacts": False},
+        json={"mode": "fixture", "write_artifacts": False},
         headers=_auth_headers("research-admin"),
     )
     assert response.status_code == 200
@@ -158,3 +171,18 @@ def test_research_intel_documents_support_filters_and_viewer_cannot_trigger_runs
     payload = response.json()
     assert payload
     assert all("oss_opportunities" in item["topic_ids"] for item in payload)
+
+
+def test_research_intel_seeded_mode_is_still_available_for_bootstrap_runs() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/research-intel/runs/ingest",
+        json={"mode": "seeded", "write_artifacts": False, "max_documents_per_source": 1},
+        headers=_auth_headers("research-admin"),
+    )
+    assert response.status_code == 200
+    payload = response.json()["run"]
+    assert payload["metadata"]["requested_mode"] == "seeded"
+    assert payload["processed"] == 6

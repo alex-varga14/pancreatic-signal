@@ -18,7 +18,7 @@ Pancreatic Signal is a modular monorepo with two primary product pillars: explai
 4. Hybrid analysis optionally augments the deterministic result with calibrated scoring, confidence, sentence candidates, and review-priority hints.
 5. The API creates or updates case, report, and finding records.
 6. Structured adapter imports also persist an import-run summary plus per-item audit results.
-7. In parallel, research-intel ingests a curated pancreatic oncology watch catalog, classifies documents into topic watchlists, extracts cited evidence, and stores council-ready artifacts.
+7. In parallel, research-intel ingests a pancreatic oncology watch catalog through seeded, fixture-backed, or opt-in live connector modes, records source health plus provenance, classifies documents into topic watchlists, extracts cited evidence, and stores council-ready artifacts.
 8. Digest generation turns those research documents into persisted council summaries, disagreement metrics, and human-gated opportunities.
 9. The web app reads persisted case detail, review history, feedback, hybrid guidance, import metadata, trial matches, and case-linked research briefs for human review.
 10. Evaluation and benchmark helpers consume the same stored or generated outputs for reproducible proof artifacts, while research-intel opportunities can propose future benchmark, rule, or trial-catalog work.
@@ -180,7 +180,7 @@ The architecture still leaves room for:
 - stronger enterprise auth integrations beyond pilot modes
 - broader trial catalogs and abstraction depth
 - richer feedback loops around reviewer labels and hybrid prioritization
-- richer live source connectors beyond the seeded research-intel catalog
+- broader live source coverage beyond the current fixture-backed and selectively live-ready research-intel connector set
 - more capable council backends and sandboxed benchmark experiments
 - future async execution for heavier import or evaluation loads
 

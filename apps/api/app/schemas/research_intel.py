@@ -16,6 +16,7 @@ ResearchOpportunityType = Literal[
 ]
 
 ResearchPromotionTarget = Literal["github_issue", "docs_draft", "benchmark_task"]
+ResearchIngestMode = Literal["auto", "seeded", "fixture", "live"]
 
 
 class ResearchSource(BaseModel):
@@ -28,6 +29,16 @@ class ResearchSource(BaseModel):
     description: str | None = None
     polling_config: dict[str, object] = Field(default_factory=dict)
     enabled: bool = True
+    connector_id: str | None = None
+    default_mode: ResearchIngestMode | None = None
+    live_ready: bool = False
+    schedule_summary: str | None = None
+    health_status: str = "idle"
+    last_run_at: datetime | None = None
+    last_success_at: datetime | None = None
+    last_error_at: datetime | None = None
+    last_error_detail: str | None = None
+    last_document_count: int | None = None
 
 
 class ResearchRunItem(BaseModel):
@@ -66,6 +77,8 @@ class ResearchRunTriggerInput(BaseModel):
     source_ids: list[str] | None = None
     include_disabled: bool = False
     write_artifacts: bool = True
+    mode: ResearchIngestMode = "auto"
+    max_documents_per_source: int | None = Field(default=None, ge=1, le=50)
 
 
 class ResearchDigestTriggerInput(BaseModel):
@@ -110,6 +123,9 @@ class ResearchDocument(BaseModel):
     topic_labels: list[str] = Field(default_factory=list)
     entity_tags: list[str] = Field(default_factory=list)
     relevance_scores: dict[str, float] = Field(default_factory=dict)
+    novelty_score: float | None = None
+    ingest_mode: str | None = None
+    provenance: dict[str, object] = Field(default_factory=dict)
     evidence: list[ResearchEvidence] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime

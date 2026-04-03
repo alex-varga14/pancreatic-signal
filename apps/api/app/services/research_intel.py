@@ -36,6 +36,7 @@ from app.schemas.research_intel import (
     ResearchDigestListItem,
     ResearchDocument,
     ResearchEvidence,
+    ResearchIngestMode,
     ResearchOpportunity,
     ResearchPromotionTarget,
     ResearchRunDetail,
@@ -44,6 +45,7 @@ from app.schemas.research_intel import (
     ResearchSource,
     ResearchTopic,
 )
+from app.services.research_intel_connectors import collect_research_documents_for_source
 from app.services.trial_matching import match_case_to_trials
 from app.store.memory_store import CASE_STORE
 
@@ -148,11 +150,25 @@ def validate_research_intel_catalogs() -> dict[str, int]:
     if not isinstance(graph_nodes, list):
         raise ValueError("Research graph must contain a list of nodes.")
 
+    fixture_count = 0
+    for descriptor in sources:
+        polling_config = descriptor.get("polling_config") or {}
+        fixture_path = str(polling_config.get("fixture_path") or "").strip()
+        if not fixture_path:
+            continue
+        fixture_count += 1
+        resolved = resolve_data_path("research", fixture_path)
+        if not resolved.exists():
+            raise ValueError(
+                f"Research source '{descriptor['source_id']}' references missing fixture '{fixture_path}'."
+            )
+
     return {
         "sources": len(sources),
         "topics": len(topics),
         "graph_nodes": len(graph_nodes),
         "documents": len(documents),
+        "fixtures": fixture_count,
     }
 
 
@@ -188,7 +204,10 @@ def ensure_research_intel_seeded() -> None:
             record.access_class = descriptor["access_class"]
             record.base_url = descriptor.get("base_url")
             record.description = descriptor.get("description")
-            record.polling_config = descriptor.get("polling_config") or {}
+            record.polling_config = _merge_catalog_polling_config(
+                catalog_config=descriptor.get("polling_config") or {},
+                existing_config=record.polling_config or {},
+            )
             record.enabled = bool(descriptor.get("enabled", True))
 
         existing_topics = {
@@ -222,6 +241,18 @@ def ensure_research_intel_seeded() -> None:
             record.status = descriptor.get("status") or "active"
 
 
+def _merge_catalog_polling_config(
+    *,
+    catalog_config: dict[str, Any],
+    existing_config: dict[str, Any],
+) -> dict[str, Any]:
+    merged = dict(catalog_config or {})
+    existing_health = dict((existing_config or {}).get("health") or {})
+    if existing_health:
+        merged["health"] = existing_health
+    return merged
+
+
 def list_research_sources() -> list[ResearchSource]:
     ensure_research_intel_seeded()
     with SessionLocal() as session:
@@ -239,6 +270,23 @@ def list_research_sources() -> list[ResearchSource]:
                 description=row.description,
                 polling_config=row.polling_config or {},
                 enabled=row.enabled,
+                connector_id=str((row.polling_config or {}).get("connector_id") or "") or None,
+                default_mode=((row.polling_config or {}).get("default_mode") or "fixture"),
+                live_ready=_is_live_ready(row.polling_config or {}),
+                schedule_summary=_schedule_summary(row.polling_config or {}),
+                health_status=_source_health(row.polling_config or {}).get("status") or "idle",
+                last_run_at=_parse_datetime(_source_health(row.polling_config or {}).get("last_run_at")),
+                last_success_at=_parse_datetime(
+                    _source_health(row.polling_config or {}).get("last_success_at")
+                ),
+                last_error_at=_parse_datetime(_source_health(row.polling_config or {}).get("last_error_at")),
+                last_error_detail=str(
+                    _source_health(row.polling_config or {}).get("last_error_detail") or ""
+                )
+                or None,
+                last_document_count=_coerce_int(
+                    _source_health(row.polling_config or {}).get("last_document_count")
+                ),
             )
             for row in rows
         ]
@@ -273,19 +321,23 @@ def run_research_ingest(
     source_ids: list[str] | None = None,
     include_disabled: bool = False,
     write_artifacts: bool = True,
+    mode: ResearchIngestMode = "auto",
+    max_documents_per_source: int | None = None,
 ) -> ResearchRunDetail:
     ensure_research_intel_seeded()
     started_at = _utcnow()
     selected_sources = _select_source_ids(source_ids=source_ids, include_disabled=include_disabled)
     source_map = _source_catalog_map()
     topic_descriptors = _topic_catalog_map()
-    documents = [
-        item
-        for item in load_seed_research_documents()
-        if item["source_id"] in selected_sources
-    ]
+    requested_mode = str(mode or "auto")
 
     with SessionLocal.begin() as session:
+        source_records = {
+            row.source_id: row
+            for row in session.execute(
+                select(ResearchSourceRecord).where(ResearchSourceRecord.source_id.in_(selected_sources))
+            ).scalars().all()
+        }
         run = ResearchRunRecord(
             run_type="ingest",
             status="completed",
@@ -294,8 +346,8 @@ def run_research_ingest(
             started_at=started_at,
             completed_at=started_at,
             metadata_json={
-                "mode": "seeded_catalog",
-                "seed_document_count": len(documents),
+                "requested_mode": requested_mode,
+                "max_documents_per_source": max_documents_per_source,
             },
         )
         session.add(run)
@@ -303,15 +355,130 @@ def run_research_ingest(
 
         created = 0
         updated = 0
+        processed_documents = 0
+        failure_counts: Counter[str] = Counter()
         items: list[ResearchRunItemRecord] = []
+        source_summaries: dict[str, dict[str, Any]] = {}
 
-        for index, document in enumerate(documents, start=1):
-            normalized = _normalize_seed_document(document, source_map=source_map, topic_descriptors=topic_descriptors)
+        collected_batches: list[tuple[dict[str, Any], dict[str, Any]]] = []
+        for source_index, source_id in enumerate(selected_sources, start=1):
+            source_descriptor = source_map[source_id]
+            source_record = source_records.get(source_id)
+
+            try:
+                if requested_mode == "seeded":
+                    batch = {
+                        "source_id": source_id,
+                        "connector_id": "seed_catalog",
+                        "mode": "seeded",
+                        "fetched_at": started_at,
+                        "query": None,
+                        "source_url": source_descriptor.get("base_url"),
+                        "documents": [
+                            item
+                            for item in load_seed_research_documents()
+                            if item["source_id"] == source_id
+                        ][: max_documents_per_source or 9999],
+                        "fixture_path": str(SEED_DOCUMENTS_PATH),
+                    }
+                else:
+                    batch = collect_research_documents_for_source(
+                        source_descriptor,
+                        mode=requested_mode,
+                        max_documents_per_source=max_documents_per_source,
+                    )
+            except Exception as exc:
+                failure_counts["connector_error"] += 1
+                source_summaries[source_id] = {
+                    "status": "error",
+                    "mode": requested_mode,
+                    "connector_id": str((source_descriptor.get("polling_config") or {}).get("connector_id") or ""),
+                    "document_count": 0,
+                    "error_bucket": "connector_error",
+                    "error_detail": str(exc),
+                }
+                if source_record is not None:
+                    _update_source_health(
+                        source_record,
+                        status="error",
+                        last_run_at=started_at,
+                        last_error_at=_utcnow(),
+                        last_error_detail=str(exc),
+                        last_document_count=0,
+                        last_mode=requested_mode,
+                    )
+                items.append(
+                    ResearchRunItemRecord(
+                        run_id=run.id,
+                        item_index=source_index,
+                        stage="fetch",
+                        status="failed",
+                        source_identifier=source_id,
+                        error_bucket="connector_error",
+                        error_detail=str(exc),
+                    )
+                )
+                continue
+
+            fetched_at = _coerce_utc(batch.get("fetched_at")) or _utcnow()
+            documents = list(batch.get("documents") or [])
+            source_summaries[source_id] = {
+                "status": "healthy",
+                "mode": batch.get("mode"),
+                "connector_id": batch.get("connector_id"),
+                "document_count": len(documents),
+                "query": batch.get("query"),
+                "source_url": batch.get("source_url"),
+                "fetched_at": fetched_at.isoformat(),
+            }
+            if source_record is not None:
+                _update_source_health(
+                    source_record,
+                    status="healthy",
+                    last_run_at=started_at,
+                    last_success_at=_utcnow(),
+                    last_document_count=len(documents),
+                    last_mode=str(batch.get("mode") or requested_mode),
+                    last_error_at=None,
+                    last_error_detail=None,
+                )
+            items.append(
+                ResearchRunItemRecord(
+                    run_id=run.id,
+                    item_index=source_index,
+                    stage="fetch",
+                    status="completed",
+                    source_identifier=source_id,
+                    document_id=None,
+                )
+            )
+            for document in documents:
+                collected_batches.append((document, batch))
+
+        for index, (document, batch) in enumerate(collected_batches, start=len(items) + 1):
+            source_descriptor = source_map[document["source_id"]]
+            normalized = _normalize_seed_document(
+                document,
+                source_map=source_map,
+                topic_descriptors=topic_descriptors,
+            )
             existing = session.execute(
                 select(ResearchDocumentRecord).where(
                     ResearchDocumentRecord.dedupe_key == normalized["dedupe_key"]
                 )
             ).scalar_one_or_none()
+
+            novelty_score = _calculate_novelty_score(
+                document=document,
+                source_descriptor=source_descriptor,
+                existing=existing,
+            )
+            _apply_document_provenance(
+                normalized,
+                batch=batch,
+                requested_mode=requested_mode,
+                novelty_score=novelty_score,
+            )
 
             if existing is None:
                 record = ResearchDocumentRecord(
@@ -339,6 +506,7 @@ def run_research_ingest(
                 session.add(record)
                 session.flush()
                 created += 1
+                processed_documents += 1
                 document_id = record.document_id
             else:
                 existing.source_id = normalized["source_id"]
@@ -361,6 +529,7 @@ def run_research_ingest(
                 existing.raw_metadata = normalized["raw_metadata"]
                 document_id = existing.document_id
                 updated += 1
+                processed_documents += 1
                 session.execute(
                     delete(ResearchEvidenceRecord).where(
                         ResearchEvidenceRecord.document_id == existing.document_id
@@ -408,43 +577,72 @@ def run_research_ingest(
                         "run_id": run.id,
                         "run_type": "ingest",
                         "source_scope": selected_sources,
-                        "processed": len(documents),
+                        "requested_mode": requested_mode,
+                        "processed": processed_documents,
                         "created": created,
                         "updated": updated,
+                        "failure_counts": dict(failure_counts),
+                        "sources": source_summaries,
                     },
                     markdown_lines=[
                         f"# Research Intelligence ingest run {run.id}",
                         "",
                         f"- actor: `{actor_user_id}`",
-                        f"- processed: `{len(documents)}`",
+                        f"- requested mode: `{requested_mode}`",
+                        f"- processed: `{processed_documents}`",
                         f"- created: `{created}`",
                         f"- updated: `{updated}`",
+                        f"- failed sources: `{sum(failure_counts.values())}`",
                         f"- sources: {', '.join(selected_sources) or 'none'}",
+                        "",
+                        "## Source status",
+                        *[
+                            (
+                                f"- `{source_id}`: {summary['status']} • "
+                                f"{summary.get('document_count', 0)} document(s) • "
+                                f"mode `{summary.get('mode') or requested_mode}`"
+                                + (
+                                    f" • error `{summary.get('error_detail')}`"
+                                    if summary.get("error_detail")
+                                    else ""
+                                )
+                            )
+                            for source_id, summary in sorted(source_summaries.items())
+                        ],
                     ],
                 )
             )
 
-        run.processed_count = len(documents)
+        run.processed_count = processed_documents
         run.created_count = created
         run.updated_count = updated
-        run.failed_count = 0
-        run.failure_counts = {}
+        run.failed_count = sum(failure_counts.values())
+        run.failure_counts = dict(failure_counts)
         run.completed_at = _utcnow()
         run.artifact_paths = artifact_paths
+        run.status = "completed_with_errors" if failure_counts else "completed"
+        run.metadata_json = {
+            "requested_mode": requested_mode,
+            "max_documents_per_source": max_documents_per_source,
+            "source_summaries": source_summaries,
+            "processed_documents": processed_documents,
+        }
 
-    return get_research_run(run.id) or ResearchRunDetail(
-        run_id=run.id,
+        run_id = run.id
+
+    return get_research_run(run_id) or ResearchRunDetail(
+        run_id=run_id,
         run_type="ingest",
-        status="completed",
+        status="completed_with_errors" if failure_counts else "completed",
         actor_user_id=actor_user_id,
         source_scope=selected_sources,
-        processed=len(documents),
+        processed=processed_documents,
         created=created,
         updated=updated,
-        failed=0,
-        failure_counts={},
+        failed=sum(failure_counts.values()),
+        failure_counts=dict(failure_counts),
         artifact_paths=[],
-        metadata={},
+        metadata={"requested_mode": requested_mode, "source_summaries": source_summaries},
         started_at=started_at,
         completed_at=_utcnow(),
         items=[],
@@ -945,6 +1143,36 @@ def _build_run_detail(
     )
 
 
+def _source_health(polling_config: dict[str, Any]) -> dict[str, Any]:
+    return dict(polling_config.get("health") or {})
+
+
+def _is_live_ready(polling_config: dict[str, Any]) -> bool:
+    if not polling_config:
+        return False
+    if polling_config.get("live_enabled") is False:
+        return False
+    connector_id = str(polling_config.get("connector_id") or "").strip()
+    if connector_id == "europe_pmc_search":
+        return bool(str(polling_config.get("query") or "").strip())
+    if connector_id == "clinicaltrials_v2":
+        return bool(str(polling_config.get("query") or "").strip())
+    if connector_id == "rss_feed":
+        return bool(str(polling_config.get("feed_url") or "").strip())
+    return False
+
+
+def _schedule_summary(polling_config: dict[str, Any]) -> str | None:
+    interval_hours = _coerce_int(polling_config.get("interval_hours"))
+    priority = str(polling_config.get("priority") or "").strip()
+    default_mode = str(polling_config.get("default_mode") or "").strip()
+    if interval_hours is None:
+        return None
+    suffix = f" • {priority} priority" if priority else ""
+    mode_suffix = f" • {default_mode} mode" if default_mode else ""
+    return f"Every {interval_hours}h{suffix}{mode_suffix}"
+
+
 def _source_catalog_map() -> dict[str, dict[str, Any]]:
     return {item["source_id"]: item for item in load_research_source_catalog()}
 
@@ -964,6 +1192,39 @@ def _select_source_ids(*, source_ids: list[str] | None, include_disabled: bool) 
             continue
         selected.append(descriptor["source_id"])
     return selected
+
+
+def _update_source_health(
+    record: ResearchSourceRecord,
+    *,
+    status: str,
+    last_run_at: datetime,
+    last_success_at: datetime | None = None,
+    last_error_at: datetime | None = None,
+    last_error_detail: str | None = None,
+    last_document_count: int | None = None,
+    last_mode: str | None = None,
+) -> None:
+    polling_config = dict(record.polling_config or {})
+    health = dict(polling_config.get("health") or {})
+    health["status"] = status
+    health["last_run_at"] = last_run_at.isoformat()
+    if last_success_at is not None:
+        health["last_success_at"] = last_success_at.isoformat()
+    if last_error_at is not None:
+        health["last_error_at"] = last_error_at.isoformat()
+    elif last_error_detail is None:
+        health.pop("last_error_at", None)
+    if last_error_detail:
+        health["last_error_detail"] = last_error_detail
+    elif last_error_detail is None:
+        health.pop("last_error_detail", None)
+    if last_document_count is not None:
+        health["last_document_count"] = last_document_count
+    if last_mode:
+        health["last_mode"] = last_mode
+    polling_config["health"] = health
+    record.polling_config = polling_config
 
 
 def _normalize_seed_document(
@@ -1033,6 +1294,59 @@ def _normalize_seed_document(
         },
         "evidence": evidence,
     }
+
+
+def _apply_document_provenance(
+    normalized: dict[str, Any],
+    *,
+    batch: dict[str, Any],
+    requested_mode: str,
+    novelty_score: float,
+) -> None:
+    relevance_scores = dict(normalized.get("relevance_scores") or {})
+    relevance_scores["novelty"] = novelty_score
+    normalized["relevance_scores"] = relevance_scores
+
+    raw_metadata = dict(normalized.get("raw_metadata") or {})
+    raw_metadata["novelty_score"] = novelty_score
+    raw_metadata["ingest_mode"] = batch.get("mode") or requested_mode
+    raw_metadata["requested_ingest_mode"] = requested_mode
+    raw_metadata["provenance"] = {
+        "connector_id": batch.get("connector_id"),
+        "source_url": batch.get("source_url"),
+        "query": batch.get("query"),
+        "fetched_at": (
+            _coerce_utc(batch.get("fetched_at")).isoformat()
+            if _coerce_utc(batch.get("fetched_at")) is not None
+            else None
+        ),
+        "fixture_path": batch.get("fixture_path"),
+    }
+    normalized["raw_metadata"] = raw_metadata
+
+
+def _calculate_novelty_score(
+    *,
+    document: dict[str, Any],
+    source_descriptor: dict[str, Any],
+    existing: ResearchDocumentRecord | None,
+) -> float:
+    if existing is not None:
+        return 0.12
+
+    published_at = _parse_datetime(document.get("published_at"))
+    recency_bonus = 0.18
+    if published_at is not None:
+        age_days = max(0.0, (_utcnow() - published_at).total_seconds() / 86400.0)
+        recency_bonus = max(0.02, 0.28 - min(age_days, 21) * 0.01)
+
+    trust_bonus = _TRUST_SCORES.get(str(source_descriptor.get("trust_level") or "medium"), 0.1)
+    topic_hint = 0.04 if any(
+        keyword
+        for keyword in ("trial", "biomarker", "screening", "workflow", "benchmark")
+        if keyword in f"{document.get('title', '')} {document.get('abstract_text', '')}".lower()
+    ) else 0.0
+    return round(min(0.99, 0.42 + recency_bonus + trust_bonus + topic_hint), 4)
 
 
 def _classify_topics(
@@ -1173,6 +1487,22 @@ def _clean_identifier(value: object) -> str | None:
     return cleaned or None
 
 
+def _coerce_int(value: object) -> int | None:
+    try:
+        parsed = int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return parsed
+
+
+def _coerce_float(value: object) -> float | None:
+    try:
+        parsed = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return parsed
+
+
 def _parse_datetime(value: object) -> datetime | None:
     if value in (None, ""):
         return None
@@ -1248,6 +1578,9 @@ def _build_document_response(
         topic_labels=[topic_label_map[item] for item in row.topic_ids or [] if item in topic_label_map],
         entity_tags=row.entity_tags or [],
         relevance_scores=row.relevance_scores or {},
+        novelty_score=_coerce_float((row.raw_metadata or {}).get("novelty_score")),
+        ingest_mode=str((row.raw_metadata or {}).get("ingest_mode") or "") or None,
+        provenance=dict((row.raw_metadata or {}).get("provenance") or {}),
         evidence=[
             ResearchEvidence(
                 evidence_text=item.evidence_text,

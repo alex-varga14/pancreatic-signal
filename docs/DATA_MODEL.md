@@ -166,6 +166,10 @@ Current fields:
 - `created_at`
 - `updated_at`
 
+Notes:
+
+- `polling_config` now carries both catalog configuration and runtime discovery state, including connector id, default mode, fixture or live settings, and source-health metadata.
+
 ### `ResearchRunRecord`
 
 Summarizes one research-intel ingest or digest run.
@@ -232,6 +236,10 @@ Current fields:
 - `raw_metadata`
 - `created_at`
 - `updated_at`
+
+Notes:
+
+- `raw_metadata` now carries discovery provenance such as ingest mode, connector, source URL, fixture path when relevant, and novelty score.
 
 ### `ResearchEvidenceRecord`
 

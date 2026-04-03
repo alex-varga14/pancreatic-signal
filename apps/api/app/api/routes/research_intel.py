@@ -121,6 +121,8 @@ def trigger_ingest(
         source_ids=payload.source_ids,
         include_disabled=payload.include_disabled,
         write_artifacts=payload.write_artifacts,
+        mode=payload.mode,
+        max_documents_per_source=payload.max_documents_per_source,
     )
     return ResearchRunTriggerResult(ok=True, run=run)
 

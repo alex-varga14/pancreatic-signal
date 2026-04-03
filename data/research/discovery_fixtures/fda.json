@@ -1,0 +1,17 @@
+{
+  "fetched_at": "2026-04-03T09:03:00Z",
+  "source_url": "https://www.fda.gov/",
+  "documents": [
+    {
+      "source_id": "fda",
+      "source_identifier": "fda-ctdna-pancreas-demo",
+      "document_type": "regulatory_update",
+      "title": "Regulatory communication on blood biomarker assay evidence for pancreatic oncology studies",
+      "abstract_text": "The communication summarizes assay validation expectations for blood biomarker and ctDNA evidence in pancreatic oncology studies, reinforcing the need for cited evidence and transparent workflow claims.",
+      "url": "https://www.fda.gov/demo/pancreatic-biomarker-assay-update",
+      "authors": ["FDA Oncology Center of Excellence"],
+      "organizations": ["FDA"],
+      "published_at": "2026-03-18T11:00:00Z"
+    }
+  ]
+}

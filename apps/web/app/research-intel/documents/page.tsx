@@ -129,6 +129,13 @@ export default async function ResearchDocumentsPage({
               <p style={{ margin: "0 0 10px", color: "#64748b" }}>
                 Topics: {document.topic_labels.join(", ") || "unbucketed"} • Entities: {document.entity_tags.join(", ") || "none"}
               </p>
+              <p style={{ margin: "0 0 10px", color: "#64748b", fontSize: 13 }}>
+                ingest {document.ingest_mode || "unknown"} • novelty{" "}
+                {typeof document.novelty_score === "number" ? document.novelty_score.toFixed(2) : "—"} • connector{" "}
+                {typeof document.provenance["connector_id"] === "string"
+                  ? document.provenance["connector_id"]
+                  : "unknown"}
+              </p>
 
               {document.evidence.length > 0 ? (
                 <div style={{ marginBottom: 10 }}>

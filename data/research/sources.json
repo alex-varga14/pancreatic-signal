@@ -10,7 +10,13 @@
       "description": "Curated pancreatic oncology papers and reviews for the research intelligence demo feed.",
       "polling_config": {
         "interval_hours": 12,
-        "priority": "high"
+        "priority": "high",
+        "connector_id": "europe_pmc_search",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/pubmed.json",
+        "max_documents_per_run": 5,
+        "query": "\"pancreatic cancer\" AND (biomarker OR ctDNA OR screening) sort_date:y"
       },
       "enabled": true
     },
@@ -24,7 +30,13 @@
       "description": "Pancreatic cancer and precursor-lesion trial updates for explainable trial-catalog maintenance.",
       "polling_config": {
         "interval_hours": 24,
-        "priority": "high"
+        "priority": "high",
+        "connector_id": "clinicaltrials_v2",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/clinicaltrials.json",
+        "max_documents_per_run": 5,
+        "query": "pancreatic cancer biomarker trial"
       },
       "enabled": true
     },
@@ -38,7 +50,12 @@
       "description": "Trusted cancer-center and guidance updates relevant to pancreatic oncology workflows.",
       "polling_config": {
         "interval_hours": 24,
-        "priority": "medium"
+        "priority": "medium",
+        "connector_id": "rss_feed",
+        "default_mode": "fixture",
+        "live_enabled": false,
+        "fixture_path": "discovery_fixtures/nci.json",
+        "document_type": "guidance"
       },
       "enabled": true
     },
@@ -52,7 +69,12 @@
       "description": "Regulatory signals that could affect biomarker or workflow tooling for pancreatic oncology.",
       "polling_config": {
         "interval_hours": 48,
-        "priority": "medium"
+        "priority": "medium",
+        "connector_id": "rss_feed",
+        "default_mode": "fixture",
+        "live_enabled": false,
+        "fixture_path": "discovery_fixtures/fda.json",
+        "document_type": "regulatory_update"
       },
       "enabled": true
     },
@@ -66,7 +88,12 @@
       "description": "Preprint monitoring for imaging, biomarker, and workflow experiments that may inform benchmarks.",
       "polling_config": {
         "interval_hours": 12,
-        "priority": "medium"
+        "priority": "medium",
+        "connector_id": "rss_feed",
+        "default_mode": "fixture",
+        "live_enabled": false,
+        "fixture_path": "discovery_fixtures/medrxiv.json",
+        "document_type": "preprint"
       },
       "enabled": true
     },
@@ -80,7 +107,12 @@
       "description": "Software, dataset, and community updates that could turn into open-source opportunities.",
       "polling_config": {
         "interval_hours": 24,
-        "priority": "medium"
+        "priority": "medium",
+        "connector_id": "rss_feed",
+        "default_mode": "fixture",
+        "live_enabled": false,
+        "fixture_path": "discovery_fixtures/open_source_watch.json",
+        "document_type": "news"
       },
       "enabled": true
     }

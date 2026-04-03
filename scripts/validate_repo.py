@@ -242,7 +242,8 @@ def check_research_intel_catalogs() -> CheckResult:
         PASS,
         (
             f"Validated {payload['sources']} source(s), {payload['topics']} topic(s), "
-            f"{payload['graph_nodes']} graph node(s), and {payload['documents']} seed document(s)."
+            f"{payload['graph_nodes']} graph node(s), {payload['documents']} seed document(s), "
+            f"and {payload['fixtures']} discovery fixture(s)."
         ),
     )
 
@@ -256,6 +257,8 @@ def check_research_intel_pipeline() -> CheckResult:
             [
                 sys.executable,
                 "scripts/run_research_intel_ingest.py",
+                "--mode",
+                "fixture",
                 "--json",
                 "--no-artifacts",
             ],
@@ -282,7 +285,7 @@ def check_research_intel_pipeline() -> CheckResult:
         "research-intel-pipeline",
         PASS,
         (
-            f"Ingest processed {ingest_payload['processed']} seeded document(s); "
+            f"Ingest processed {ingest_payload['processed']} discovery document(s); "
             f"digest created {digest_payload['created']} artifact-backed record(s)."
         ),
     )

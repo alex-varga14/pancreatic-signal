@@ -404,13 +404,19 @@ Visibility:
 
 General behavior:
 - Read-oriented research-intel endpoints are intentionally public so contributors can inspect seeded documents, topics, digests, and opportunity proposals without authenticated setup.
-- The current implementation uses a curated seeded catalog plus manual or API-triggered runs; live external polling connectors remain a later phase.
+- The current implementation supports discovery-ingest modes with reproducible fixture-backed connectors plus opt-in live connector scaffolding for selected sources.
 
 ### `GET /research-intel/sources`
 Return the configured pancreatic oncology source catalog.
 
+Behavior:
+- Includes connector mode, source health, last-success timing, and schedule summary fields derived from the source registry state.
+
 ### `GET /research-intel/documents`
 Return normalized pancreatic oncology documents with citations, topic labels, evidence spans, and relevance scores.
+
+Behavior:
+- Includes `novelty_score`, `ingest_mode`, and provenance metadata describing connector, source URL, and fetch context.
 
 Query params:
 - `source_kind`
@@ -459,13 +465,16 @@ Request:
 {
   "source_ids": ["pubmed", "clinicaltrials"],
   "include_disabled": false,
-  "write_artifacts": true
+  "write_artifacts": true,
+  "mode": "fixture",
+  "max_documents_per_source": 5
 }
 ```
 
 Behavior:
 - Normalizes documents into the shared database.
 - Deduplicates by source identifiers such as DOI, PMID, NCT id, and canonical URL hashes where available.
+- Records source-level fetch health, effective connector mode, novelty metadata, and provenance.
 - Refreshes topic heat, evidence records, and run-audit items.
 - Writes JSON and Markdown artifacts under `artifacts/research-intel/` when `write_artifacts=true`.
 
