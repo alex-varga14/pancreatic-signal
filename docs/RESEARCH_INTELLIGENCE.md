@@ -1,0 +1,148 @@
+# Research Intelligence
+
+Pancreatic Signal now has a second primary pillar beside explainable radiology triage: a cited pancreatic oncology watchtower for documents, digests, opportunities, and case-facing research briefs.
+
+## Purpose
+
+Research Intelligence exists to:
+
+- organize pancreatic oncology signals from literature, trials, guidance, regulatory updates, and open-source activity
+- turn those signals into durable artifacts instead of one-off chat output
+- help contributors spot benchmark gaps, rule gaps, trial-catalog updates, and tooling opportunities
+- inform case review with cited research briefs without changing case scores automatically
+
+## What Ships Today
+
+The current implementation includes:
+
+- a new API namespace at `/api/v1/research-intel/*`
+- a new web workspace at `/research-intel`
+- seeded catalogs in `data/research/` for sources, topics, a lightweight graph, and sample documents
+- persisted records for sources, runs, run items, documents, evidence, topics, digests, and opportunities
+- manual ingest and digest scripts plus Make targets
+- digest artifacts written under `artifacts/research-intel/`
+- case-level research briefs linked from the existing case detail page
+
+Current status:
+
+- the first slice is seeded and manual-triggered
+- public read endpoints are open for OSS exploration
+- run execution and opportunity promotion require authenticated operator roles
+
+## Local Workflow
+
+Seed the watchtower and generate a digest:
+
+```bash
+make research-intel-refresh
+```
+
+Or run the two phases independently:
+
+```bash
+make research-intel-ingest
+make research-intel-digest
+```
+
+Then explore:
+
+- `/research-intel` for dashboard and run health
+- `/research-intel/documents` for normalized documents, citations, and topic tags
+- `/research-intel/digests` for council-backed digest output
+- `/research-intel/opportunities` for human-gated contribution proposals
+
+## Pipeline
+
+The current workflow follows five explicit phases.
+
+### 1. Collect
+
+- load the source catalog from `data/research/sources.json`
+- select seeded pancreatic oncology documents
+- normalize identifiers and source metadata
+
+### 2. Structure
+
+- map documents onto topic watchlists from `data/research/topics.json`
+- extract cited evidence spans and claim text
+- compute lightweight relevance scores and topic heat
+
+### 3. Deliberate
+
+- persist stage 1 independent opinions
+- persist stage 2 ranking and critique
+- persist stage 3 chairman synthesis
+- record disagreement instead of hiding it
+
+### 4. Publish
+
+- create digest records
+- write JSON and Markdown artifacts under `artifacts/research-intel/`
+- keep claims citation-backed
+
+### 5. Act
+
+- generate structured opportunities from high-signal digest output
+- support human-gated promotion into docs drafts, benchmark tasks, or GitHub-issue style artifacts
+
+## Seeded Catalogs
+
+The first foundation slice ships with:
+
+- `6` source definitions
+- `7` topic watchlists
+- `7` lightweight graph nodes
+- `7` seeded pancreatic oncology documents
+
+Those assets establish the domain model before live source polling is added.
+
+## Opportunity Types
+
+The current opportunity taxonomy is fixed and explicit:
+
+- `rule_gap`
+- `benchmark_gap`
+- `trial_catalog_gap`
+- `case_brief`
+- `community_project`
+- `external_tooling`
+
+## Triage Integration Boundary
+
+Research Intelligence informs the existing triage product in three ways only:
+
+- case briefs that connect case rationale or trial context to current topics and cited documents
+- benchmark growth ideas such as wording variance, confounders, and follow-up patterns
+- rule and trial-catalog proposals that still require human review plus tests before merge
+
+It does not:
+
+- rewrite case scores
+- auto-close or re-prioritize cases in reviewer workflow
+- act as autonomous diagnosis or treatment guidance
+
+## Design Influences
+
+The implementation direction borrows selectively from several open-source research-agent ideas while staying grounded in this repository's explainability and audit requirements.
+
+- `SciAgentsDiscovery`: graph-seeded discovery and domain-aware expansion shaped the lightweight pancreatic ontology and topic graph
+- `AgentLaboratory`: phased collect-to-publish workflow shaped the durable artifact pipeline
+- `llm-council`: independent opinion, ranking, and chairman synthesis shaped the council payload
+- `Kosmos`: validation-first and sandbox-oriented thinking shaped the artifact and experiment boundaries
+- `autoresearch`: ratchet-style improvement shaped the expectation that proposals should become measurable benchmark or rule work
+- `quantum-agentics` and the `openclaw` standby-agent idea: influenced the future operating model for schedulers and named agents without introducing those runtime dependencies today
+
+## Guardrails
+
+- research-use software only
+- cited outputs over uncited synthesis
+- human-gated promotion over autonomous action
+- no autonomous payment, subscription procurement, or crypto treasury execution in the current product
+- no automatic mutation of triage scores or reviewer state
+
+## Next Slices
+
+- add live curated connectors on top of the seeded catalog
+- deepen ontology tagging, clustering, and disagreement scoring
+- add sandboxed benchmark and rule experiment runners for promoted opportunities
+- document donation governance and paid-source procurement policy before any funding automation is considered

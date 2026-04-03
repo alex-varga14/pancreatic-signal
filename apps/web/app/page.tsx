@@ -60,6 +60,7 @@ export default async function HomePage() {
             <span className={styles.chip}>Benchmark before you brag</span>
             <span className={styles.chip}>CSV, JSONL, FHIR, and HL7</span>
             <span className={styles.chip}>Navigator-ready worklist</span>
+            <span className={styles.chip}>Standby research watchtower</span>
           </div>
 
           <div className={styles.ctaRow}>
@@ -71,6 +72,9 @@ export default async function HomePage() {
             </Link>
             <Link href="/imports" className={styles.secondaryLink}>
               Open Import Workspace
+            </Link>
+            <Link href="/research-intel" className={styles.secondaryLink}>
+              Open Research Intelligence
             </Link>
             <Link href="/about" className={styles.ghostLink}>
               Read The Boundaries

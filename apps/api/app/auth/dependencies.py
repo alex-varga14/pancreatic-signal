@@ -206,6 +206,7 @@ def _build_capabilities(role: ActorRole) -> ActorCapabilities:
     can_review_cases = role in {"reviewer", "navigator", "admin"}
     can_import_reports = role in {"analyst", "navigator", "admin"}
     can_export_data = role in {"analyst", "navigator", "admin"}
+    can_manage_research_intel = role in {"analyst", "navigator", "admin"}
 
     return ActorCapabilities(
         can_view_cases=True,
@@ -214,6 +215,8 @@ def _build_capabilities(role: ActorRole) -> ActorCapabilities:
         can_import_reports=can_import_reports,
         can_export_data=can_export_data,
         can_view_feedback_summary=True,
+        can_manage_research_intel=can_manage_research_intel,
+        can_promote_research_intel=can_manage_research_intel,
     )
 
 

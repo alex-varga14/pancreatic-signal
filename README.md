@@ -1,12 +1,12 @@
 # Pancreatic Signal
 
-Open-source, research-first triage software for identifying radiology reports suspicious for pancreatic malignancy or other high-risk pancreatic findings and routing them into a human-reviewed workflow.
+Open-source, research-first pancreatic oncology workflow software with two primary pillars: explainable radiology triage and a cited research-intelligence watchtower.
 
 > Research-use workflow software. Not for autonomous diagnosis, treatment recommendation, or unsupervised clinical deployment.
 
 ## Current Status
 
-Pancreatic Signal is no longer a scaffold. As of 2026-03-25, this repository includes:
+Pancreatic Signal is no longer a scaffold. As of 2026-04-03, this repository includes:
 
 - deterministic, evidence-backed report triage with rationale codes and auditability
 - a reviewer worklist with case detail, review actions, and research-safe views
@@ -14,6 +14,8 @@ Pancreatic Signal is no longer a scaffold. As of 2026-03-25, this repository inc
 - CSV, JSON, JSONL, attachment-backed FHIR `DiagnosticReport`, and HL7 ORU import paths
 - persisted import-run audit records with stable failure buckets and visibility rules
 - a dedicated `/imports` web workspace for uploads and audit inspection
+- a sibling `/research-intel` workspace for pancreatic oncology monitoring, topic watchlists, cited digests, and opportunity planning
+- seeded research-intel source catalogs, topic ontology, lightweight knowledge graph, case briefs, and run-audit records
 - pilot-ready Docker overlays for trusted-proxy auth and header-auth demos
 - live smoke coverage across success, failure, and cross-actor visibility paths
 
@@ -21,8 +23,9 @@ Pancreatic Signal is no longer a scaffold. As of 2026-03-25, this repository inc
 
 For this project, a credible `1.0` is:
 
-- a stable research and navigation workflow platform
+- a stable dual-pillar pancreatic workflow platform
 - transparent and explainable in how it flags reports
+- transparent and cited in how it monitors pancreatic oncology research
 - benchmarkable on retrospective datasets
 - usable by collaborators without private tribal knowledge
 - explicit about safety boundaries and non-clinical positioning
@@ -58,6 +61,7 @@ It is not:
 │   ├── API_SPEC.md
 │   ├── DATA_MODEL.md
 │   ├── EVALUATION.md
+│   ├── RESEARCH_INTELLIGENCE.md
 │   ├── DEPLOYMENT.md
 │   ├── RELEASE_RUNBOOK.md
 │   ├── RELEASE_READINESS.md
@@ -80,11 +84,14 @@ It is not:
 
 Pancreatic Signal helps hospitals and research groups avoid missed follow-up on suspicious pancreatic findings by turning free-text radiology reports into an evidence-highlighted triage worklist that still requires human review.
 
+It now also includes a second primary workspace, Research Intelligence, for cited pancreatic oncology monitoring across literature, trials, guidance, and open-source opportunities. That second pillar is designed to inform benchmark growth, trial-catalog upkeep, and case briefs without directly changing case scores.
+
 Current product focus:
 
 - CT and MRI abdomen report text
 - deterministic rules and explainable scoring
 - reviewer and navigator workflow support
+- cited research digests, topic watchlists, and open-source opportunity surfacing
 - retrospective, pilot, and simulation workflows first
 - interoperability paths that do not compromise explainability
 
@@ -99,9 +106,11 @@ If you want outside-collaborator proof before you touch the UI:
 ```bash
 make validate-strict
 make benchmark-demo
+make research-intel-refresh
 ```
 
 This validates the repo and writes benchmark artifacts to `artifacts/benchmarks/`. The checked-in published snapshot that powers the web proof page lives in [docs/examples/demo-benchmark-current.md](docs/examples/demo-benchmark-current.md) and can be refreshed with `make refresh-demo-proof`.
+The research-intel refresh path seeds the local pancreatic oncology watch catalog, writes digest artifacts under `artifacts/research-intel/`, and populates the `/research-intel` workspace for local exploration.
 If you want to package a comparable external benchmark, start with [docs/LABELING_GUIDE.md](docs/LABELING_GUIDE.md) and [docs/BENCHMARK_SUBMISSIONS.md](docs/BENCHMARK_SUBMISSIONS.md).
 
 For a comparable external results bundle:
@@ -153,6 +162,22 @@ make validate-strict
 GitHub Actions now runs the same `make validate-strict` gate on pull requests, on `main`, and via manual workflow dispatch. A separate hosted smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) reuses the base proxy and header pilot smokes plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule. The broader shared-visibility, audit-denial, and non-site structured failure matrix in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) remains a manual validation path.
 For the release-facing evidence path that ties validation, hosted smoke artifacts, and docs updates together, use [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md).
 For a concise outside-collaborator path, see [docs/QUICKSTART.md](docs/QUICKSTART.md).
+For the new oncology watchtower and case-brief workflow, see [docs/RESEARCH_INTELLIGENCE.md](docs/RESEARCH_INTELLIGENCE.md).
+
+### Research Intelligence
+
+To seed the local pancreatic oncology watchtower and build the first digest:
+
+```bash
+make research-intel-refresh
+```
+
+Then open:
+
+- `/research-intel` for the dashboard
+- `/research-intel/documents` for the document explorer
+- `/research-intel/digests` for cited council summaries
+- `/research-intel/opportunities` for human-gated benchmark, rule, and tooling proposals
 
 ### Demo Imports
 

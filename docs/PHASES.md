@@ -1,6 +1,6 @@
 # Phase status and next slices
 
-This repository has already completed the early foundation and MVP-oriented phases. Late Phase 6 hosted smoke evidence capture and pilot closeout are now complete, so the next work should move beyond smoke-baseline capture rather than back toward initial product construction.
+This repository has already completed the early foundation and MVP-oriented phases. Late Phase 6 hosted smoke evidence capture and pilot closeout are now complete, and the codebase now includes a second primary pillar for pancreatic oncology research intelligence. The next work should move beyond smoke-baseline capture rather than back toward initial product construction.
 
 ## Completed phases
 
@@ -81,6 +81,23 @@ Already completed in this phase:
 Goal:
 
 - move from the checked-in deidentified multi-cohort retrospective sample toward broader real-world or collaborator-supplied benchmark inputs while preserving the reviewer-facing proof shape
+
+### Research Intelligence track
+
+Implemented outcomes:
+
+- a sibling `/research-intel` workspace and `/api/v1/research-intel/*` namespace
+- seeded source, topic, graph, and document catalogs under `data/research/`
+- persisted research-intel sources, runs, documents, evidence, topics, digests, and opportunities
+- manual ingest and digest scripts plus validation coverage
+- case-level research briefs that inform review without changing scores
+
+Next slices:
+
+1. replace or augment seeded documents with live curated connectors
+2. deepen ontology tagging, clustering stability, and disagreement-aware council behavior
+3. turn promoted opportunities into cleaner contributor workflows for benchmarks, rules, and trial-catalog upkeep
+4. document governance for paid-source access and donation-funded operations without introducing autonomous spending
 
 ## What is not a current phase target
 

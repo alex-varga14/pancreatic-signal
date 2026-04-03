@@ -64,7 +64,9 @@ Response:
     "can_submit_feedback": true,
     "can_import_reports": true,
     "can_export_data": true,
-    "can_view_feedback_summary": true
+    "can_view_feedback_summary": true,
+    "can_manage_research_intel": true,
+    "can_promote_research_intel": true
   }
 }
 ```
@@ -75,6 +77,7 @@ Auth behavior:
 - Trusted identity payloads default to `sub`, `name`, `role`, `sites`, and `groups` fields.
 - Trusted identity provider presets currently include `generic`, `authentik`, `keycloak`, and `oauth2-proxy`.
 - `provider` identifies the resolved auth provider profile, while `capabilities` exposes server-authoritative permissions for UI gating.
+- `can_manage_research_intel` and `can_promote_research_intel` describe authenticated research-intel run and promotion permissions; public read endpoints in the research-intel namespace remain open for local and open-source exploration.
 - When `role` is absent, the API can derive a role from configured group-to-role mappings, otherwise it falls back to `viewer`.
 - Header-based override is also supported with `X-User-ID`, `X-User-Name`, `X-User-Role`, and `X-User-Sites`.
 - `X-User-Sites` accepts a comma-separated site scope such as `North Clinic, Demo Hospital`.
@@ -396,6 +399,124 @@ Return reviewer-feedback coverage, label distribution, and unlabeled active-lear
 
 Visibility:
 - Summary counts are restricted to the actor's site scope when one is present.
+
+## Research Intelligence
+
+General behavior:
+- Read-oriented research-intel endpoints are intentionally public so contributors can inspect seeded documents, topics, digests, and opportunity proposals without authenticated setup.
+- The current implementation uses a curated seeded catalog plus manual or API-triggered runs; live external polling connectors remain a later phase.
+
+### `GET /research-intel/sources`
+Return the configured pancreatic oncology source catalog.
+
+### `GET /research-intel/documents`
+Return normalized pancreatic oncology documents with citations, topic labels, evidence spans, and relevance scores.
+
+Query params:
+- `source_kind`
+- `topic`
+- `q`
+- `limit`
+- `offset`
+
+### `GET /research-intel/topics`
+Return rolling topic watchlists with topic heat, document counts, and related rationale or trial tags.
+
+### `GET /research-intel/digests`
+Return cited digest summaries with publication status, disagreement score, and citation counts.
+
+### `GET /research-intel/digests/{digest_id}`
+Return a digest detail view with supporting documents plus persisted council stages:
+- stage 1 independent opinions
+- stage 2 peer ranking and critique
+- stage 3 chairman synthesis
+
+### `GET /research-intel/opportunities`
+Return human-gated research opportunities generated from the digest flow.
+
+Query params:
+- `opportunity_type`
+- `status`
+- `topic`
+
+### `GET /research-intel/runs`
+Return recent ingest and digest audit summaries.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `GET /research-intel/runs/{run_id}`
+Return one ingest or digest run with per-item audit entries.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `POST /research-intel/runs/ingest`
+Trigger the seeded collect-and-structure workflow.
+
+Request:
+```json
+{
+  "source_ids": ["pubmed", "clinicaltrials"],
+  "include_disabled": false,
+  "write_artifacts": true
+}
+```
+
+Behavior:
+- Normalizes documents into the shared database.
+- Deduplicates by source identifiers such as DOI, PMID, NCT id, and canonical URL hashes where available.
+- Refreshes topic heat, evidence records, and run-audit items.
+- Writes JSON and Markdown artifacts under `artifacts/research-intel/` when `write_artifacts=true`.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `POST /research-intel/runs/digest`
+Trigger the cited digest and opportunity-generation workflow.
+
+Request:
+```json
+{
+  "publish": true,
+  "write_artifacts": true
+}
+```
+
+Behavior:
+- Builds council outputs, disagreement tracking, digest summaries, and research opportunities from the current document store.
+- Writes JSON and Markdown artifacts under `artifacts/research-intel/` when `write_artifacts=true`.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `POST /research-intel/opportunities/{opportunity_id}/promote`
+Promote a research opportunity into a contributor-facing artifact.
+
+Request:
+```json
+{
+  "target": "docs_draft"
+}
+```
+
+Behavior:
+- Marks the opportunity as promoted.
+- Persists the promotion target and timestamp.
+- Writes a promotion artifact for downstream contributor workflows.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `GET /research-intel/cases/{case_id}/brief`
+Return a case-facing research brief linking the current triage or trial context to relevant research-intel topics and recent cited documents.
+
+Visibility:
+- Returns `404` when the case does not exist.
+- Applies the same site-scope restrictions as `GET /cases/{case_id}`.
+
+Behavior:
+- Suggests benchmark, rule, and trial-catalog follow-up ideas without mutating the case score or review state.
 
 ## Future endpoints
 - `/settings/rules`

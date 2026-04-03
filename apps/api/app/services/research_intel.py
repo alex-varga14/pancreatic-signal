@@ -1,0 +1,1770 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+from collections import Counter, defaultdict
+from datetime import datetime, timedelta, timezone
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
+
+from sqlalchemy import delete, select
+
+from app.core.paths import resolve_data_path
+from app.db.session import SessionLocal, init_db
+from app.models import (
+    ResearchDigestRecord,
+    ResearchDocumentRecord,
+    ResearchEvidenceRecord,
+    ResearchOpportunityRecord,
+    ResearchRunItemRecord,
+    ResearchRunRecord,
+    ResearchSourceRecord,
+    ResearchTopicRecord,
+)
+from app.schemas.research_intel import (
+    ResearchCaseBrief,
+    ResearchCaseBriefDocument,
+    ResearchCaseBriefTopic,
+    ResearchCouncilPayload,
+    ResearchCouncilStage1Opinion,
+    ResearchCouncilStage2Ranking,
+    ResearchCouncilStage3Synthesis,
+    ResearchDigestDetail,
+    ResearchDigestDocumentRef,
+    ResearchDigestListItem,
+    ResearchDocument,
+    ResearchEvidence,
+    ResearchOpportunity,
+    ResearchPromotionTarget,
+    ResearchRunDetail,
+    ResearchRunItem,
+    ResearchRunSummary,
+    ResearchSource,
+    ResearchTopic,
+)
+from app.services.trial_matching import match_case_to_trials
+from app.store.memory_store import CASE_STORE
+
+SOURCE_CATALOG_PATH = resolve_data_path("research", "sources.json")
+TOPIC_CATALOG_PATH = resolve_data_path("research", "topics.json")
+GRAPH_PATH = resolve_data_path("research", "pancreatic_oncology_graph.json")
+SEED_DOCUMENTS_PATH = resolve_data_path("research", "seed_documents.json")
+
+_WORD_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9\-]+")
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+_TRUST_SCORES = {
+    "high": 0.22,
+    "medium": 0.12,
+    "emerging": 0.06,
+}
+_PERSONAS = [
+    {
+        "persona": "literature_scout",
+        "focus": "Track what changed across pancreatic oncology literature and trusted updates.",
+    },
+    {
+        "persona": "translational_oncologist",
+        "focus": "Prioritize evidence that could change screening, trials, or escalation pathways.",
+    },
+    {
+        "persona": "open_source_builder",
+        "focus": "Look for benchmark, tooling, and workflow opportunities for the open-source community.",
+    },
+]
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _coerce_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[4]
+
+
+def _artifact_root() -> Path:
+    root = _repo_root() / "artifacts" / "research-intel"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+@lru_cache(maxsize=1)
+def load_research_source_catalog() -> list[dict[str, Any]]:
+    with SOURCE_CATALOG_PATH.open() as handle:
+        payload = json.load(handle)
+    return list(payload.get("sources", []))
+
+
+@lru_cache(maxsize=1)
+def load_research_topic_catalog() -> list[dict[str, Any]]:
+    with TOPIC_CATALOG_PATH.open() as handle:
+        payload = json.load(handle)
+    return list(payload.get("topics", []))
+
+
+@lru_cache(maxsize=1)
+def load_research_graph() -> dict[str, Any]:
+    with GRAPH_PATH.open() as handle:
+        return json.load(handle)
+
+
+@lru_cache(maxsize=1)
+def load_seed_research_documents() -> list[dict[str, Any]]:
+    with SEED_DOCUMENTS_PATH.open() as handle:
+        payload = json.load(handle)
+    return list(payload.get("documents", []))
+
+
+def validate_research_intel_catalogs() -> dict[str, int]:
+    sources = load_research_source_catalog()
+    topics = load_research_topic_catalog()
+    graph = load_research_graph()
+    documents = load_seed_research_documents()
+
+    source_ids = [item["source_id"] for item in sources]
+    if len(source_ids) != len(set(source_ids)):
+        raise ValueError("Research source catalog contains duplicate source_id values.")
+
+    topic_ids = [item["topic_id"] for item in topics]
+    if len(topic_ids) != len(set(topic_ids)):
+        raise ValueError("Research topic catalog contains duplicate topic_id values.")
+
+    known_sources = set(source_ids)
+    for item in documents:
+        source_id = str(item.get("source_id") or "").strip()
+        if source_id not in known_sources:
+            raise ValueError(f"Seed research document references unknown source_id '{source_id}'.")
+
+    graph_nodes = graph.get("nodes", [])
+    if not isinstance(graph_nodes, list):
+        raise ValueError("Research graph must contain a list of nodes.")
+
+    return {
+        "sources": len(sources),
+        "topics": len(topics),
+        "graph_nodes": len(graph_nodes),
+        "documents": len(documents),
+    }
+
+
+def ensure_research_intel_seeded() -> None:
+    init_db()
+    with SessionLocal.begin() as session:
+        existing_sources = {
+            row.source_id: row
+            for row in session.execute(select(ResearchSourceRecord)).scalars().all()
+        }
+        for descriptor in load_research_source_catalog():
+            source_id = descriptor["source_id"]
+            record = existing_sources.get(source_id)
+            if record is None:
+                session.add(
+                    ResearchSourceRecord(
+                        source_id=source_id,
+                        label=descriptor["label"],
+                        source_kind=descriptor["source_kind"],
+                        trust_level=descriptor["trust_level"],
+                        access_class=descriptor["access_class"],
+                        base_url=descriptor.get("base_url"),
+                        description=descriptor.get("description"),
+                        polling_config=descriptor.get("polling_config") or {},
+                        enabled=bool(descriptor.get("enabled", True)),
+                    )
+                )
+                continue
+
+            record.label = descriptor["label"]
+            record.source_kind = descriptor["source_kind"]
+            record.trust_level = descriptor["trust_level"]
+            record.access_class = descriptor["access_class"]
+            record.base_url = descriptor.get("base_url")
+            record.description = descriptor.get("description")
+            record.polling_config = descriptor.get("polling_config") or {}
+            record.enabled = bool(descriptor.get("enabled", True))
+
+        existing_topics = {
+            row.topic_id: row
+            for row in session.execute(select(ResearchTopicRecord)).scalars().all()
+        }
+        for descriptor in load_research_topic_catalog():
+            topic_id = descriptor["topic_id"]
+            record = existing_topics.get(topic_id)
+            if record is None:
+                session.add(
+                    ResearchTopicRecord(
+                        topic_id=topic_id,
+                        label=descriptor["label"],
+                        description=descriptor.get("description"),
+                        keywords=descriptor.get("keywords") or [],
+                        related_rationale_codes=descriptor.get("related_rationale_codes") or [],
+                        related_trial_tags=descriptor.get("related_trial_tags") or [],
+                        opportunity_types=descriptor.get("opportunity_types") or [],
+                        status=descriptor.get("status") or "active",
+                    )
+                )
+                continue
+
+            record.label = descriptor["label"]
+            record.description = descriptor.get("description")
+            record.keywords = descriptor.get("keywords") or []
+            record.related_rationale_codes = descriptor.get("related_rationale_codes") or []
+            record.related_trial_tags = descriptor.get("related_trial_tags") or []
+            record.opportunity_types = descriptor.get("opportunity_types") or []
+            record.status = descriptor.get("status") or "active"
+
+
+def list_research_sources() -> list[ResearchSource]:
+    ensure_research_intel_seeded()
+    with SessionLocal() as session:
+        rows = session.execute(
+            select(ResearchSourceRecord).order_by(ResearchSourceRecord.label.asc())
+        ).scalars().all()
+        return [
+            ResearchSource(
+                source_id=row.source_id,
+                label=row.label,
+                source_kind=row.source_kind,
+                trust_level=row.trust_level,
+                access_class=row.access_class,
+                base_url=row.base_url,
+                description=row.description,
+                polling_config=row.polling_config or {},
+                enabled=row.enabled,
+            )
+            for row in rows
+        ]
+
+
+def list_research_runs(*, limit: int = 20) -> list[ResearchRunSummary]:
+    ensure_research_intel_seeded()
+    with SessionLocal() as session:
+        rows = session.execute(
+            select(ResearchRunRecord).order_by(ResearchRunRecord.completed_at.desc()).limit(limit)
+        ).scalars().all()
+        return [_build_run_summary(row) for row in rows]
+
+
+def get_research_run(run_id: int) -> ResearchRunDetail | None:
+    ensure_research_intel_seeded()
+    with SessionLocal() as session:
+        run = session.get(ResearchRunRecord, run_id)
+        if run is None:
+            return None
+        items = session.execute(
+            select(ResearchRunItemRecord)
+            .where(ResearchRunItemRecord.run_id == run.id)
+            .order_by(ResearchRunItemRecord.item_index.asc())
+        ).scalars().all()
+        return _build_run_detail(run, items)
+
+
+def run_research_ingest(
+    *,
+    actor_user_id: str,
+    source_ids: list[str] | None = None,
+    include_disabled: bool = False,
+    write_artifacts: bool = True,
+) -> ResearchRunDetail:
+    ensure_research_intel_seeded()
+    started_at = _utcnow()
+    selected_sources = _select_source_ids(source_ids=source_ids, include_disabled=include_disabled)
+    source_map = _source_catalog_map()
+    topic_descriptors = _topic_catalog_map()
+    documents = [
+        item
+        for item in load_seed_research_documents()
+        if item["source_id"] in selected_sources
+    ]
+
+    with SessionLocal.begin() as session:
+        run = ResearchRunRecord(
+            run_type="ingest",
+            status="completed",
+            actor_user_id=actor_user_id,
+            source_scope=selected_sources,
+            started_at=started_at,
+            completed_at=started_at,
+            metadata_json={
+                "mode": "seeded_catalog",
+                "seed_document_count": len(documents),
+            },
+        )
+        session.add(run)
+        session.flush()
+
+        created = 0
+        updated = 0
+        items: list[ResearchRunItemRecord] = []
+
+        for index, document in enumerate(documents, start=1):
+            normalized = _normalize_seed_document(document, source_map=source_map, topic_descriptors=topic_descriptors)
+            existing = session.execute(
+                select(ResearchDocumentRecord).where(
+                    ResearchDocumentRecord.dedupe_key == normalized["dedupe_key"]
+                )
+            ).scalar_one_or_none()
+
+            if existing is None:
+                record = ResearchDocumentRecord(
+                    document_id=normalized["document_id"],
+                    source_id=normalized["source_id"],
+                    source_identifier=normalized.get("source_identifier"),
+                    document_type=normalized["document_type"],
+                    title=normalized["title"],
+                    abstract_text=normalized["abstract_text"],
+                    url=normalized.get("url"),
+                    canonical_url=normalized.get("canonical_url"),
+                    doi=normalized.get("doi"),
+                    pmid=normalized.get("pmid"),
+                    nct_id=normalized.get("nct_id"),
+                    citation_key=normalized["citation_key"],
+                    dedupe_key=normalized["dedupe_key"],
+                    published_at=normalized.get("published_at"),
+                    authors=normalized["authors"],
+                    organizations=normalized["organizations"],
+                    topic_ids=normalized["topic_ids"],
+                    entity_tags=normalized["entity_tags"],
+                    relevance_scores=normalized["relevance_scores"],
+                    raw_metadata=normalized["raw_metadata"],
+                )
+                session.add(record)
+                session.flush()
+                created += 1
+                document_id = record.document_id
+            else:
+                existing.source_id = normalized["source_id"]
+                existing.source_identifier = normalized.get("source_identifier")
+                existing.document_type = normalized["document_type"]
+                existing.title = normalized["title"]
+                existing.abstract_text = normalized["abstract_text"]
+                existing.url = normalized.get("url")
+                existing.canonical_url = normalized.get("canonical_url")
+                existing.doi = normalized.get("doi")
+                existing.pmid = normalized.get("pmid")
+                existing.nct_id = normalized.get("nct_id")
+                existing.citation_key = normalized["citation_key"]
+                existing.published_at = normalized.get("published_at")
+                existing.authors = normalized["authors"]
+                existing.organizations = normalized["organizations"]
+                existing.topic_ids = normalized["topic_ids"]
+                existing.entity_tags = normalized["entity_tags"]
+                existing.relevance_scores = normalized["relevance_scores"]
+                existing.raw_metadata = normalized["raw_metadata"]
+                document_id = existing.document_id
+                updated += 1
+                session.execute(
+                    delete(ResearchEvidenceRecord).where(
+                        ResearchEvidenceRecord.document_id == existing.document_id
+                    )
+                )
+
+            for evidence in normalized["evidence"]:
+                session.add(
+                    ResearchEvidenceRecord(
+                        document_id=document_id,
+                        evidence_text=evidence["evidence_text"],
+                        char_start=evidence["char_start"],
+                        char_end=evidence["char_end"],
+                        claim_text=evidence["claim_text"],
+                        claim_type=evidence["claim_type"],
+                        entity_tags=evidence["entity_tags"],
+                        citation_label=evidence["citation_label"],
+                        confidence=evidence["confidence"],
+                    )
+                )
+
+            items.append(
+                ResearchRunItemRecord(
+                    run_id=run.id,
+                    item_index=index,
+                    stage="collect",
+                    status="processed",
+                    source_identifier=str(document.get("source_identifier") or document.get("title") or ""),
+                    document_id=document_id,
+                )
+            )
+
+        for item in items:
+            session.add(item)
+
+        _refresh_topic_metrics(session)
+
+        artifact_paths: list[str] = []
+        if write_artifacts:
+            artifact_paths.extend(
+                _write_run_artifacts(
+                    artifact_root=_artifact_root() / "runs",
+                    basename=f"ingest-run-{run.id}",
+                    payload={
+                        "run_id": run.id,
+                        "run_type": "ingest",
+                        "source_scope": selected_sources,
+                        "processed": len(documents),
+                        "created": created,
+                        "updated": updated,
+                    },
+                    markdown_lines=[
+                        f"# Research Intelligence ingest run {run.id}",
+                        "",
+                        f"- actor: `{actor_user_id}`",
+                        f"- processed: `{len(documents)}`",
+                        f"- created: `{created}`",
+                        f"- updated: `{updated}`",
+                        f"- sources: {', '.join(selected_sources) or 'none'}",
+                    ],
+                )
+            )
+
+        run.processed_count = len(documents)
+        run.created_count = created
+        run.updated_count = updated
+        run.failed_count = 0
+        run.failure_counts = {}
+        run.completed_at = _utcnow()
+        run.artifact_paths = artifact_paths
+
+    return get_research_run(run.id) or ResearchRunDetail(
+        run_id=run.id,
+        run_type="ingest",
+        status="completed",
+        actor_user_id=actor_user_id,
+        source_scope=selected_sources,
+        processed=len(documents),
+        created=created,
+        updated=updated,
+        failed=0,
+        failure_counts={},
+        artifact_paths=[],
+        metadata={},
+        started_at=started_at,
+        completed_at=_utcnow(),
+        items=[],
+    )
+
+
+def run_research_digest(
+    *,
+    actor_user_id: str,
+    publish: bool = True,
+    write_artifacts: bool = True,
+) -> ResearchRunDetail:
+    ensure_research_intel_seeded()
+    started_at = _utcnow()
+
+    with SessionLocal.begin() as session:
+        source_rows = session.execute(select(ResearchSourceRecord)).scalars().all()
+        source_map = {row.source_id: row for row in source_rows}
+        topic_rows = session.execute(select(ResearchTopicRecord)).scalars().all()
+        topic_label_map = {row.topic_id: row.label for row in topic_rows}
+        topic_record_map = {row.topic_id: row for row in topic_rows}
+        documents = session.execute(
+            select(ResearchDocumentRecord).order_by(ResearchDocumentRecord.published_at.desc())
+        ).scalars().all()
+
+        run = ResearchRunRecord(
+            run_type="digest",
+            status="completed",
+            actor_user_id=actor_user_id,
+            source_scope=sorted({doc.source_id for doc in documents}),
+            started_at=started_at,
+            completed_at=started_at,
+            metadata_json={"publish": publish},
+        )
+        session.add(run)
+        session.flush()
+
+        if not documents:
+            run.processed_count = 0
+            run.created_count = 0
+            run.updated_count = 0
+            run.failed_count = 0
+            run.failure_counts = {}
+            run.completed_at = _utcnow()
+            return _build_run_detail(run, [])
+
+        digest_payload = _build_digest_payload(
+            documents=documents,
+            topic_label_map=topic_label_map,
+            source_map=source_map,
+        )
+        digest_id = digest_payload["digest_id"]
+        digest = session.get(ResearchDigestRecord, digest_id)
+        if digest is None:
+            digest = ResearchDigestRecord(
+                digest_id=digest_id,
+                title=digest_payload["title"],
+                status="published" if publish else "draft",
+                publication_scope="public",
+                window_start=digest_payload["window_start"],
+                window_end=digest_payload["window_end"],
+                generated_at=digest_payload["generated_at"],
+                topic_ids=digest_payload["topic_ids"],
+                supporting_document_ids=digest_payload["supporting_document_ids"],
+                council_payload=digest_payload["council_payload"],
+                summary_markdown=digest_payload["summary_markdown"],
+                summary_json=digest_payload["summary_json"],
+                disagreement_score=digest_payload["disagreement_score"],
+                citation_count=digest_payload["citation_count"],
+            )
+            session.add(digest)
+        else:
+            digest.title = digest_payload["title"]
+            digest.status = "published" if publish else "draft"
+            digest.publication_scope = "public"
+            digest.window_start = digest_payload["window_start"]
+            digest.window_end = digest_payload["window_end"]
+            digest.generated_at = digest_payload["generated_at"]
+            digest.topic_ids = digest_payload["topic_ids"]
+            digest.supporting_document_ids = digest_payload["supporting_document_ids"]
+            digest.council_payload = digest_payload["council_payload"]
+            digest.summary_markdown = digest_payload["summary_markdown"]
+            digest.summary_json = digest_payload["summary_json"]
+            digest.disagreement_score = digest_payload["disagreement_score"]
+            digest.citation_count = digest_payload["citation_count"]
+
+        created_opportunities = _upsert_opportunities_for_digest(
+            session=session,
+            digest=digest,
+            topic_record_map=topic_record_map,
+            documents=documents,
+        )
+
+        run_items = [
+            ResearchRunItemRecord(
+                run_id=run.id,
+                item_index=1,
+                stage="deliberate",
+                status="completed",
+                source_identifier=digest.digest_id,
+                document_id=digest.digest_id,
+            )
+        ]
+        for item in run_items:
+            session.add(item)
+
+        artifact_paths: list[str] = []
+        if write_artifacts:
+            artifact_paths.extend(
+                _write_run_artifacts(
+                    artifact_root=_artifact_root() / "digests",
+                    basename=digest.digest_id,
+                    payload=digest_payload["artifact_json"],
+                    markdown_lines=digest_payload["summary_markdown"].splitlines(),
+                )
+            )
+
+        run.processed_count = len(documents)
+        run.created_count = 1 + created_opportunities["created"]
+        run.updated_count = created_opportunities["updated"]
+        run.failed_count = 0
+        run.failure_counts = {}
+        run.completed_at = _utcnow()
+        run.artifact_paths = artifact_paths
+        run.metadata_json = {
+            "publish": publish,
+            "digest_id": digest.digest_id,
+            "opportunities_created": created_opportunities["created"],
+            "opportunities_updated": created_opportunities["updated"],
+        }
+
+    return get_research_run(run.id) or _build_run_detail(run, [])
+
+
+def list_research_documents(
+    *,
+    source_kind: str | None = None,
+    topic: str | None = None,
+    q: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[ResearchDocument]:
+    ensure_research_intel_seeded()
+    with SessionLocal() as session:
+        documents = session.execute(
+            select(ResearchDocumentRecord).order_by(ResearchDocumentRecord.published_at.desc())
+        ).scalars().all()
+        source_rows = session.execute(select(ResearchSourceRecord)).scalars().all()
+        topic_rows = session.execute(select(ResearchTopicRecord)).scalars().all()
+        source_map = {row.source_id: row for row in source_rows}
+        topic_label_map = {row.topic_id: row.label for row in topic_rows}
+
+        source_kind_l = source_kind.lower() if source_kind else None
+        topic_l = topic.lower() if topic else None
+        query_l = q.lower() if q else None
+
+        filtered: list[ResearchDocument] = []
+        for row in documents:
+            source = source_map.get(row.source_id)
+            if source_kind_l and (source.source_kind if source else "").lower() != source_kind_l:
+                continue
+            if topic_l and not any(topic_l in item.lower() for item in row.topic_ids):
+                continue
+            haystack = " ".join(
+                [
+                    row.title,
+                    row.abstract_text,
+                    " ".join(row.entity_tags or []),
+                    " ".join(row.topic_ids or []),
+                ]
+            ).lower()
+            if query_l and query_l not in haystack:
+                continue
+            filtered.append(_build_document_response(session, row, source_map, topic_label_map))
+
+        return filtered[offset : offset + limit]
+
+
+def list_research_topics() -> list[ResearchTopic]:
+    ensure_research_intel_seeded()
+    with SessionLocal() as session:
+        rows = session.execute(
+            select(ResearchTopicRecord).order_by(
+                ResearchTopicRecord.topic_heat.desc(),
+                ResearchTopicRecord.label.asc(),
+            )
+        ).scalars().all()
+        return [
+            ResearchTopic(
+                topic_id=row.topic_id,
+                label=row.label,
+                description=row.description,
+                keywords=row.keywords or [],
+                related_rationale_codes=row.related_rationale_codes or [],
+                related_trial_tags=row.related_trial_tags or [],
+                opportunity_types=row.opportunity_types or [],
+                topic_heat=row.topic_heat,
+                document_count=row.document_count,
+                last_document_at=row.last_document_at,
+                status=row.status,
+            )
+            for row in rows
+        ]
+
+
+def list_research_digests() -> list[ResearchDigestListItem]:
+    ensure_research_intel_seeded()
+    with SessionLocal() as session:
+        topic_rows = session.execute(select(ResearchTopicRecord)).scalars().all()
+        topic_label_map = {row.topic_id: row.label for row in topic_rows}
+        rows = session.execute(
+            select(ResearchDigestRecord).order_by(ResearchDigestRecord.generated_at.desc())
+        ).scalars().all()
+        return [
+            ResearchDigestListItem(
+                digest_id=row.digest_id,
+                title=row.title,
+                status=row.status,
+                publication_scope=row.publication_scope,
+                generated_at=row.generated_at,
+                topic_ids=row.topic_ids or [],
+                topic_labels=[topic_label_map[item] for item in row.topic_ids or [] if item in topic_label_map],
+                disagreement_score=row.disagreement_score,
+                citation_count=row.citation_count,
+            )
+            for row in rows
+        ]
+
+
+def get_research_digest(digest_id: str) -> ResearchDigestDetail | None:
+    ensure_research_intel_seeded()
+    with SessionLocal() as session:
+        digest = session.get(ResearchDigestRecord, digest_id)
+        if digest is None:
+            return None
+
+        topic_rows = session.execute(select(ResearchTopicRecord)).scalars().all()
+        topic_label_map = {row.topic_id: row.label for row in topic_rows}
+        source_rows = session.execute(select(ResearchSourceRecord)).scalars().all()
+        source_map = {row.source_id: row for row in source_rows}
+        documents = session.execute(
+            select(ResearchDocumentRecord).where(
+                ResearchDocumentRecord.document_id.in_(digest.supporting_document_ids or [])
+            )
+        ).scalars().all()
+        document_map = {item.document_id: item for item in documents}
+        refs = [
+            _build_digest_document_ref(
+                document_map[document_id],
+                topic_label_map=topic_label_map,
+            )
+            for document_id in digest.supporting_document_ids or []
+            if document_id in document_map
+        ]
+        summary_json = digest.summary_json or {}
+        council = ResearchCouncilPayload.model_validate(digest.council_payload or {})
+        return ResearchDigestDetail(
+            digest_id=digest.digest_id,
+            title=digest.title,
+            status=digest.status,
+            publication_scope=digest.publication_scope,
+            generated_at=digest.generated_at,
+            topic_ids=digest.topic_ids or [],
+            topic_labels=[topic_label_map[item] for item in digest.topic_ids or [] if item in topic_label_map],
+            disagreement_score=digest.disagreement_score,
+            citation_count=digest.citation_count,
+            window_start=digest.window_start,
+            window_end=digest.window_end,
+            summary_markdown=digest.summary_markdown,
+            key_takeaways=list(summary_json.get("key_takeaways") or []),
+            supporting_documents=refs,
+            council=council,
+        )
+
+
+def list_research_opportunities(
+    *,
+    opportunity_type: str | None = None,
+    status: str | None = None,
+    topic: str | None = None,
+) -> list[ResearchOpportunity]:
+    ensure_research_intel_seeded()
+    with SessionLocal() as session:
+        topic_rows = session.execute(select(ResearchTopicRecord)).scalars().all()
+        topic_label_map = {row.topic_id: row.label for row in topic_rows}
+        rows = session.execute(
+            select(ResearchOpportunityRecord).order_by(ResearchOpportunityRecord.updated_at.desc())
+        ).scalars().all()
+        opportunity_type_l = opportunity_type.lower() if opportunity_type else None
+        status_l = status.lower() if status else None
+        topic_l = topic.lower() if topic else None
+
+        items: list[ResearchOpportunity] = []
+        for row in rows:
+            if opportunity_type_l and row.opportunity_type.lower() != opportunity_type_l:
+                continue
+            if status_l and row.status.lower() != status_l:
+                continue
+            if topic_l and not any(topic_l in item.lower() for item in row.topic_ids or []):
+                continue
+            items.append(_build_opportunity_response(row, topic_label_map))
+        return items
+
+
+def promote_research_opportunity(
+    *,
+    opportunity_id: str,
+    actor_user_id: str,
+    target: ResearchPromotionTarget,
+) -> tuple[ResearchOpportunity | None, str | None]:
+    ensure_research_intel_seeded()
+    with SessionLocal.begin() as session:
+        row = session.get(ResearchOpportunityRecord, opportunity_id)
+        if row is None:
+            return None, None
+
+        row.status = "promoted"
+        row.promotion_target = target
+        row.promoted_at = _utcnow()
+        row.action_payload = {
+            **(row.action_payload or {}),
+            "promoted_by": actor_user_id,
+            "promotion_target": target,
+        }
+
+        artifact_path = _write_opportunity_promotion_artifact(row, target=target)
+        topic_rows = session.execute(select(ResearchTopicRecord)).scalars().all()
+        topic_label_map = {topic.topic_id: topic.label for topic in topic_rows}
+        return _build_opportunity_response(row, topic_label_map), artifact_path
+
+
+def build_research_case_brief(case_id: str) -> ResearchCaseBrief | None:
+    ensure_research_intel_seeded()
+    case = CASE_STORE.get_case(case_id)
+    if case is None:
+        return None
+
+    trial_matches = match_case_to_trials(case_id)
+    with SessionLocal() as session:
+        topics = session.execute(select(ResearchTopicRecord)).scalars().all()
+        documents = session.execute(
+            select(ResearchDocumentRecord).order_by(ResearchDocumentRecord.published_at.desc())
+        ).scalars().all()
+        opportunities = session.execute(select(ResearchOpportunityRecord)).scalars().all()
+
+        matched_topics: list[ResearchCaseBriefTopic] = []
+        matched_topic_ids: list[str] = []
+        report_text_l = case.report_text.lower()
+        trial_labels = {
+            match.trial_id.lower()
+            for match in (trial_matches.matches if trial_matches is not None else [])
+        }
+
+        for topic in topics:
+            rationale_overlap = sorted(
+                set(topic.related_rationale_codes or []).intersection(set(case.rationale_codes))
+            )
+            trial_overlap = sorted(
+                item
+                for item in topic.related_trial_tags or []
+                if item.lower() in trial_labels
+            )
+            keyword_overlap = [
+                keyword
+                for keyword in topic.keywords or []
+                if keyword.lower() in report_text_l
+            ]
+            if not any([rationale_overlap, trial_overlap, keyword_overlap]):
+                continue
+
+            reason_parts: list[str] = []
+            if rationale_overlap:
+                reason_parts.append(f"rationale codes {', '.join(rationale_overlap)}")
+            if trial_overlap:
+                reason_parts.append(f"trial tags {', '.join(trial_overlap)}")
+            if keyword_overlap:
+                reason_parts.append(f"report language {', '.join(keyword_overlap[:2])}")
+
+            matched_topics.append(
+                ResearchCaseBriefTopic(
+                    topic_id=topic.topic_id,
+                    label=topic.label,
+                    rationale="Matched via " + "; ".join(reason_parts) + ".",
+                )
+            )
+            matched_topic_ids.append(topic.topic_id)
+
+        if not matched_topics and topics:
+            fallback = sorted(topics, key=lambda item: item.topic_heat, reverse=True)[:2]
+            for topic in fallback:
+                matched_topics.append(
+                    ResearchCaseBriefTopic(
+                        topic_id=topic.topic_id,
+                        label=topic.label,
+                        rationale="Selected as a high-activity pancreatic oncology topic for general case context.",
+                    )
+                )
+                matched_topic_ids.append(topic.topic_id)
+
+        supporting_documents: list[ResearchCaseBriefDocument] = []
+        for document in documents:
+            overlap = [topic_id for topic_id in document.topic_ids or [] if topic_id in matched_topic_ids]
+            if not overlap:
+                continue
+            supporting_documents.append(
+                ResearchCaseBriefDocument(
+                    document_id=document.document_id,
+                    title=document.title,
+                    citation_key=document.citation_key,
+                    url=document.url,
+                    relevance_reason=(
+                        "Touches "
+                        + ", ".join(overlap[:2])
+                        + " and aligns with the case rationale or trial context."
+                    ),
+                )
+            )
+            if len(supporting_documents) >= 4:
+                break
+
+        suggested_benchmark_gaps = [
+            row.title
+            for row in opportunities
+            if row.opportunity_type == "benchmark_gap"
+            and any(topic_id in matched_topic_ids for topic_id in row.topic_ids or [])
+        ][:3]
+        suggested_rule_updates = [
+            row.title
+            for row in opportunities
+            if row.opportunity_type == "rule_gap"
+            and any(topic_id in matched_topic_ids for topic_id in row.topic_ids or [])
+        ][:3]
+        suggested_trial_updates = [
+            row.title
+            for row in opportunities
+            if row.opportunity_type == "trial_catalog_gap"
+            and any(topic_id in matched_topic_ids for topic_id in row.topic_ids or [])
+        ][:3]
+
+    topic_labels = ", ".join(topic.label for topic in matched_topics[:3]) or "current pancreatic oncology activity"
+    rationale_labels = ", ".join(case.rationale_codes[:3]) or "current triage evidence"
+    summary = (
+        f"This case currently aligns with {topic_labels} based on {rationale_labels}. "
+        "The linked documents are recent, cited items that can inform benchmark growth, "
+        "rule discussions, or trial-catalog refinement without changing the case score automatically."
+    )
+
+    return ResearchCaseBrief(
+        case_id=case_id,
+        summary=summary,
+        matched_topics=matched_topics,
+        supporting_documents=supporting_documents,
+        suggested_benchmark_gaps=suggested_benchmark_gaps,
+        suggested_rule_updates=suggested_rule_updates,
+        suggested_trial_updates=suggested_trial_updates,
+    )
+
+
+def _build_run_summary(row: ResearchRunRecord) -> ResearchRunSummary:
+    return ResearchRunSummary(
+        run_id=row.id,
+        run_type=row.run_type,
+        status=row.status,
+        actor_user_id=row.actor_user_id,
+        source_scope=row.source_scope or [],
+        processed=row.processed_count,
+        created=row.created_count,
+        updated=row.updated_count,
+        failed=row.failed_count,
+        failure_counts=row.failure_counts or {},
+        artifact_paths=row.artifact_paths or [],
+        metadata=row.metadata_json or {},
+        started_at=row.started_at,
+        completed_at=row.completed_at,
+    )
+
+
+def _build_run_detail(
+    run: ResearchRunRecord,
+    items: list[ResearchRunItemRecord],
+) -> ResearchRunDetail:
+    summary = _build_run_summary(run)
+    return ResearchRunDetail(
+        **summary.model_dump(),
+        items=[
+            ResearchRunItem(
+                item_index=item.item_index,
+                stage=item.stage,
+                status=item.status,
+                source_identifier=item.source_identifier,
+                document_id=item.document_id,
+                error_bucket=item.error_bucket,
+                error_detail=item.error_detail,
+                created_at=item.created_at,
+            )
+            for item in items
+        ],
+    )
+
+
+def _source_catalog_map() -> dict[str, dict[str, Any]]:
+    return {item["source_id"]: item for item in load_research_source_catalog()}
+
+
+def _topic_catalog_map() -> dict[str, dict[str, Any]]:
+    return {item["topic_id"]: item for item in load_research_topic_catalog()}
+
+
+def _select_source_ids(*, source_ids: list[str] | None, include_disabled: bool) -> list[str]:
+    known = load_research_source_catalog()
+    selected = []
+    requested = {item for item in source_ids or [] if item}
+    for descriptor in known:
+        if requested and descriptor["source_id"] not in requested:
+            continue
+        if not include_disabled and not descriptor.get("enabled", True):
+            continue
+        selected.append(descriptor["source_id"])
+    return selected
+
+
+def _normalize_seed_document(
+    document: dict[str, Any],
+    *,
+    source_map: dict[str, dict[str, Any]],
+    topic_descriptors: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    source_id = document["source_id"]
+    source_descriptor = source_map[source_id]
+    published_at = _parse_datetime(document.get("published_at"))
+    title = str(document.get("title") or "").strip()
+    abstract_text = str(document.get("abstract_text") or "").strip()
+    body_text = "\n".join(part for part in [title, abstract_text] if part)
+    topic_scores, keyword_hits = _classify_topics(
+        text=body_text,
+        source_descriptor=source_descriptor,
+        topic_descriptors=topic_descriptors,
+    )
+    topic_ids = list(topic_scores.keys())
+    entity_tags = _extract_entity_tags(body_text)
+    citation_key = _build_citation_key(document, published_at=published_at, source_label=source_descriptor["label"])
+    dedupe_key = _build_dedupe_key(document)
+    document_id = "rdoc-" + hashlib.sha256(dedupe_key.encode("utf-8")).hexdigest()[:12]
+
+    evidence = _extract_evidence_items(
+        text=body_text,
+        citation_key=citation_key,
+        keyword_hits=keyword_hits,
+        topic_descriptors=topic_descriptors,
+    )
+
+    return {
+        "document_id": document_id,
+        "source_id": source_id,
+        "source_identifier": document.get("source_identifier"),
+        "document_type": document.get("document_type") or "research_update",
+        "title": title,
+        "abstract_text": abstract_text,
+        "url": document.get("url"),
+        "canonical_url": document.get("canonical_url") or document.get("url"),
+        "doi": _clean_identifier(document.get("doi")),
+        "pmid": _clean_identifier(document.get("pmid")),
+        "nct_id": _clean_identifier(document.get("nct_id")),
+        "citation_key": citation_key,
+        "dedupe_key": dedupe_key,
+        "published_at": published_at,
+        "authors": [str(item).strip() for item in document.get("authors") or [] if str(item).strip()],
+        "organizations": [
+            str(item).strip()
+            for item in document.get("organizations") or []
+            if str(item).strip()
+        ],
+        "topic_ids": topic_ids,
+        "entity_tags": entity_tags,
+        "relevance_scores": topic_scores,
+        "raw_metadata": {
+            key: value
+            for key, value in document.items()
+            if key
+            not in {
+                "title",
+                "abstract_text",
+                "authors",
+                "organizations",
+            }
+        },
+        "evidence": evidence,
+    }
+
+
+def _classify_topics(
+    *,
+    text: str,
+    source_descriptor: dict[str, Any],
+    topic_descriptors: dict[str, dict[str, Any]],
+) -> tuple[dict[str, float], dict[str, list[str]]]:
+    text_l = text.lower()
+    trust_bonus = _TRUST_SCORES.get(str(source_descriptor.get("trust_level") or "medium"), 0.1)
+    topic_scores: dict[str, float] = {}
+    keyword_hits: dict[str, list[str]] = {}
+
+    for topic_id, descriptor in topic_descriptors.items():
+        matches = sorted(
+            {
+                keyword
+                for keyword in descriptor.get("keywords") or []
+                if keyword.lower() in text_l
+            }
+        )
+        if not matches:
+            continue
+        score = min(1.0, round(0.22 * len(matches) + trust_bonus, 4))
+        topic_scores[topic_id] = score
+        keyword_hits[topic_id] = matches
+
+    return topic_scores, keyword_hits
+
+
+def _extract_entity_tags(text: str) -> list[str]:
+    text_l = text.lower()
+    tags: list[str] = []
+    graph = load_research_graph()
+    for node in graph.get("nodes", []):
+        node_tags = [str(item) for item in node.get("tags") or []]
+        aliases = [str(node.get("label") or "")] + [str(item) for item in node.get("aliases") or []]
+        if any(alias.lower() in text_l for alias in aliases if alias):
+            tags.extend(node_tags or [str(node.get("node_id") or "").strip()])
+
+    unique = [tag for tag in dict.fromkeys(tag for tag in tags if tag)]
+    return unique
+
+
+def _extract_evidence_items(
+    *,
+    text: str,
+    citation_key: str,
+    keyword_hits: dict[str, list[str]],
+    topic_descriptors: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    evidence: list[dict[str, Any]] = []
+    for topic_id, hits in keyword_hits.items():
+        descriptor = topic_descriptors[topic_id]
+        claim_type = str(descriptor.get("claim_type") or topic_id)
+        for hit in hits[:2]:
+            sentence, start, end = _sentence_for_term(text, hit)
+            evidence.append(
+                {
+                    "evidence_text": sentence,
+                    "char_start": start,
+                    "char_end": end,
+                    "claim_text": (
+                        f"{descriptor['label']} appears in a cited pancreatic oncology update via '{hit}'."
+                    ),
+                    "claim_type": claim_type,
+                    "entity_tags": [topic_id, *descriptor.get("entity_tags", [])],
+                    "citation_label": citation_key,
+                    "confidence": round(min(0.98, 0.55 + 0.08 * len(hits)), 2),
+                }
+            )
+    return evidence
+
+
+def _sentence_for_term(text: str, term: str) -> tuple[str, int, int]:
+    text_l = text.lower()
+    term_l = term.lower()
+    match_index = text_l.find(term_l)
+    if match_index < 0:
+        return text[:220], 0, 0
+
+    sentences = _SENTENCE_SPLIT_RE.split(text)
+    cursor = 0
+    for sentence in sentences:
+        start = cursor
+        end = cursor + len(sentence)
+        if start <= match_index <= end:
+            relative_start = max(0, match_index - start)
+            relative_end = relative_start + len(term)
+            return sentence.strip(), relative_start, relative_end
+        cursor = end + 1
+
+    return text[max(0, match_index - 80) : match_index + 140], 0, len(term)
+
+
+def _build_citation_key(
+    document: dict[str, Any],
+    *,
+    published_at: datetime | None,
+    source_label: str,
+) -> str:
+    if document.get("doi"):
+        return f"DOI {document['doi']}"
+    if document.get("pmid"):
+        return f"PMID {document['pmid']}"
+    if document.get("nct_id"):
+        return f"NCT {document['nct_id']}"
+    year = published_at.year if published_at else "n.d."
+    source_short = "".join(_WORD_RE.findall(source_label))[:16] or "source"
+    return f"{source_short} {year}"
+
+
+def _build_dedupe_key(document: dict[str, Any]) -> str:
+    for prefix, key in (
+        ("doi", "doi"),
+        ("pmid", "pmid"),
+        ("nct", "nct_id"),
+        ("url", "canonical_url"),
+        ("url", "url"),
+    ):
+        value = _clean_identifier(document.get(key))
+        if value:
+            return f"{prefix}:{value.lower()}"
+    fingerprint = "|".join(
+        [
+            str(document.get("source_id") or ""),
+            str(document.get("title") or "").strip().lower(),
+            str(document.get("published_at") or "").strip(),
+        ]
+    )
+    return "hash:" + hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()
+
+
+def _clean_identifier(value: object) -> str | None:
+    if value is None:
+        return None
+    cleaned = str(value).strip()
+    return cleaned or None
+
+
+def _parse_datetime(value: object) -> datetime | None:
+    if value in (None, ""):
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _refresh_topic_metrics(session: Any) -> None:
+    topics = session.execute(select(ResearchTopicRecord)).scalars().all()
+    documents = session.execute(select(ResearchDocumentRecord)).scalars().all()
+
+    for topic in topics:
+        topic_docs = [
+            document
+            for document in documents
+            if topic.topic_id in (document.topic_ids or [])
+        ]
+        topic.document_count = len(topic_docs)
+        topic.last_document_at = max(
+            (
+                _coerce_utc(document.published_at)
+                for document in topic_docs
+                if document.published_at is not None
+            ),
+            default=None,
+        )
+        topic.topic_heat = round(
+            sum((document.relevance_scores or {}).get(topic.topic_id, 0.0) for document in topic_docs),
+            4,
+        )
+
+
+def _build_document_response(
+    session: Any,
+    row: ResearchDocumentRecord,
+    source_map: dict[str, ResearchSourceRecord],
+    topic_label_map: dict[str, str],
+) -> ResearchDocument:
+    evidence_rows = session.execute(
+        select(ResearchEvidenceRecord)
+        .where(ResearchEvidenceRecord.document_id == row.document_id)
+        .order_by(ResearchEvidenceRecord.id.asc())
+    ).scalars().all()
+    source = source_map.get(row.source_id)
+    return ResearchDocument(
+        document_id=row.document_id,
+        source_id=row.source_id,
+        source_label=source.label if source is not None else row.source_id,
+        source_kind=source.source_kind if source is not None else "unknown",
+        document_type=row.document_type,
+        title=row.title,
+        abstract_text=row.abstract_text,
+        url=row.url,
+        canonical_url=row.canonical_url,
+        doi=row.doi,
+        pmid=row.pmid,
+        nct_id=row.nct_id,
+        citation_key=row.citation_key,
+        published_at=row.published_at,
+        authors=row.authors or [],
+        organizations=row.organizations or [],
+        topic_ids=row.topic_ids or [],
+        topic_labels=[topic_label_map[item] for item in row.topic_ids or [] if item in topic_label_map],
+        entity_tags=row.entity_tags or [],
+        relevance_scores=row.relevance_scores or {},
+        evidence=[
+            ResearchEvidence(
+                evidence_text=item.evidence_text,
+                char_start=item.char_start,
+                char_end=item.char_end,
+                claim_text=item.claim_text,
+                claim_type=item.claim_type,
+                entity_tags=item.entity_tags or [],
+                citation_label=item.citation_label,
+                confidence=item.confidence,
+            )
+            for item in evidence_rows
+        ],
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
+
+
+def _build_digest_payload(
+    *,
+    documents: list[ResearchDocumentRecord],
+    topic_label_map: dict[str, str],
+    source_map: dict[str, ResearchSourceRecord],
+) -> dict[str, Any]:
+    docs = sorted(
+        documents,
+        key=lambda item: item.published_at or datetime.fromtimestamp(0, tz=timezone.utc),
+        reverse=True,
+    )[:8]
+    topic_counter: Counter[str] = Counter()
+    opportunity_counter: Counter[str] = Counter()
+
+    for document in docs:
+        topic_counter.update(document.topic_ids or [])
+        for topic_id in document.topic_ids or []:
+            topic_descriptor = _topic_catalog_map().get(topic_id) or {}
+            opportunity_counter.update(topic_descriptor.get("opportunity_types") or [])
+
+    ranked_topics = [topic_id for topic_id, _count in topic_counter.most_common(5)]
+    stage_1 = _build_stage_1_opinions(
+        documents=docs,
+        ranked_topics=ranked_topics,
+        topic_label_map=topic_label_map,
+    )
+    stage_2 = _build_stage_2_rankings(
+        ranked_topics=ranked_topics,
+        topic_counter=topic_counter,
+        opportunity_counter=opportunity_counter,
+        topic_label_map=topic_label_map,
+    )
+    stage_3 = _build_stage_3_synthesis(
+        documents=docs,
+        ranked_topics=ranked_topics,
+        topic_label_map=topic_label_map,
+    )
+    council = ResearchCouncilPayload(
+        stage_1=stage_1,
+        stage_2=stage_2,
+        stage_3=stage_3,
+    )
+    disagreement_score = _calculate_disagreement_score(stage_2)
+    generated_at = _utcnow()
+    supporting_document_ids = [document.document_id for document in docs]
+    key_takeaways = [
+        (
+            f"{topic_label_map.get(topic_id, topic_id)} stayed active across "
+            f"{topic_counter[topic_id]} recent cited update(s)."
+        )
+        for topic_id in ranked_topics[:3]
+    ]
+    for document in docs[:2]:
+        key_takeaways.append(f"{document.title} ({document.citation_key})")
+
+    key_takeaways = key_takeaways[:5]
+    summary_markdown = _render_digest_markdown(
+        generated_at=generated_at,
+        ranked_topics=ranked_topics,
+        topic_label_map=topic_label_map,
+        key_takeaways=key_takeaways,
+        documents=docs,
+        stage_1=stage_1,
+        stage_2=stage_2,
+        stage_3=stage_3,
+        disagreement_score=disagreement_score,
+    )
+    digest_id = f"digest-{generated_at.strftime('%Y%m%d-%H%M%S')}"
+    artifact_json = {
+        "digest_id": digest_id,
+        "title": "Pancreatic oncology research intelligence digest",
+        "generated_at": generated_at.isoformat(),
+        "topic_ids": ranked_topics,
+        "topic_labels": [topic_label_map.get(item, item) for item in ranked_topics],
+        "disagreement_score": disagreement_score,
+        "key_takeaways": key_takeaways,
+        "supporting_documents": [
+            {
+                "document_id": document.document_id,
+                "title": document.title,
+                "citation_key": document.citation_key,
+                "url": document.url,
+            }
+            for document in docs
+        ],
+        "council": council.model_dump(mode="json"),
+    }
+    return {
+        "digest_id": digest_id,
+        "title": "Pancreatic oncology research intelligence digest",
+        "window_start": min((document.published_at for document in docs if document.published_at), default=None),
+        "window_end": max((document.published_at for document in docs if document.published_at), default=None),
+        "generated_at": generated_at,
+        "topic_ids": ranked_topics,
+        "supporting_document_ids": supporting_document_ids,
+        "council_payload": council.model_dump(mode="json"),
+        "summary_markdown": summary_markdown,
+        "summary_json": {
+            "key_takeaways": key_takeaways,
+        },
+        "disagreement_score": disagreement_score,
+        "citation_count": len(supporting_document_ids),
+        "artifact_json": artifact_json,
+    }
+
+
+def _build_stage_1_opinions(
+    *,
+    documents: list[ResearchDocumentRecord],
+    ranked_topics: list[str],
+    topic_label_map: dict[str, str],
+) -> list[ResearchCouncilStage1Opinion]:
+    opinions: list[ResearchCouncilStage1Opinion] = []
+    for persona in _PERSONAS:
+        top_topics = [topic_label_map.get(item, item) for item in ranked_topics[:3]]
+        top_citations = [document.citation_key for document in documents[:3]]
+        opportunity_types = []
+        if persona["persona"] == "literature_scout":
+            opportunity_types = ["benchmark_gap", "trial_catalog_gap"]
+        elif persona["persona"] == "translational_oncologist":
+            opportunity_types = ["trial_catalog_gap", "case_brief"]
+        else:
+            opportunity_types = ["community_project", "external_tooling"]
+
+        opinions.append(
+            ResearchCouncilStage1Opinion(
+                persona=persona["persona"],
+                focus=persona["focus"],
+                summary=(
+                    f"Primary movement is around {', '.join(top_topics) or 'general pancreatic oncology'} "
+                    f"with cited support from {', '.join(top_citations) or 'the current corpus'}."
+                ),
+                citations=top_citations,
+                proposed_opportunity_types=opportunity_types,
+            )
+        )
+    return opinions
+
+
+def _build_stage_2_rankings(
+    *,
+    ranked_topics: list[str],
+    topic_counter: Counter[str],
+    opportunity_counter: Counter[str],
+    topic_label_map: dict[str, str],
+) -> list[ResearchCouncilStage2Ranking]:
+    rankings: list[ResearchCouncilStage2Ranking] = []
+    reversed_topics = list(reversed(ranked_topics))
+    for persona in _PERSONAS:
+        if persona["persona"] == "literature_scout":
+            topics = ranked_topics[:3]
+            opportunities = [item for item, _count in opportunity_counter.most_common(2)]
+            critique = "Breadth is improving, but benchmarkable wording variation still needs explicit capture."
+        elif persona["persona"] == "translational_oncologist":
+            topics = ranked_topics[:2] + reversed_topics[:1]
+            opportunities = ["trial_catalog_gap", "case_brief"]
+            critique = "Clinical utility rises when trial cues and follow-up implications stay separated from diagnosis claims."
+        else:
+            topics = reversed_topics[:2] + ranked_topics[:1]
+            opportunities = ["community_project", "benchmark_gap"]
+            critique = "The highest-leverage work is still tooling and dataset infrastructure, not more black-box scoring."
+
+        rankings.append(
+            ResearchCouncilStage2Ranking(
+                persona=persona["persona"],
+                ranked_topics=[topic_label_map.get(item, item) for item in topics if item],
+                ranked_opportunity_types=[item for item in opportunities if item],
+                critique=critique,
+            )
+        )
+    return rankings
+
+
+def _build_stage_3_synthesis(
+    *,
+    documents: list[ResearchDocumentRecord],
+    ranked_topics: list[str],
+    topic_label_map: dict[str, str],
+) -> ResearchCouncilStage3Synthesis:
+    consensus_points = [
+        (
+            f"{topic_label_map.get(topic_id, topic_id)} has enough cited volume to justify a standing watchlist."
+        )
+        for topic_id in ranked_topics[:3]
+    ]
+    disagreement_points = []
+    if len(ranked_topics) > 2:
+        disagreement_points.append(
+            "Agents diverged on whether the next step should prioritize trial catalog depth or benchmark tooling breadth."
+        )
+    if any(document.nct_id for document in documents):
+        disagreement_points.append(
+            "Trial-heavy sources point toward matching opportunities, while workflow sources point toward open benchmark work."
+        )
+    recommended_actions = [
+        "Refresh the benchmark backlog with new wording, confounder, or follow-up variants from this digest.",
+        "Review trial-catalog gaps surfaced by the current cited corpus before editing rule assets.",
+        "Publish only cited takeaways and keep promotion actions human-gated.",
+    ]
+    return ResearchCouncilStage3Synthesis(
+        chairman_summary=(
+            "The council agrees that pancreatic oncology monitoring should feed benchmark growth, trial-catalog upkeep, "
+            "and contributor tooling, while remaining separate from automatic case scoring."
+        ),
+        consensus_points=consensus_points,
+        disagreement_points=disagreement_points,
+        recommended_actions=recommended_actions,
+    )
+
+
+def _calculate_disagreement_score(stage_2: list[ResearchCouncilStage2Ranking]) -> float:
+    first_choices = [tuple(item.ranked_topics[:1]) for item in stage_2 if item.ranked_topics]
+    if not first_choices:
+        return 0.0
+    unique = len({item[0] for item in first_choices})
+    return round(min(1.0, unique / max(1, len(first_choices))), 4)
+
+
+def _render_digest_markdown(
+    *,
+    generated_at: datetime,
+    ranked_topics: list[str],
+    topic_label_map: dict[str, str],
+    key_takeaways: list[str],
+    documents: list[ResearchDocumentRecord],
+    stage_1: list[ResearchCouncilStage1Opinion],
+    stage_2: list[ResearchCouncilStage2Ranking],
+    stage_3: ResearchCouncilStage3Synthesis,
+    disagreement_score: float,
+) -> str:
+    lines = [
+        "# Pancreatic oncology research intelligence digest",
+        "",
+        f"Generated: {generated_at.isoformat()}",
+        "",
+        "## Topic heat",
+    ]
+    for topic_id in ranked_topics[:5]:
+        lines.append(f"- {topic_label_map.get(topic_id, topic_id)}")
+    lines.extend(["", "## Key takeaways"])
+    for takeaway in key_takeaways:
+        lines.append(f"- {takeaway}")
+    lines.extend(["", "## Supporting documents"])
+    for document in documents:
+        lines.append(f"- {document.title} ({document.citation_key})")
+    lines.extend(["", "## Council stage 1"])
+    for opinion in stage_1:
+        lines.append(f"- {opinion.persona}: {opinion.summary}")
+    lines.extend(["", "## Council stage 2"])
+    for ranking in stage_2:
+        lines.append(
+            f"- {ranking.persona}: topics {', '.join(ranking.ranked_topics)}; critique: {ranking.critique}"
+        )
+    lines.extend(
+        [
+            "",
+            "## Chairman synthesis",
+            stage_3.chairman_summary,
+            "",
+            f"Disagreement score: {disagreement_score:.2f}",
+            "",
+            "Consensus:",
+        ]
+    )
+    for item in stage_3.consensus_points:
+        lines.append(f"- {item}")
+    if stage_3.disagreement_points:
+        lines.append("")
+        lines.append("Disagreement:")
+        for item in stage_3.disagreement_points:
+            lines.append(f"- {item}")
+    lines.append("")
+    lines.append("Recommended actions:")
+    for item in stage_3.recommended_actions:
+        lines.append(f"- {item}")
+    return "\n".join(lines)
+
+
+def _upsert_opportunities_for_digest(
+    *,
+    session: Any,
+    digest: ResearchDigestRecord,
+    topic_record_map: dict[str, ResearchTopicRecord],
+    documents: list[ResearchDocumentRecord],
+) -> dict[str, int]:
+    created = 0
+    updated = 0
+    topic_to_documents: dict[str, list[ResearchDocumentRecord]] = defaultdict(list)
+    for document in documents:
+        for topic_id in document.topic_ids or []:
+            topic_to_documents[topic_id].append(document)
+
+    for topic_id in digest.topic_ids[:4]:
+        topic = topic_record_map.get(topic_id)
+        if topic is None:
+            continue
+        supporting_documents = topic_to_documents.get(topic_id, [])[:3]
+        if not supporting_documents:
+            continue
+        for opportunity_type in (topic.opportunity_types or [])[:2]:
+            opportunity_id = f"ropp-{opportunity_type}-{topic_id}"
+            title = _opportunity_title(opportunity_type=opportunity_type, topic_label=topic.label)
+            summary = _opportunity_summary(
+                opportunity_type=opportunity_type,
+                topic_label=topic.label,
+                documents=supporting_documents,
+            )
+            confidence = round(
+                min(
+                    0.99,
+                    0.45
+                    + 0.12 * len(supporting_documents)
+                    + 0.08 * (topic.topic_heat or 0.0),
+                ),
+                4,
+            )
+            record = session.get(ResearchOpportunityRecord, opportunity_id)
+            action_payload = {
+                "human_gate": True,
+                "digest_id": digest.digest_id,
+                "acceptance_gates": _acceptance_gates(opportunity_type),
+                "suggested_target": _default_promotion_target(opportunity_type),
+            }
+            if record is None:
+                session.add(
+                    ResearchOpportunityRecord(
+                        opportunity_id=opportunity_id,
+                        opportunity_type=opportunity_type,
+                        title=title,
+                        summary=summary,
+                        status="proposed",
+                        confidence_score=confidence,
+                        topic_ids=[topic_id],
+                        supporting_document_ids=[item.document_id for item in supporting_documents],
+                        related_rationale_codes=topic.related_rationale_codes or [],
+                        related_trial_ids=topic.related_trial_tags or [],
+                        action_payload=action_payload,
+                    )
+                )
+                created += 1
+                continue
+
+            record.title = title
+            record.summary = summary
+            record.status = "proposed" if record.status != "promoted" else record.status
+            record.confidence_score = confidence
+            record.topic_ids = [topic_id]
+            record.supporting_document_ids = [item.document_id for item in supporting_documents]
+            record.related_rationale_codes = topic.related_rationale_codes or []
+            record.related_trial_ids = topic.related_trial_tags or []
+            record.action_payload = action_payload
+            updated += 1
+    return {"created": created, "updated": updated}
+
+
+def _opportunity_title(*, opportunity_type: str, topic_label: str) -> str:
+    if opportunity_type == "rule_gap":
+        return f"Review rule coverage for {topic_label.lower()}"
+    if opportunity_type == "benchmark_gap":
+        return f"Extend benchmark cases for {topic_label.lower()}"
+    if opportunity_type == "trial_catalog_gap":
+        return f"Refine trial catalog mapping for {topic_label.lower()}"
+    if opportunity_type == "case_brief":
+        return f"Add richer case-brief support for {topic_label.lower()}"
+    if opportunity_type == "community_project":
+        return f"Scope an open-source project around {topic_label.lower()}"
+    return f"Explore external tooling for {topic_label.lower()}"
+
+
+def _opportunity_summary(
+    *,
+    opportunity_type: str,
+    topic_label: str,
+    documents: list[ResearchDocumentRecord],
+) -> str:
+    citations = ", ".join(document.citation_key for document in documents[:2]) or "the current cited corpus"
+    return (
+        f"Cited activity in {topic_label.lower()} suggests a {opportunity_type.replace('_', ' ')} opportunity. "
+        f"Start from {citations} and keep any action human-reviewed before it changes benchmarks, rules, or trial assets."
+    )
+
+
+def _acceptance_gates(opportunity_type: str) -> list[str]:
+    if opportunity_type == "rule_gap":
+        return [
+            "Rule change must preserve explainability and add tests.",
+            "Any benchmark movement must be explicit and reviewable.",
+        ]
+    if opportunity_type == "benchmark_gap":
+        return [
+            "New cases must be deidentified or synthetic.",
+            "Reviewer focus and expected rationale codes must be documented.",
+        ]
+    if opportunity_type == "trial_catalog_gap":
+        return [
+            "Trial criteria must stay explainable and cite the motivating digest items.",
+            "Do not imply enrollment guidance.",
+        ]
+    return [
+        "Publish only cited claims.",
+        "Keep promotion human-gated and audit-visible.",
+    ]
+
+
+def _default_promotion_target(opportunity_type: str) -> ResearchPromotionTarget:
+    if opportunity_type in {"rule_gap", "trial_catalog_gap"}:
+        return "docs_draft"
+    if opportunity_type == "benchmark_gap":
+        return "benchmark_task"
+    return "github_issue"
+
+
+def _write_run_artifacts(
+    *,
+    artifact_root: Path,
+    basename: str,
+    payload: dict[str, Any],
+    markdown_lines: list[str],
+) -> list[str]:
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    json_path = artifact_root / f"{basename}.json"
+    markdown_path = artifact_root / f"{basename}.md"
+    json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    markdown_path.write_text("\n".join(markdown_lines) + "\n", encoding="utf-8")
+    return [
+        str(json_path.relative_to(_repo_root())),
+        str(markdown_path.relative_to(_repo_root())),
+    ]
+
+
+def _write_opportunity_promotion_artifact(
+    row: ResearchOpportunityRecord,
+    *,
+    target: ResearchPromotionTarget,
+) -> str:
+    artifact_root = _artifact_root() / "promotions"
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    path = artifact_root / f"{row.opportunity_id}-{target}.md"
+    lines = [
+        f"# {row.title}",
+        "",
+        f"- opportunity id: `{row.opportunity_id}`",
+        f"- type: `{row.opportunity_type}`",
+        f"- target: `{target}`",
+        f"- confidence: `{row.confidence_score:.2f}`",
+        "",
+        row.summary,
+        "",
+        "## Acceptance gates",
+    ]
+    for gate in _acceptance_gates(row.opportunity_type):
+        lines.append(f"- {gate}")
+    lines.extend(
+        [
+            "",
+            "## Supporting topics",
+            *(f"- {topic_id}" for topic_id in row.topic_ids or []),
+            "",
+            "## Supporting documents",
+            *(f"- {document_id}" for document_id in row.supporting_document_ids or []),
+        ]
+    )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return str(path.relative_to(_repo_root()))
+
+
+def _build_opportunity_response(
+    row: ResearchOpportunityRecord,
+    topic_label_map: dict[str, str],
+) -> ResearchOpportunity:
+    return ResearchOpportunity(
+        opportunity_id=row.opportunity_id,
+        opportunity_type=row.opportunity_type,  # type: ignore[arg-type]
+        title=row.title,
+        summary=row.summary,
+        status=row.status,
+        confidence_score=row.confidence_score,
+        topic_ids=row.topic_ids or [],
+        topic_labels=[topic_label_map[item] for item in row.topic_ids or [] if item in topic_label_map],
+        supporting_document_ids=row.supporting_document_ids or [],
+        related_rationale_codes=row.related_rationale_codes or [],
+        related_trial_ids=row.related_trial_ids or [],
+        action_payload=row.action_payload or {},
+        promotion_target=row.promotion_target,
+        promoted_at=row.promoted_at,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
+
+
+def _build_digest_document_ref(
+    document: ResearchDocumentRecord,
+    *,
+    topic_label_map: dict[str, str],
+) -> ResearchDigestDocumentRef:
+    return ResearchDigestDocumentRef(
+        document_id=document.document_id,
+        title=document.title,
+        citation_key=document.citation_key,
+        url=document.url,
+        topic_labels=[topic_label_map[item] for item in document.topic_ids or [] if item in topic_label_map],
+    )

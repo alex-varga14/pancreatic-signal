@@ -9,6 +9,7 @@ If you want evidence before UI:
 ```bash
 make validate-strict
 make benchmark-demo
+make research-intel-refresh
 ```
 
 What you get:
@@ -16,6 +17,7 @@ What you get:
 - strict validation across API, web, and demo evaluation
 - a local benchmark snapshot in `artifacts/benchmarks/demo-benchmark.json`
 - a readable benchmark summary in `artifacts/benchmarks/demo-benchmark.md`
+- seeded research-intel artifacts in `artifacts/research-intel/`
 - a casebook-style proof artifact with dataset coverage, top-k queue previews, and reviewer cues for each benchmark case in the current 10-report demo corpus
 
 ## 2. Local Product Walkthrough
@@ -30,6 +32,7 @@ Then open:
 
 - web: `http://localhost:3000`
 - worklist: `http://localhost:3000/cases`
+- research intelligence: `http://localhost:3000/research-intel`
 - benchmark proof: `http://localhost:3000/proof` for the checked-in demo comparison plus the multi-cohort retrospective-style sample
 - imports: `http://localhost:3000/imports`
 - API docs: `http://localhost:8000/docs`
@@ -62,7 +65,25 @@ make refresh-demo-proof
 
 Use this when the demo benchmark changes and you want the landing page plus docs to reflect the new state.
 
-## 4. Where To Look Next
+## 4. Research Intelligence Walkthrough
+
+To seed the local pancreatic oncology watchtower and generate the first cited digest:
+
+```bash
+make research-intel-refresh
+```
+
+Then explore:
+
+- `/research-intel` for ingest health, topic heat, and recent digest activity
+- `/research-intel/documents` for the normalized document explorer
+- `/research-intel/digests` for the cited council summaries
+- `/research-intel/opportunities` for benchmark, rule, trial-catalog, and tooling proposals
+
+Current note:
+- The first implementation is intentionally seeded and manual-triggered. It establishes the data model, audit trail, case-brief linkage, and contributor workflow before live internet polling is added.
+
+## 5. Where To Look Next
 
 If you need release or pilot evidence rather than just a local walkthrough:
 
@@ -110,7 +131,7 @@ The `/proof` page now reads the published demo proof plus every external pack li
 - deployment and smoke matrix: [DEPLOYMENT.md](./DEPLOYMENT.md)
 - open-source posture: [OPEN_SOURCE_STRATEGY.md](./OPEN_SOURCE_STRATEGY.md)
 
-## 5. Guardrails
+## 6. Guardrails
 
 - research-use workflow software only
 - human review stays in the loop

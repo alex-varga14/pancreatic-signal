@@ -148,6 +148,174 @@ Notes:
 
 - Item records make it possible to audit partial failures and mixed-result runs without reprocessing logs.
 
+### `ResearchSourceRecord`
+
+Stores the research-intel connector catalog that powers the pancreatic oncology watchtower.
+
+Current fields:
+
+- `source_id`
+- `label`
+- `source_kind`
+- `trust_level`
+- `access_class`
+- `base_url`
+- `description`
+- `polling_config`
+- `enabled`
+- `created_at`
+- `updated_at`
+
+### `ResearchRunRecord`
+
+Summarizes one research-intel ingest or digest run.
+
+Current fields:
+
+- `id`
+- `run_type`
+- `status`
+- `actor_user_id`
+- `source_scope`
+- `processed_count`
+- `created_count`
+- `updated_count`
+- `failed_count`
+- `failure_counts`
+- `artifact_paths`
+- `metadata_json`
+- `started_at`
+- `completed_at`
+
+### `ResearchRunItemRecord`
+
+Stores per-item detail for research-intel runs.
+
+Current fields:
+
+- `id`
+- `run_id`
+- `item_index`
+- `stage`
+- `status`
+- `source_identifier`
+- `document_id`
+- `error_bucket`
+- `error_detail`
+- `created_at`
+
+### `ResearchDocumentRecord`
+
+Stores canonical pancreatic oncology research documents after deduplication and normalization.
+
+Current fields:
+
+- `document_id`
+- `source_id`
+- `source_identifier`
+- `document_type`
+- `title`
+- `abstract_text`
+- `url`
+- `canonical_url`
+- `doi`
+- `pmid`
+- `nct_id`
+- `citation_key`
+- `dedupe_key`
+- `published_at`
+- `authors`
+- `organizations`
+- `topic_ids`
+- `entity_tags`
+- `relevance_scores`
+- `raw_metadata`
+- `created_at`
+- `updated_at`
+
+### `ResearchEvidenceRecord`
+
+Stores cited evidence spans or claim anchors for research-intel documents.
+
+Current fields:
+
+- `id`
+- `document_id`
+- `evidence_text`
+- `char_start`
+- `char_end`
+- `claim_text`
+- `claim_type`
+- `entity_tags`
+- `citation_label`
+- `confidence`
+- `created_at`
+
+### `ResearchTopicRecord`
+
+Represents a rolling research-intel watchlist or cluster.
+
+Current fields:
+
+- `topic_id`
+- `label`
+- `description`
+- `keywords`
+- `related_rationale_codes`
+- `related_trial_tags`
+- `opportunity_types`
+- `topic_heat`
+- `document_count`
+- `last_document_at`
+- `status`
+- `created_at`
+- `updated_at`
+
+### `ResearchDigestRecord`
+
+Stores a generated pancreatic oncology digest plus the persisted council payload.
+
+Current fields:
+
+- `digest_id`
+- `title`
+- `status`
+- `publication_scope`
+- `window_start`
+- `window_end`
+- `generated_at`
+- `topic_ids`
+- `supporting_document_ids`
+- `council_payload`
+- `summary_markdown`
+- `summary_json`
+- `disagreement_score`
+- `citation_count`
+- `created_at`
+- `updated_at`
+
+### `ResearchOpportunityRecord`
+
+Stores human-gated research-intel proposals tied to topics and cited documents.
+
+Current fields:
+
+- `opportunity_id`
+- `opportunity_type`
+- `title`
+- `summary`
+- `status`
+- `confidence_score`
+- `topic_ids`
+- `supporting_document_ids`
+- `related_rationale_codes`
+- `related_trial_ids`
+- `action_payload`
+- `promotion_target`
+- `promoted_at`
+- `created_at`
+- `updated_at`
+
 ## API-facing derived surfaces
 
 ### `ImportMetadata`
@@ -194,6 +362,17 @@ Trial matching is also derived rather than persisted as a dedicated table. The A
 - zero or more explainable `TrialCandidate` results
 - criterion-level traces for each candidate
 
+### Research-intel responses
+
+Research-intel adds several derived API surfaces rather than a single monolithic blob:
+
+- research source descriptors
+- normalized research documents with cited evidence
+- topic watchlists with heat and document counts
+- council-backed digest summaries and disagreement metrics
+- human-gated opportunities for benchmark, rule, trial, case-brief, and tooling work
+- case-level research briefs that map current rationale codes and trial abstractions to relevant research topics
+
 ## Workflow values in active use
 
 The current docs and UI should assume at least these workflow concepts are active:
@@ -202,10 +381,14 @@ The current docs and UI should assume at least these workflow concepts are activ
 - import-run statuses `completed` and `failed`
 - import item statuses `imported` and `failed`
 - import failure buckets `parse_error`, `validation_error`, `unsupported_payload`, and `site_scope_rejection`
+- research-intel run types `ingest` and `digest`
+- research-intel opportunity types `rule_gap`, `benchmark_gap`, `trial_catalog_gap`, `case_brief`, `community_project`, and `external_tooling`
+- research-intel opportunity statuses `proposed` and `promoted`
 
 ## Practical modeling rules
 
 - Keep explainability close to the stored case and finding records.
+- Keep cited evidence close to stored research documents, digests, and opportunities.
 - Preserve provenance on reports even when an upstream payload is incomplete.
 - Prefer explicit structured failure buckets over free-form import failure states.
-- Treat review actions, feedback, and import runs as separate but complementary audit surfaces.
+- Treat review actions, feedback, import runs, and research-intel runs as separate but complementary audit surfaces.

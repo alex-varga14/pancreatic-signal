@@ -7,6 +7,7 @@ from app.api.routes.cases import router as cases_router
 from app.api.routes.exports import router as exports_router
 from app.api.routes.metrics import router as metrics_router
 from app.api.routes.imports import router as imports_router
+from app.api.routes.research_intel import router as research_intel_router
 from app.api.routes.trials import router as trials_router
 
 api_router = APIRouter()
@@ -18,3 +19,4 @@ api_router.include_router(cases_router, prefix="/cases", tags=["cases"])
 api_router.include_router(exports_router, prefix="/exports", tags=["exports"])
 api_router.include_router(metrics_router, prefix="/metrics", tags=["metrics"])
 api_router.include_router(trials_router, prefix="/trials", tags=["trials"])
+api_router.include_router(research_intel_router, prefix="/research-intel", tags=["research-intel"])

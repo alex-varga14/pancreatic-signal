@@ -205,6 +205,8 @@ export type CurrentUser = {
     can_import_reports: boolean;
     can_export_data: boolean;
     can_view_feedback_summary: boolean;
+    can_manage_research_intel: boolean;
+    can_promote_research_intel: boolean;
   };
 };
 
@@ -427,6 +429,209 @@ export type FeedbackSummary = {
   label_distribution: Record<string, number>;
   disposition_distribution: Record<string, number>;
   error_bucket_distribution: Record<string, number>;
+};
+
+export type ResearchSource = {
+  source_id: string;
+  label: string;
+  source_kind: string;
+  trust_level: string;
+  access_class: string;
+  base_url?: string | null;
+  description?: string | null;
+  polling_config: Record<string, unknown>;
+  enabled: boolean;
+};
+
+export type ResearchRunItem = {
+  item_index: number;
+  stage: string;
+  status: string;
+  source_identifier?: string | null;
+  document_id?: string | null;
+  error_bucket?: string | null;
+  error_detail?: string | null;
+  created_at: string;
+};
+
+export type ResearchRunSummary = {
+  run_id: number;
+  run_type: string;
+  status: string;
+  actor_user_id: string;
+  source_scope: string[];
+  processed: number;
+  created: number;
+  updated: number;
+  failed: number;
+  failure_counts: Record<string, number>;
+  artifact_paths: string[];
+  metadata: Record<string, unknown>;
+  started_at: string;
+  completed_at: string;
+};
+
+export type ResearchRunDetail = ResearchRunSummary & {
+  items: ResearchRunItem[];
+};
+
+export type ResearchEvidence = {
+  evidence_text: string;
+  char_start: number;
+  char_end: number;
+  claim_text: string;
+  claim_type: string;
+  entity_tags: string[];
+  citation_label?: string | null;
+  confidence?: number | null;
+};
+
+export type ResearchDocument = {
+  document_id: string;
+  source_id: string;
+  source_label: string;
+  source_kind: string;
+  document_type: string;
+  title: string;
+  abstract_text: string;
+  url?: string | null;
+  canonical_url?: string | null;
+  doi?: string | null;
+  pmid?: string | null;
+  nct_id?: string | null;
+  citation_key: string;
+  published_at?: string | null;
+  authors: string[];
+  organizations: string[];
+  topic_ids: string[];
+  topic_labels: string[];
+  entity_tags: string[];
+  relevance_scores: Record<string, number>;
+  evidence: ResearchEvidence[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type ResearchTopic = {
+  topic_id: string;
+  label: string;
+  description?: string | null;
+  keywords: string[];
+  related_rationale_codes: string[];
+  related_trial_tags: string[];
+  opportunity_types: string[];
+  topic_heat: number;
+  document_count: number;
+  last_document_at?: string | null;
+  status: string;
+};
+
+export type ResearchCouncilStage1Opinion = {
+  persona: string;
+  focus: string;
+  summary: string;
+  citations: string[];
+  proposed_opportunity_types: string[];
+};
+
+export type ResearchCouncilStage2Ranking = {
+  persona: string;
+  ranked_topics: string[];
+  ranked_opportunity_types: string[];
+  critique: string;
+};
+
+export type ResearchCouncilStage3Synthesis = {
+  chairman_summary: string;
+  consensus_points: string[];
+  disagreement_points: string[];
+  recommended_actions: string[];
+};
+
+export type ResearchCouncilPayload = {
+  stage_1: ResearchCouncilStage1Opinion[];
+  stage_2: ResearchCouncilStage2Ranking[];
+  stage_3: ResearchCouncilStage3Synthesis;
+};
+
+export type ResearchDigestDocumentRef = {
+  document_id: string;
+  title: string;
+  citation_key: string;
+  url?: string | null;
+  topic_labels: string[];
+};
+
+export type ResearchDigestListItem = {
+  digest_id: string;
+  title: string;
+  status: string;
+  publication_scope: string;
+  generated_at: string;
+  topic_ids: string[];
+  topic_labels: string[];
+  disagreement_score: number;
+  citation_count: number;
+};
+
+export type ResearchDigestDetail = ResearchDigestListItem & {
+  window_start?: string | null;
+  window_end?: string | null;
+  summary_markdown: string;
+  key_takeaways: string[];
+  supporting_documents: ResearchDigestDocumentRef[];
+  council: ResearchCouncilPayload;
+};
+
+export type ResearchOpportunity = {
+  opportunity_id: string;
+  opportunity_type: string;
+  title: string;
+  summary: string;
+  status: string;
+  confidence_score: number;
+  topic_ids: string[];
+  topic_labels: string[];
+  supporting_document_ids: string[];
+  related_rationale_codes: string[];
+  related_trial_ids: string[];
+  action_payload: Record<string, unknown>;
+  promotion_target?: string | null;
+  promoted_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ResearchCaseBriefTopic = {
+  topic_id: string;
+  label: string;
+  rationale: string;
+};
+
+export type ResearchCaseBriefDocument = {
+  document_id: string;
+  title: string;
+  citation_key: string;
+  url?: string | null;
+  relevance_reason: string;
+};
+
+export type ResearchCaseBrief = {
+  case_id: string;
+  summary: string;
+  matched_topics: ResearchCaseBriefTopic[];
+  supporting_documents: ResearchCaseBriefDocument[];
+  suggested_benchmark_gaps: string[];
+  suggested_rule_updates: string[];
+  suggested_trial_updates: string[];
+};
+
+export type ResearchDocumentFilters = {
+  source_kind?: string;
+  topic?: string;
+  q?: string;
+  limit?: number;
+  offset?: number;
 };
 
 const API_BASE = process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -696,6 +901,124 @@ export async function getImportRuns({
 
 export async function getImportRun(runId: number): Promise<ImportRunDetail | null> {
   const res = await apiFetch(`/api/v1/imports/runs/${runId}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function getResearchSources(): Promise<ResearchSource[]> {
+  const res = await apiFetch("/api/v1/research-intel/sources");
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getResearchRuns(limit = 12): Promise<ResearchRunSummary[]> {
+  const res = await apiFetch(`/api/v1/research-intel/runs?limit=${limit}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getResearchDocuments(filters: ResearchDocumentFilters = {}): Promise<ResearchDocument[]> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value === undefined || value === null || value === "") continue;
+    params.set(key, String(value));
+  }
+  const query = params.toString();
+  const res = await apiFetch(`/api/v1/research-intel/documents${query ? `?${query}` : ""}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getResearchTopics(): Promise<ResearchTopic[]> {
+  const res = await apiFetch("/api/v1/research-intel/topics");
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getResearchDigests(): Promise<ResearchDigestListItem[]> {
+  const res = await apiFetch("/api/v1/research-intel/digests");
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getResearchDigest(digestId: string): Promise<ResearchDigestDetail | null> {
+  const res = await apiFetch(`/api/v1/research-intel/digests/${digestId}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function getResearchOpportunities(params?: {
+  opportunity_type?: string;
+  status?: string;
+  topic?: string;
+}): Promise<ResearchOpportunity[]> {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params || {})) {
+    if (value === undefined || value === null || value === "") continue;
+    query.set(key, String(value));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const res = await apiFetch(`/api/v1/research-intel/opportunities${suffix}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function runResearchIngest(payload?: {
+  source_ids?: string[];
+  include_disabled?: boolean;
+  write_artifacts?: boolean;
+}): Promise<ResearchRunDetail> {
+  const res = await apiFetch("/api/v1/research-intel/runs/ingest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(res, "Failed to trigger research ingest.");
+  }
+  const body: { run: ResearchRunDetail } = await res.json();
+  return body.run;
+}
+
+export async function runResearchDigest(payload?: {
+  publish?: boolean;
+  write_artifacts?: boolean;
+}): Promise<ResearchRunDetail> {
+  const res = await apiFetch("/api/v1/research-intel/runs/digest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(res, "Failed to trigger research digest.");
+  }
+  const body: { run: ResearchRunDetail } = await res.json();
+  return body.run;
+}
+
+export async function promoteResearchOpportunity(
+  opportunityId: string,
+  target: "github_issue" | "docs_draft" | "benchmark_task",
+): Promise<{
+  ok: boolean;
+  opportunity_id: string;
+  status: string;
+  promotion_target: string;
+  artifact_path?: string | null;
+}> {
+  const res = await apiFetch(`/api/v1/research-intel/opportunities/${opportunityId}/promote`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target }),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(res, "Failed to promote research opportunity.");
+  }
+  return res.json();
+}
+
+export async function getResearchBrief(caseId: string): Promise<ResearchCaseBrief | null> {
+  const res = await apiFetch(`/api/v1/research-intel/cases/${caseId}/brief`);
   if (!res.ok) return null;
   return res.json();
 }

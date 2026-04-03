@@ -1,0 +1,52 @@
+{
+  "nodes": [
+    {
+      "node_id": "pdac",
+      "label": "PDAC",
+      "aliases": ["pancreatic ductal adenocarcinoma", "pancreatic cancer"],
+      "tags": ["pdac", "oncology"]
+    },
+    {
+      "node_id": "ipmn",
+      "label": "IPMN",
+      "aliases": ["intraductal papillary mucinous neoplasm", "pancreatic cyst"],
+      "tags": ["ipmn", "cyst"]
+    },
+    {
+      "node_id": "eus",
+      "label": "EUS",
+      "aliases": ["endoscopic ultrasound", "biopsy"],
+      "tags": ["eus", "biopsy", "follow_up"]
+    },
+    {
+      "node_id": "ctdna",
+      "label": "ctDNA",
+      "aliases": ["circulating tumor dna", "liquid biopsy"],
+      "tags": ["ctdna", "biomarker"]
+    },
+    {
+      "node_id": "radiomics",
+      "label": "Radiomics",
+      "aliases": ["lesion detection", "segmentation", "foundation model"],
+      "tags": ["radiomics", "imaging", "ai"]
+    },
+    {
+      "node_id": "workflow",
+      "label": "Workflow",
+      "aliases": ["navigator", "human review", "follow-up pathway"],
+      "tags": ["workflow", "navigation"]
+    },
+    {
+      "node_id": "benchmark",
+      "label": "Benchmark",
+      "aliases": ["benchmark pack", "dataset release", "evaluation bundle"],
+      "tags": ["benchmark", "open_source"]
+    }
+  ],
+  "edges": [
+    {"source": "ipmn", "target": "workflow", "relation": "requires_surveillance"},
+    {"source": "ctdna", "target": "early_detection", "relation": "supports"},
+    {"source": "radiomics", "target": "benchmark", "relation": "needs"},
+    {"source": "workflow", "target": "benchmark", "relation": "benefits_from"}
+  ]
+}

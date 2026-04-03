@@ -1,0 +1,88 @@
+{
+  "sources": [
+    {
+      "source_id": "pubmed",
+      "label": "PubMed pancreatic oncology watch",
+      "source_kind": "literature",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://pubmed.ncbi.nlm.nih.gov/",
+      "description": "Curated pancreatic oncology papers and reviews for the research intelligence demo feed.",
+      "polling_config": {
+        "interval_hours": 12,
+        "priority": "high"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "clinicaltrials",
+      "label": "ClinicalTrials.gov pancreatic trials",
+      "source_kind": "trial_registry",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://clinicaltrials.gov/",
+      "description": "Pancreatic cancer and precursor-lesion trial updates for explainable trial-catalog maintenance.",
+      "polling_config": {
+        "interval_hours": 24,
+        "priority": "high"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "nci",
+      "label": "NCI pancreatic guidance and news",
+      "source_kind": "guideline",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://www.cancer.gov/",
+      "description": "Trusted cancer-center and guidance updates relevant to pancreatic oncology workflows.",
+      "polling_config": {
+        "interval_hours": 24,
+        "priority": "medium"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "fda",
+      "label": "FDA oncology device and assay updates",
+      "source_kind": "regulatory",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://www.fda.gov/",
+      "description": "Regulatory signals that could affect biomarker or workflow tooling for pancreatic oncology.",
+      "polling_config": {
+        "interval_hours": 48,
+        "priority": "medium"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "medrxiv",
+      "label": "medRxiv and bioRxiv pancreas AI watch",
+      "source_kind": "preprint",
+      "trust_level": "emerging",
+      "access_class": "public",
+      "base_url": "https://www.medrxiv.org/",
+      "description": "Preprint monitoring for imaging, biomarker, and workflow experiments that may inform benchmarks.",
+      "polling_config": {
+        "interval_hours": 12,
+        "priority": "medium"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "open_source_watch",
+      "label": "Open-source pancreatic oncology watch",
+      "source_kind": "news",
+      "trust_level": "medium",
+      "access_class": "public",
+      "base_url": "https://github.com/",
+      "description": "Software, dataset, and community updates that could turn into open-source opportunities.",
+      "polling_config": {
+        "interval_hours": 24,
+        "priority": "medium"
+      },
+      "enabled": true
+    }
+  ]
+}

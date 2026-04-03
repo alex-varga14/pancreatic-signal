@@ -54,6 +54,8 @@ def main() -> None:
         check_demo_eval_compare(),
         check_demo_eval_sweep(),
         check_published_external_benchmark_registry(),
+        check_research_intel_catalogs(),
+        check_research_intel_pipeline(),
         check_pytest(strict=args.strict),
         check_web_lint(strict=args.strict),
         check_web_build(strict=args.strict),
@@ -212,6 +214,76 @@ def check_published_external_benchmark_registry() -> CheckResult:
         (
             f"Validated {len(descriptors)} published external benchmark pack(s) from "
             f"{PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH.relative_to(ROOT)}."
+        ),
+    )
+
+
+def check_research_intel_catalogs() -> CheckResult:
+    process = run_command(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys, json; "
+                "from pathlib import Path; "
+                f"api_root = Path({str(API_ROOT)!r}); "
+                "sys.path.insert(0, str(api_root)); "
+                "from app.services.research_intel import validate_research_intel_catalogs; "
+                "print(json.dumps(validate_research_intel_catalogs()))"
+            ),
+        ]
+    )
+    if process.returncode != 0:
+        return CheckResult("research-intel-catalogs", FAIL, summarize_process(process))
+
+    payload = json.loads(process.stdout)
+    return CheckResult(
+        "research-intel-catalogs",
+        PASS,
+        (
+            f"Validated {payload['sources']} source(s), {payload['topics']} topic(s), "
+            f"{payload['graph_nodes']} graph node(s), and {payload['documents']} seed document(s)."
+        ),
+    )
+
+
+def check_research_intel_pipeline() -> CheckResult:
+    with tempfile.TemporaryDirectory(prefix="pancreatic-signal-research-intel-") as temp_dir:
+        db_path = Path(temp_dir) / "research-intel.db"
+        env = {"DATABASE_URL": f"sqlite:///{db_path}"}
+
+        ingest = run_command(
+            [
+                sys.executable,
+                "scripts/run_research_intel_ingest.py",
+                "--json",
+                "--no-artifacts",
+            ],
+            extra_env=env,
+        )
+        if ingest.returncode != 0:
+            return CheckResult("research-intel-pipeline", FAIL, summarize_process(ingest))
+
+        digest = run_command(
+            [
+                sys.executable,
+                "scripts/run_research_intel_digest.py",
+                "--json",
+                "--no-artifacts",
+            ],
+            extra_env=env,
+        )
+        if digest.returncode != 0:
+            return CheckResult("research-intel-pipeline", FAIL, summarize_process(digest))
+
+    ingest_payload = json.loads(ingest.stdout)
+    digest_payload = json.loads(digest.stdout)
+    return CheckResult(
+        "research-intel-pipeline",
+        PASS,
+        (
+            f"Ingest processed {ingest_payload['processed']} seeded document(s); "
+            f"digest created {digest_payload['created']} artifact-backed record(s)."
         ),
     )
 

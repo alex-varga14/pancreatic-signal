@@ -188,6 +188,9 @@ export default async function CasesPage({
               Import workspace
             </Link>
           ) : null}
+          <Link href="/research-intel" style={{ color: "#2563eb" }}>
+            Research intelligence
+          </Link>
           <Link href="/" style={{ color: "#2563eb" }}>Back</Link>
         </div>
       </div>

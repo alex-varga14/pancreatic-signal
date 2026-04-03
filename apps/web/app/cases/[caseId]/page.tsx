@@ -1,6 +1,19 @@
 import Link from "next/link";
-import { getCase, getCurrentUser, getFeedbackRecommendation, getHybridAnalysis, getTrialMatches } from "../../../lib/api";
-import type { FeedbackRecommendation, HybridAnalysis, ImportMetadata, TrialAbstraction } from "../../../lib/api";
+import {
+  getCase,
+  getCurrentUser,
+  getFeedbackRecommendation,
+  getHybridAnalysis,
+  getResearchBrief,
+  getTrialMatches,
+} from "../../../lib/api";
+import type {
+  FeedbackRecommendation,
+  HybridAnalysis,
+  ImportMetadata,
+  ResearchCaseBrief,
+  TrialAbstraction,
+} from "../../../lib/api";
 import { submitCaseFeedback, submitReviewAction } from "../actions";
 
 type HighlightRange = {
@@ -174,11 +187,12 @@ const FEEDBACK_BUCKET_OPTIONS = [
 
 export default async function CaseDetailPage({ params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params;
-  const [data, trialMatches, hybridAnalysis, feedbackRecommendation, currentUser] = await Promise.all([
+  const [data, trialMatches, hybridAnalysis, feedbackRecommendation, researchBrief, currentUser] = await Promise.all([
     getCase(caseId),
     getTrialMatches(caseId),
     getHybridAnalysis(caseId),
     getFeedbackRecommendation(caseId),
+    getResearchBrief(caseId),
     getCurrentUser(),
   ]);
   const canReviewCases = currentUser?.capabilities.can_review_cases ?? false;
@@ -542,6 +556,8 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ cas
 
           <HybridSentenceCard hybridAnalysis={hybridAnalysis} />
 
+          <ResearchBriefCard researchBrief={researchBrief} />
+
           <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20 }}>
             <h2 style={{ marginTop: 0 }}>Trial matches</h2>
             {!trialMatches || trialMatches.matches.length === 0 ? (
@@ -811,6 +827,65 @@ function HybridSentenceCard({ hybridAnalysis }: { hybridAnalysis: HybridAnalysis
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+function ResearchBriefCard({ researchBrief }: { researchBrief: ResearchCaseBrief | null }) {
+  return (
+    <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 8 }}>
+        <h2 style={{ margin: 0 }}>Research intelligence brief</h2>
+        <Link href="/research-intel" style={{ color: "#2563eb" }}>
+          Open workspace
+        </Link>
+      </div>
+      {!researchBrief ? (
+        <p style={{ marginBottom: 0, color: "#64748b" }}>
+          No research brief is available yet for this case. Run the research-intel ingest and digest flows first.
+        </p>
+      ) : (
+        <>
+          <p style={{ marginTop: 0, color: "#334155", lineHeight: 1.6 }}>{researchBrief.summary}</p>
+          <p style={{ margin: "0 0 8px", fontWeight: 700 }}>Matched topics</p>
+          <ul style={{ paddingLeft: 18, marginTop: 0 }}>
+            {researchBrief.matched_topics.map((topic) => (
+              <li key={topic.topic_id} style={{ marginBottom: 8 }}>
+                <strong>{topic.label}</strong> {topic.rationale}
+              </li>
+            ))}
+          </ul>
+
+          {researchBrief.supporting_documents.length > 0 ? (
+            <>
+              <p style={{ margin: "12px 0 8px", fontWeight: 700 }}>Supporting documents</p>
+              <ul style={{ paddingLeft: 18, marginTop: 0 }}>
+                {researchBrief.supporting_documents.map((document) => (
+                  <li key={document.document_id} style={{ marginBottom: 8 }}>
+                    <strong>{document.title}</strong> ({document.citation_key}) {document.relevance_reason}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+
+          {researchBrief.suggested_benchmark_gaps.length > 0 ? (
+            <p style={{ margin: "12px 0 0", color: "#475569" }}>
+              <strong>Benchmark ideas:</strong> {researchBrief.suggested_benchmark_gaps.join(" • ")}
+            </p>
+          ) : null}
+          {researchBrief.suggested_rule_updates.length > 0 ? (
+            <p style={{ margin: "8px 0 0", color: "#475569" }}>
+              <strong>Rule ideas:</strong> {researchBrief.suggested_rule_updates.join(" • ")}
+            </p>
+          ) : null}
+          {researchBrief.suggested_trial_updates.length > 0 ? (
+            <p style={{ margin: "8px 0 0", color: "#475569" }}>
+              <strong>Trial ideas:</strong> {researchBrief.suggested_trial_updates.join(" • ")}
+            </p>
+          ) : null}
+        </>
       )}
     </div>
   );

@@ -13,6 +13,8 @@ class ActorCapabilities(BaseModel):
     can_import_reports: bool
     can_export_data: bool
     can_view_feedback_summary: bool
+    can_manage_research_intel: bool
+    can_promote_research_intel: bool
 
 
 class AuthenticatedActor(BaseModel):

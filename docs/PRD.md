@@ -2,7 +2,10 @@
 
 ## 1. Product summary
 
-Pancreatic Signal is an open-source, research-first triage platform for identifying radiology reports that may contain pancreatic malignancy signals, high-risk pancreatic abnormalities, or important follow-up recommendations, then routing those cases into a human-reviewed worklist.
+Pancreatic Signal is an open-source, research-first pancreatic oncology platform with two primary pillars:
+
+- an explainable triage system for identifying radiology reports that may contain pancreatic malignancy signals, high-risk pancreatic abnormalities, or important follow-up recommendations, then routing those cases into a human-reviewed worklist
+- a cited research-intelligence system for organizing pancreatic oncology literature, trial, guidance, and open-source signals into digest, opportunity, and case-brief workflows
 
 The current product is no longer an early prototype. It now includes reviewer workflow, explainable trial matching, hybrid prioritization, structured FHIR and HL7 ingestion, import-run auditing, and pilot deployment/auth packaging on top of the deterministic rule engine.
 
@@ -34,6 +37,7 @@ The product exists to reduce those workflow misses by surfacing high-value repor
 - support explainable downstream trial pre-screening from current case evidence
 - preserve enough metadata to support interoperability audits and site-scoped pilots
 - expose hybrid ranking improvements without replacing the deterministic baseline
+- create public, citation-backed pancreatic oncology digests and opportunity proposals for open-source contributors
 
 ## 4. Non-goals
 
@@ -51,6 +55,7 @@ The product exists to reduce those workflow misses by surfacing high-value repor
 - research coordinators running retrospective datasets
 - clinical informatics teams piloting explainable workflow tooling
 - tumor-board or trial-screening support staff
+- open-source contributors, benchmark curators, and research operators following pancreatic oncology signals
 
 ## 6. Current supported workflows
 
@@ -73,6 +78,10 @@ A reviewer or coordinator requests case-level trial matching and sees structured
 ### Workflow 5 — Retrospective evaluation and public benchmarking
 
 A contributor runs the demo evaluation or external benchmark workflow, generates comparable benchmark artifacts, and publishes results with consistent labels and validation.
+
+### Workflow 6 — Research intelligence monitoring and case briefs
+
+A contributor or operator runs the seeded research-intel ingest and digest flow, explores cited documents and topic watchlists, reviews council summaries and opportunities, and links recent research context back to individual cases through generated briefs.
 
 ## 7. Functional requirements
 
@@ -136,6 +145,16 @@ The repository must:
 - validate public submission JSON against the shared schema
 - keep documentation aligned with the actual implementation state
 
+### FR7 — Research intelligence
+
+The system must:
+
+- maintain a configurable pancreatic oncology source catalog and topic watchlist registry
+- normalize research documents into persisted cited records with evidence spans, topic tags, and audit-backed run history
+- expose public-read dashboard, document, digest, and opportunity surfaces while restricting run execution and promotion actions to authenticated operators
+- generate case-level research briefs that inform benchmark, rule, or trial-catalog follow-up without mutating case scores
+- keep opportunity promotion human-gated and citation-backed
+
 ## 8. Current product boundaries
 
 The current release intentionally stops short of:
@@ -145,6 +164,7 @@ The current release intentionally stops short of:
 - automated follow-up closure detection from downstream EHR state
 - image-derived features or PACS-native workflows
 - a closed-loop active learning queue that retrains or rewrites thresholds automatically
+- autonomous live internet agent fleets or autonomous payment execution for paid research sources
 
 ## 9. Success measures
 
@@ -181,9 +201,9 @@ The current release intentionally stops short of:
 The next requirements focus on late-Phase-6 hardening rather than new foundation work:
 
 1. deepen benchmark coverage with more realistic labeled datasets
-2. strengthen reviewer ergonomics and feedback utilization without weakening explainability
-3. keep release-facing docs and onboarding surfaces aligned with the recorded hosted smoke evidence
-4. preserve the intentional hosted/manual smoke boundary as release cadence evolves
+2. expand the seeded research-intel foundation into live curated connectors and richer topic coverage
+3. strengthen reviewer ergonomics and feedback utilization without weakening explainability
+4. keep release-facing docs and onboarding surfaces aligned with the recorded hosted smoke evidence
 5. continue interoperability hardening only where new pilot fixtures expose concrete gaps
 
 ## 12. Release-readiness criteria for the current phase

@@ -26,6 +26,16 @@ web-dev:
 bootstrap:
 	$(PYTHON) scripts/bootstrap_demo_data.py
 
+research-intel-ingest:
+	$(PYTHON) scripts/run_research_intel_ingest.py
+
+research-intel-digest:
+	$(PYTHON) scripts/run_research_intel_digest.py
+
+research-intel-refresh:
+	$(PYTHON) scripts/run_research_intel_ingest.py
+	$(PYTHON) scripts/run_research_intel_digest.py
+
 test-api:
 	cd apps/api && $(PYTHON) -m pytest -q
 

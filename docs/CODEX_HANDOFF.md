@@ -1,13 +1,15 @@
 # Codex Handoff
 
-Updated: 2026-03-27
+Updated: 2026-04-03
 
-This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, Phase 6 hosted smoke evidence capture is now complete, and the first post-Phase-6 benchmark-realism slices are also in place. The best next work should now move from the expanded synthetic proof set, stronger external starter pack, and checked-in multi-cohort retrospective-style sample toward broader de-identified or externally supplied benchmark inputs on top of the existing pilot packaging, proof surfaces, public benchmark pack, and external evaluation bundle writer.
+This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, Phase 6 hosted smoke evidence capture is now complete, and the codebase now also includes the first Research Intelligence foundation slice as a second primary pillar beside explainable triage. The best next work should now move from the expanded proof set and seeded research-intel foundation toward broader de-identified or externally supplied benchmark inputs, live curated research connectors, and deeper contributor workflows built on top of the existing pilot packaging, proof surfaces, public benchmark pack, external evaluation bundle writer, and cited pancreatic oncology watchtower.
 
 ## Current State
 
 - Deterministic pancreatic triage is implemented with section-aware sentence evidence, rationale codes, persistence, exports, and evaluation.
 - Reviewer workflow is implemented end to end with worklist filters, case detail, review actions, feedback capture, hybrid prioritization, and trial matching.
+- A second primary pillar, Research Intelligence, is now implemented with a sibling `/research-intel` workspace, a `/api/v1/research-intel/*` namespace, seeded pancreatic oncology source and topic catalogs, a lightweight domain graph, persisted run audits, normalized research documents, cited evidence spans, topic watchlists, council digests, opportunity proposals, and case-level research briefs.
+- The first research-intel slice is intentionally seeded and manual-triggered rather than a live internet crawler. It establishes the shared data model, artifact flow, audit surfaces, and contributor UX while keeping source polling, paid access, and richer autonomy in later phases.
 - Phase 6 pilot work is materially in place: observability, readiness probes, trusted-proxy auth, site scoping, pilot Docker overlays, checked-in env bundles, de-identified research views, FHIR ingestion, HL7 ORU ingestion, structured import metadata persistence, persisted import-run audit records, env-driven field-preference overrides for upstream variability, a dedicated web import workspace with recent-run audit visibility, and live report/FHIR/HL7 success, successful shared-visibility, report-path failed shared-visibility for `validation_error`, structured failed shared-visibility for FHIR `unsupported_payload` plus HL7 `parse_error`, report-path and structured-adapter site-scope rejection, report-path parse/validation, adapter-specific malformed-import, and generic plus structured cross-actor audit denial smoke coverage in both the header-auth and trusted-proxy pilot paths.
 - The web app now has clearer outside-collaborator surfaces: the home and about pages frame the product as an explainable, benchmarkable workflow stack, and `/proof` now publishes the checked-in demo benchmark snapshot plus a registry of published external benchmark packs as a public proof surface with side-by-side cross-pack comparison, anchored navigation, dataset coverage, queue previews, and reviewer-facing casebooks.
 - The repo now includes an adoption-facing quickstart, checked-in benchmark snapshots in `docs/examples/demo-benchmark-current.json` and `docs/examples/demo-benchmark-current.md`, and a refresh path through `make benchmark-demo` plus `make refresh-demo-proof`; that published proof now carries benchmark buckets, reviewer cues, expected rationale codes, per-case rules-versus-hybrid outcomes, and an expanded 10-report casebook spanning 5 recurring benchmark buckets.
@@ -27,7 +29,15 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 
 ## Fresh Validation Status
 
-Confirmed on 2026-03-27:
+Confirmed on 2026-04-03:
+
+- `make validate-strict` passes
+- Summary: `12 pass, 0 warn, 0 fail`
+- Research-intel validation now covers seeded catalogs plus a temp-database ingest and digest run, reporting `6` sources, `7` topics, `7` graph nodes, `7` seeded documents, and a passing artifact-backed digest pipeline
+- `cd apps/api && .venv/bin/python -m pytest tests/test_auth.py tests/test_research_intel.py -q` passed with `17 passed`
+- `npm run lint` and `npm run build` in `apps/web` both pass with the new `/research-intel` routes included in the build
+
+Previously confirmed during the broader post-Phase-6 slice:
 
 - `make validate-strict` passes
 - Summary: `10 pass, 0 warn, 0 fail`
@@ -246,6 +256,15 @@ Additional note from this slice:
 - The proxy-demo pilot path now also has a live structured shared-visibility smoke target that verifies owner visibility plus alternate-actor allow behavior for successful FHIR and HL7 imports
 - The proxy-demo pilot path now also has a live audit-visibility smoke target that verifies owner visibility plus alternate-actor denial for a persisted `site_scope_rejection` run
 - GitHub Actions now also has a hosted pilot smoke workflow for the base proxy and header success-path overlays plus report-path and structured adapter site rejection in both auth modes
+
+### Research Intelligence foundation
+
+- Shared persisted records now exist for research sources, runs, run items, documents, evidence, topics, digests, and opportunities
+- Seed catalogs now live under `data/research/` for sources, topics, a lightweight pancreatic oncology graph, and seeded documents
+- Manual ingest and digest scripts now exist through `make research-intel-ingest`, `make research-intel-digest`, and `make research-intel-refresh`
+- The Next.js app now exposes `/research-intel`, `/research-intel/documents`, `/research-intel/digests`, and `/research-intel/opportunities`
+- Case detail now links to a generated research brief that maps rationale or trial context to current research-intel topics and cited documents
+- Promotion stays human-gated, triage scores remain untouched, and payment or crypto execution is still intentionally out of scope
 
 ## Important Guardrails
 
