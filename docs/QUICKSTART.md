@@ -8,16 +8,16 @@ If you want evidence before UI:
 
 ```bash
 make validate-strict
-make benchmark-demo
 make research-intel-refresh
+make benchmark-demo
 ```
 
 What you get:
 
 - strict validation across API, web, and demo evaluation
+- seeded research-intel artifacts in `artifacts/research-intel/`
 - a local benchmark snapshot in `artifacts/benchmarks/demo-benchmark.json`
 - a readable benchmark summary in `artifacts/benchmarks/demo-benchmark.md`
-- seeded research-intel artifacts in `artifacts/research-intel/`
 - a casebook-style proof artifact with dataset coverage, top-k queue previews, and reviewer cues for each benchmark case in the current 10-report demo corpus
 
 ## 2. Local Product Walkthrough
@@ -31,8 +31,8 @@ docker compose up --build
 Then open:
 
 - web: `http://localhost:3000`
-- worklist: `http://localhost:3000/cases`
 - research intelligence: `http://localhost:3000/research-intel`
+- worklist: `http://localhost:3000/cases`
 - benchmark proof: `http://localhost:3000/proof` for the checked-in demo comparison plus the multi-cohort retrospective-style sample
 - imports: `http://localhost:3000/imports`
 - API docs: `http://localhost:8000/docs`
@@ -65,7 +65,7 @@ make refresh-demo-proof
 
 Use this when the demo benchmark changes and you want the landing page plus docs to reflect the new state.
 
-## 4. Research Intelligence Walkthrough
+## 4. Discovery Workspace Walkthrough
 
 To seed the local pancreatic oncology watchtower and generate the first cited digest:
 
@@ -81,14 +81,15 @@ make research-intel-discovery-fixture
 
 Then explore:
 
-- `/research-intel` for ingest health, topic heat, and recent digest activity
+- `/research-intel` for the primary discovery dashboard, ingest health, topic heat, and recent digest activity
 - `/research-intel/documents` for the normalized document explorer
 - `/research-intel/graph` for the active pancreatic oncology knowledge graph
 - `/research-intel/digests` for the cited council summaries
 - `/research-intel/opportunities` for benchmark, rule, trial-catalog, and tooling proposals
 
 Current note:
-- The first implementation is intentionally seeded and manual-triggered. It establishes the data model, audit trail, case-brief linkage, and contributor workflow before live internet polling is added.
+- The current implementation is still intentionally seeded and manual-triggered. It establishes the data model, audit trail,
+  case-brief linkage, and contributor workflow before live discovery coverage is expanded further.
 
 ## 5. Where To Look Next
 

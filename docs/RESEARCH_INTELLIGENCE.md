@@ -1,6 +1,8 @@
 # Research Intelligence
 
-Pancreatic Signal now has a second primary pillar beside explainable radiology triage: a cited pancreatic oncology watchtower for documents, digests, opportunities, and case-facing research briefs.
+Pancreatic Signal now leads with Research Intelligence as its primary product narrative: a cited pancreatic oncology
+watchtower for documents, digests, opportunities, experiments, and case-facing research briefs. Explainable triage,
+benchmark proof, and trial upkeep remain downstream workflow surfaces of that discovery engine.
 
 Execution companion:
 
@@ -14,6 +16,7 @@ Research Intelligence exists to:
 - turn those signals into durable artifacts instead of one-off chat output
 - help contributors spot benchmark gaps, rule gaps, trial-catalog updates, and tooling opportunities
 - inform case review with cited research briefs without changing case scores automatically
+- give new contributors a discovery-first entry point into the project before they touch the applied workflow surfaces
 
 ## What Ships Today
 
@@ -29,6 +32,7 @@ The current implementation includes:
 - discovery-ingest source health, document provenance, and novelty scoring
 - fixture-backed connector feeds for reproducible validation plus opt-in live connector scaffolding
 - graph-backed entity resolution plus a `/research-intel/graph` workspace for active node and edge inspection
+- research-first landing, onboarding, and handoff documentation so contributors meet the system through discovery work first
 
 Current status:
 
@@ -173,6 +177,15 @@ Phase 5 is now underway with these capabilities:
 - experiment artifacts are written under `artifacts/research-intel/experiments/`
 - the latest experiment result is persisted back onto the opportunity payload for future comparison
 
+## Phase 6 Research-First Repositioning Status
+
+Phase 6 is now in place with these capabilities:
+
+- home, about, quickstart, README, and handoff surfaces now lead with the discovery workspace rather than treating it as a sidecar
+- the repository now frames triage, benchmark proof, imports, and case briefs as applied surfaces of the research engine
+- contributor context now starts from cited evidence, graph activity, council output, opportunities, and experiment artifacts
+- safety boundaries still remain explicit: no autonomous diagnosis, no score mutation from research-intel output, and no autonomous spending
+
 ## Opportunity Types
 
 The current opportunity taxonomy is fixed and explicit:
@@ -220,8 +233,9 @@ The implementation direction borrows selectively from several open-source resear
 
 ## Next Slices
 
-- add live curated connectors on top of the seeded catalog
+- add broader live curated connectors on top of the seeded catalog
 - turn council deliberation into stronger multi-run comparison and calibration
-- deepen opportunity promotion into issue-ready and benchmark-ready contributor workflows
+- deepen graph coverage and cross-document entity resolution
+- deepen opportunity promotion into issue-ready, benchmark-ready, and dataset-ready contributor workflows
 - expand experiment coverage beyond proposal-readiness scoring into richer benchmark and rule stress tests
 - document donation governance and paid-source procurement policy before any funding automation is considered

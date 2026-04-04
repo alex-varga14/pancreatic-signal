@@ -182,6 +182,11 @@ Required outputs:
 Acceptance gate:
 - new contributors understand the product as an open pancreatic oncology research-and-discovery system first
 
+Current progress:
+- landing, onboarding, and handoff surfaces now lead with the research-intel workspace
+- the repository now frames triage, benchmark proof, imports, and case briefs as downstream surfaces of the discovery engine
+- contributor workflow now starts from cited evidence, graph activity, council output, opportunities, and safe experiments
+
 ## Phase Review Checklist
 
 Before a phase is considered complete, confirm:
@@ -195,8 +200,9 @@ Before a phase is considered complete, confirm:
 
 ## Immediate Next Slice
 
-The current next step is Phase 1:
+Phase 6 is now in place. The highest-value next slice after the repositioning work is to deepen the live scientific-discovery loop:
 
-- discovery ingest with fixture-backed connectors for reproducible validation
-- opt-in live connector support where the contract is stable enough to implement safely
-- visible source health, provenance, and novelty to support future scientific-discovery work
+- expand live curated connector coverage beyond the current fixture-heavy baseline
+- improve graph breadth and cross-document entity resolution
+- compare council runs across time so recurring disagreements and open questions stay visible
+- sharpen contributor-ready opportunity and experiment flows around concrete research questions

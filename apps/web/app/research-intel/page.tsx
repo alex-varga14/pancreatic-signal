@@ -59,11 +59,11 @@ export default async function ResearchIntelPage() {
           <p style={{ margin: 0, fontSize: 12, textTransform: "uppercase", color: "#0f766e" }}>
             Research Intelligence
           </p>
-          <h1 style={{ margin: "8px 0 0", fontSize: 34 }}>Pancreatic oncology watchtower</h1>
+          <h1 style={{ margin: "8px 0 0", fontSize: 34 }}>Pancreatic oncology discovery workspace</h1>
           <p style={{ maxWidth: 760, color: "#475569", lineHeight: 1.7 }}>
-            A sibling workspace for cited pancreatic oncology monitoring, topic clustering, council digests, and
-            open-source opportunity planning. It feeds benchmark, trial-catalog, and case-brief work without changing
-            triage scores automatically.
+            This is the lead workspace for the product: a cited pancreatic oncology discovery loop for monitoring,
+            clustering, deliberation, and human-gated action planning. It informs downstream surfaces like triage,
+            benchmark growth, trial upkeep, and case briefs without changing case scores automatically.
           </p>
         </div>
 
@@ -105,7 +105,7 @@ export default async function ResearchIntelPage() {
             </>
           ) : null}
           <Link href="/cases" style={{ color: "#2563eb" }}>
-            Open worklist
+            Open triage surface
           </Link>
           <Link href="/" style={{ color: "#2563eb" }}>
             Back
@@ -115,14 +115,14 @@ export default async function ResearchIntelPage() {
 
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginBottom: 16 }}>
         <StatCard
-          label="Tracked sources"
+          label="Tracked discovery sources"
           value={String(sources.length)}
           note="Fixture-backed discovery feeds with live-ready connector scaffolding"
         />
         <StatCard label="Topic watchlists" value={String(topics.length)} note="Rolling pancreatic oncology clusters" />
         <StatCard label="Graph entities" value={String(graph?.nodes.length || 0)} note="Disease, biomarker, trial, workflow, and dataset nodes" />
         <StatCard label="Published digests" value={String(digests.length)} note="Cited summaries with council output" />
-        <StatCard label="Open opportunities" value={String(opportunities.length)} note="Human-gated proposals for next work" />
+        <StatCard label="Open opportunities" value={String(opportunities.length)} note="Human-gated proposals for research and implementation next steps" />
       </div>
 
       <div
@@ -199,7 +199,7 @@ export default async function ResearchIntelPage() {
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 12 }}>
             <div>
               <p style={{ margin: 0, fontSize: 12, textTransform: "uppercase", color: "#64748b" }}>Opportunity board</p>
-              <h2 style={{ margin: "6px 0 0", fontSize: 22 }}>Human-gated next steps</h2>
+              <h2 style={{ margin: "6px 0 0", fontSize: 22 }}>Discovery backlog</h2>
             </div>
             <Link href="/research-intel/opportunities" style={{ color: "#2563eb" }}>
               Open board

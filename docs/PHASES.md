@@ -1,6 +1,9 @@
 # Phase status and next slices
 
-This repository has already completed the early foundation and MVP-oriented phases. Late Phase 6 hosted smoke evidence capture and pilot closeout are now complete, and the codebase now includes a second primary pillar for pancreatic oncology research intelligence. The next work should move beyond smoke-baseline capture rather than back toward initial product construction.
+This repository has already completed the early foundation and MVP-oriented phases. Late Phase 6 hosted smoke evidence
+capture and pilot closeout are now complete, and the codebase now also carries the research-first repositioning work that
+makes pancreatic oncology discovery the lead product narrative. The next work should deepen the live discovery system rather
+than drift back toward initial product construction.
 
 ## Completed phases
 
@@ -53,9 +56,9 @@ Completed outcomes:
 - confidence and review-priority outputs
 - reviewer feedback capture and recommendation scaffolding
 
-## Active phase
+## Completed current phase
 
-### Phase 6 — Interoperability, pilot auth, and deployment hardening
+### Phase 6 — Interoperability, pilot auth, deployment hardening, and research-first repositioning
 
 Already completed in this phase:
 
@@ -73,14 +76,16 @@ Already completed in this phase:
 - hosted GitHub HL7 trial recorded on 2026-03-25 in run `#23564057337`
 - an explicit decision to keep HL7 manual-only in the default hosted matrix to control recurring runtime and maintenance cost
 - repo-side Phase 6D release-facing polish across quickstart, deployment, release-readiness, and handoff docs
+- homepage, about, README, and research-intel docs now frame the project as a pancreatic oncology discovery system first
+- explainable triage, benchmark proof, imports, and case briefs are now documented as downstream surfaces of the discovery engine
 
 ## Current next slices
 
-### Post-Phase-6 follow-through
+### Post-Phase-6 research-first follow-through
 
 Goal:
 
-- move from the checked-in deidentified multi-cohort retrospective sample toward broader real-world or collaborator-supplied benchmark inputs while preserving the reviewer-facing proof shape
+- deepen the live discovery system, contributor workflows, and research artifacts while preserving the reviewer-facing proof shape and explainability boundaries
 
 ### Research Intelligence track
 
@@ -91,14 +96,16 @@ Implemented outcomes:
 - persisted research-intel sources, runs, documents, evidence, topics, digests, and opportunities
 - manual ingest and digest scripts plus validation coverage
 - case-level research briefs that inform review without changing scores
+- research-intel is now the lead product narrative across landing and onboarding surfaces
 
 Next slices:
 
-1. replace or augment seeded documents with live curated connectors
-2. deepen ontology tagging into a richer graph-backed entity layer with stable cross-document resolution
-3. deepen promoted opportunities into issue-ready, benchmark-ready, and docs-ready contributor workflows
-4. deepen experiment runs from proposal-readiness scoring into richer benchmark and rule stress tests
-5. document governance for paid-source access and donation-funded operations without introducing autonomous spending
+1. replace or augment fixture-heavy discovery coverage with more live curated connectors
+2. deepen graph-backed entity resolution into broader biomarker, therapy, cohort, and dataset coverage
+3. compare council runs across time so disagreement, calibration, and recurring open questions are easier to track
+4. deepen promoted opportunities into issue-ready, benchmark-ready, and dataset-ready contributor workflows
+5. expand experiment runs from proposal-readiness scoring into richer benchmark and rule stress tests
+6. document governance for paid-source access and donation-funded operations without introducing autonomous spending
 
 ## What is not a current phase target
 
@@ -117,3 +124,4 @@ Phase 6 is in a good state when:
 - the structured import paths behave consistently across report, FHIR, and HL7 inputs
 - pilot auth modes remain documented, tested, and auditable
 - release-facing docs match the actual product state
+- new contributors understand the product as an open pancreatic oncology discovery system first

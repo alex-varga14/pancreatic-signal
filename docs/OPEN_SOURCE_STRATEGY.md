@@ -4,10 +4,11 @@
 
 The goal is to create a transparent, reusable pancreatic oncology platform with two complementary pillars:
 
-- explainable radiology triage for suspicious pancreatic findings
 - cited research intelligence for pancreatic oncology monitoring, synthesis, and open-source opportunity planning
+- explainable radiology triage for suspicious pancreatic findings
 
-That combination lets researchers, hospitals, and software collaborators inspect, adapt, benchmark, and critique both the operational workflow logic and the surrounding research-watch infrastructure without depending on closed logic or private operational knowledge.
+That combination lets researchers, hospitals, and software collaborators inspect, adapt, benchmark, and critique both the
+discovery loop and the downstream workflow logic without depending on closed logic or private operational knowledge.
 
 ## Recommended License
 
@@ -42,8 +43,8 @@ It is not:
 
 This project is most helpful to the larger open-source community when it offers:
 
-- an explainable baseline that others can benchmark against
 - a cited pancreatic oncology watchtower that turns literature and trial movement into reusable public artifacts
+- an explainable baseline that others can benchmark against
 - realistic workflow surfaces instead of isolated NLP scripts
 - import adapters that help teams meet existing hospital data where it is
 - safety-forward examples of review, audit, scope control, and de-identification
@@ -62,11 +63,11 @@ This project is most helpful to the larger open-source community when it offers:
 
 The highest-value collaboration areas after the current pilot hardening work are:
 
-1. strengthen benchmark datasets, labeling guidance, and error analysis
-2. expand the seeded research-intel foundation into live curated connectors and richer topic coverage
-3. deepen reviewer ergonomics and feedback loops without compromising explainability
-4. refine the trial-matching and abstraction layer instead of replacing it with opaque matching
-5. turn strong research-intel opportunities into well-scoped benchmark, rule, and tooling contribution paths
+1. expand the research-intel foundation into live curated connectors and stronger discovery coverage
+2. deepen graph-backed entity resolution and cross-document topic tracking
+3. strengthen council comparison, confidence calibration, and question backlogs
+4. turn strong research-intel opportunities into well-scoped benchmark, rule, dataset, and tooling contribution paths
+5. deepen reviewer ergonomics and trial abstraction as explainable downstream surfaces of the discovery engine
 
 ## Open-Source Guardrails
 
