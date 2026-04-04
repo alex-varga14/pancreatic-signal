@@ -11,6 +11,7 @@ Pancreatic Signal is no longer a scaffold. As of 2026-04-03, this repository inc
 - a sibling `/research-intel` workspace for pancreatic oncology monitoring, topic watchlists, cited digests, and opportunity planning
 - seeded research-intel source catalogs, topic ontology, lightweight knowledge graph, action-spec opportunity engine, case briefs, and run-audit records
 - a schedule-aware watchtower layer with due-source planning, curated connector expansion, and a `/research-intel/schedule` workspace
+- `8` live-ready curated research watches spanning Europe PMC, ClinicalTrials.gov, official NCI and FDA feeds, and GitHub-backed open-source discovery
 - multi-run digest comparison with recurring open-question and disagreement tracking across digest history
 - contributor-ready packets for issue, benchmark, dataset, rule, trial, case-brief, and tooling follow-through
 - a sandboxed research-intel experiment runner for benchmark and rule proposals with readiness and stress-test modes plus ratchet-style keep or discard outcomes

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -30,42 +31,61 @@ def collect_research_documents_for_source(
     page_size = _coerce_positive_int(max_documents_per_source) or _coerce_positive_int(
         polling_config.get("max_documents_per_run")
     ) or 5
+    fetch_multiplier = _coerce_positive_int(polling_config.get("fetch_multiplier")) or (
+        3 if _has_document_filters(polling_config) else 1
+    )
+    fetch_page_size = max(page_size, min(100, page_size * fetch_multiplier))
     effective_mode = default_mode if requested_mode == "auto" else requested_mode
 
     if effective_mode == "fixture":
         fixture_path = _resolve_fixture_path(polling_config.get("fixture_path"), source_id=source_id)
-        return _load_fixture_documents(
+        batch = _load_fixture_documents(
             source_id=source_id,
             connector_id=connector_id,
             fixture_path=fixture_path,
-            page_size=page_size,
+            page_size=fetch_page_size,
         )
+        return _apply_batch_filters(batch, polling_config=polling_config, page_size=page_size)
 
     if effective_mode != "live":
         raise ValueError(f"Unsupported discovery ingest mode '{effective_mode}' for source '{source_id}'.")
 
     if connector_id == "europe_pmc_search":
-        return _fetch_europe_pmc_documents(
+        batch = _fetch_europe_pmc_documents(
             source_id=source_id,
             connector_id=connector_id,
             query=str(polling_config.get("query") or ""),
-            page_size=page_size,
+            page_size=fetch_page_size,
         )
+        return _apply_batch_filters(batch, polling_config=polling_config, page_size=page_size)
     if connector_id == "clinicaltrials_v2":
-        return _fetch_clinical_trials_documents(
+        batch = _fetch_clinical_trials_documents(
             source_id=source_id,
             connector_id=connector_id,
             query=str(polling_config.get("query") or ""),
-            page_size=page_size,
+            page_size=fetch_page_size,
         )
+        return _apply_batch_filters(batch, polling_config=polling_config, page_size=page_size)
     if connector_id == "rss_feed":
-        return _fetch_feed_documents(
+        batch = _fetch_feed_documents(
             source_id=source_id,
             connector_id=connector_id,
             feed_url=str(polling_config.get("feed_url") or ""),
-            page_size=page_size,
+            page_size=fetch_page_size,
             document_type=str(polling_config.get("document_type") or "news"),
         )
+        return _apply_batch_filters(batch, polling_config=polling_config, page_size=page_size)
+    if connector_id == "github_repository_search":
+        batch = _fetch_github_repository_documents(
+            source_id=source_id,
+            connector_id=connector_id,
+            query=str(polling_config.get("query") or ""),
+            page_size=fetch_page_size,
+            sort=str(polling_config.get("sort") or "updated"),
+            order=str(polling_config.get("order") or "desc"),
+            auth_env_var=str(polling_config.get("auth_env_var") or "").strip() or None,
+        )
+        return _apply_batch_filters(batch, polling_config=polling_config, page_size=page_size)
 
     raise ValueError(
         f"Live discovery connector '{connector_id}' is not configured for source '{source_id}'."
@@ -284,8 +304,168 @@ def _fetch_feed_documents(
     }
 
 
-def _read_json_url(url: str) -> dict[str, Any]:
-    with urlopen(_build_request(url), timeout=DEFAULT_TIMEOUT_SECONDS) as response:
+def _fetch_github_repository_documents(
+    *,
+    source_id: str,
+    connector_id: str,
+    query: str,
+    page_size: int,
+    sort: str,
+    order: str,
+    auth_env_var: str | None,
+) -> dict[str, Any]:
+    if not query:
+        raise ValueError(f"GitHub connector for '{source_id}' is missing a query.")
+
+    params = urlencode(
+        {
+            "q": query,
+            "per_page": page_size,
+            "sort": sort or "updated",
+            "order": order or "desc",
+        }
+    )
+    source_url = f"https://api.github.com/search/repositories?{params}"
+    payload = _read_json_url(source_url, auth_env_var=auth_env_var)
+    repositories = list(payload.get("items") or [])[:page_size]
+
+    documents: list[dict[str, Any]] = []
+    for repository in repositories:
+        title = str(repository.get("full_name") or repository.get("name") or "").strip()
+        description = str(repository.get("description") or "").strip()
+        owner = repository.get("owner") or {}
+        topics = [
+            str(item).strip()
+            for item in repository.get("topics") or []
+            if str(item).strip()
+        ]
+        if not title:
+            continue
+        abstract_text = description or ", ".join(topics)
+        documents.append(
+            {
+                "source_id": source_id,
+                "source_identifier": str(repository.get("id") or title),
+                "document_type": "repository",
+                "title": title,
+                "abstract_text": abstract_text,
+                "url": str(repository.get("html_url") or "").strip() or None,
+                "canonical_url": str(repository.get("html_url") or "").strip() or None,
+                "authors": [str(owner.get("login") or "").strip()] if str(owner.get("login") or "").strip() else [],
+                "organizations": [str(owner.get("login") or "").strip()] if str(owner.get("login") or "").strip() else [],
+                "published_at": _parse_datetime(
+                    repository.get("pushed_at") or repository.get("updated_at") or repository.get("created_at")
+                ),
+                "topics": topics,
+                "language": repository.get("language"),
+                "stargazers_count": repository.get("stargazers_count"),
+                "forks_count": repository.get("forks_count"),
+                "open_issues_count": repository.get("open_issues_count"),
+                "archived": repository.get("archived"),
+                "visibility": repository.get("visibility"),
+            }
+        )
+
+    return {
+        "source_id": source_id,
+        "connector_id": connector_id,
+        "mode": "live",
+        "fetched_at": _utcnow(),
+        "query": query,
+        "source_url": source_url,
+        "documents": documents,
+    }
+
+
+def _apply_batch_filters(
+    batch: dict[str, Any],
+    *,
+    polling_config: dict[str, Any],
+    page_size: int,
+) -> dict[str, Any]:
+    original_documents = list(batch.get("documents") or [])
+    filtered_documents, filtered_out_count = _filter_documents(
+        original_documents,
+        polling_config=polling_config,
+        page_size=page_size,
+    )
+    batch = dict(batch)
+    batch["documents"] = filtered_documents
+    batch["fetched_document_count"] = len(original_documents)
+    batch["retained_document_count"] = len(filtered_documents)
+    batch["filtered_out_count"] = filtered_out_count
+    if _normalize_terms(polling_config.get("include_terms")):
+        batch["include_terms"] = _normalize_terms(polling_config.get("include_terms"))
+    if _normalize_terms(polling_config.get("exclude_terms")):
+        batch["exclude_terms"] = _normalize_terms(polling_config.get("exclude_terms"))
+    min_stars = _coerce_non_negative_int(polling_config.get("min_stars"))
+    if min_stars is not None:
+        batch["min_stars"] = min_stars
+    return batch
+
+
+def _filter_documents(
+    documents: list[dict[str, Any]],
+    *,
+    polling_config: dict[str, Any],
+    page_size: int,
+) -> tuple[list[dict[str, Any]], int]:
+    include_terms = _normalize_terms(polling_config.get("include_terms"))
+    exclude_terms = _normalize_terms(polling_config.get("exclude_terms"))
+    min_stars = _coerce_non_negative_int(polling_config.get("min_stars"))
+
+    kept: list[dict[str, Any]] = []
+    filtered_out_count = 0
+    for document in documents:
+        searchable_text = _document_filter_text(document)
+        if include_terms and not any(term in searchable_text for term in include_terms):
+            filtered_out_count += 1
+            continue
+        if exclude_terms and any(term in searchable_text for term in exclude_terms):
+            filtered_out_count += 1
+            continue
+        if min_stars is not None and document.get("stargazers_count") is not None:
+            stars = _coerce_non_negative_int(document.get("stargazers_count")) or 0
+            if stars < min_stars:
+                filtered_out_count += 1
+                continue
+        kept.append(document)
+        if len(kept) >= page_size:
+            break
+    filtered_out_count += max(0, len(documents) - filtered_out_count - len(kept))
+    return kept, filtered_out_count
+
+
+def _has_document_filters(polling_config: dict[str, Any]) -> bool:
+    return bool(
+        _normalize_terms(polling_config.get("include_terms"))
+        or _normalize_terms(polling_config.get("exclude_terms"))
+        or _coerce_non_negative_int(polling_config.get("min_stars")) is not None
+    )
+
+
+def _normalize_terms(value: object) -> list[str]:
+    if isinstance(value, str):
+        values = [value]
+    else:
+        values = list(value or [])
+    return [str(item).strip().lower() for item in values if str(item).strip()]
+
+
+def _document_filter_text(document: dict[str, Any]) -> str:
+    parts = [
+        str(document.get("title") or ""),
+        str(document.get("abstract_text") or ""),
+        " ".join(str(item) for item in document.get("authors") or []),
+        " ".join(str(item) for item in document.get("organizations") or []),
+        " ".join(str(item) for item in document.get("topics") or []),
+        str(document.get("language") or ""),
+    ]
+    return " ".join(parts).lower()
+
+
+def _read_json_url(url: str, *, auth_env_var: str | None = None) -> dict[str, Any]:
+    with urlopen(_build_request(url, auth_env_var=auth_env_var), timeout=DEFAULT_TIMEOUT_SECONDS) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
@@ -294,8 +474,19 @@ def _read_text_url(url: str) -> str:
         return response.read().decode("utf-8")
 
 
-def _build_request(url: str) -> Request:
-    return Request(url, headers={"User-Agent": USER_AGENT, "Accept": "*/*"})
+def _build_request(url: str, *, auth_env_var: str | None = None) -> Request:
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept": "application/json, application/atom+xml, application/rss+xml, text/xml, */*",
+    }
+    if "api.github.com" in url:
+        headers["Accept"] = "application/vnd.github+json"
+        headers["X-GitHub-Api-Version"] = "2022-11-28"
+    if auth_env_var:
+        token = str(os.environ.get(auth_env_var) or "").strip()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+    return Request(url, headers=headers)
 
 
 def _resolve_fixture_path(value: object, *, source_id: str) -> Path:
@@ -361,6 +552,14 @@ def _coerce_positive_int(value: object) -> int | None:
     except (TypeError, ValueError):
         return None
     return parsed if parsed > 0 else None
+
+
+def _coerce_non_negative_int(value: object) -> int | None:
+    try:
+        parsed = int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed >= 0 else None
 
 
 def _clean_identifier(value: object) -> str | None:

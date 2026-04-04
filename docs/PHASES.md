@@ -103,13 +103,14 @@ Implemented outcomes:
 - opportunities now carry contributor packets for issue-ready, benchmark-ready, dataset-ready, rule, trial, case-brief, and tooling follow-through
 - research-intel experiments now include richer benchmark and rule stress-test modes with dimension-level scoring
 - governance for paid-source access and donation-funded operations is now documented without introducing autonomous spending
+- the live watchtower now covers `8` live-ready sources, including official NCI and FDA feeds plus GitHub-backed open-source discovery with pancreas-aware filtering
 
 Next slices:
 
-1. replace or augment fixture-heavy discovery coverage with more live curated connectors
-2. turn schedule-aware discovery into trusted recurring automation or hosted jobs
-3. deepen council history from short digest windows into longer-horizon calibration and recurring-theme analysis
-4. exercise the contributor-packet workflow against larger collaborator benchmark and dataset drops
+1. turn schedule-aware discovery into trusted recurring automation or hosted jobs
+2. deepen council history from short digest windows into longer-horizon calibration and recurring-theme analysis
+3. exercise the contributor-packet workflow against larger collaborator benchmark and dataset drops
+4. deepen graph and topic quality against a larger live corpus
 5. keep governance and procurement notes current before any paid-source expansion is activated
 
 ## What is not a current phase target

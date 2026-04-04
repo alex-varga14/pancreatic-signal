@@ -63,7 +63,7 @@ This project is most helpful to the larger open-source community when it offers:
 
 The highest-value collaboration areas after the current pilot hardening work are:
 
-1. expand the research-intel foundation into live curated connectors and stronger discovery coverage
+1. turn the schedule-aware research watchtower into trusted recurring automation or hosted jobs
 2. extend council history from short digest windows into longer-horizon calibration and recurring-theme analysis
 3. exercise the contributor-packet workflow against larger benchmark and dataset contributions from outside collaborators
 4. deepen reviewer ergonomics and trial abstraction as explainable downstream surfaces of the discovery engine

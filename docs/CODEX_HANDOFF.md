@@ -6,10 +6,10 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 hosted smoke evidence capture is now complete, and the codebase now also carries the research-intel branch-wrap work that
 adds watchtower scheduling, multi-run council comparison, contributor packets, richer stress-test experiments, and
 explicit governance for paid-source or donation-funded expansion. The best next work should now move from the expanded
-proof set and schedule-aware research-intel foundation toward broader de-identified or externally supplied benchmark
-inputs, richer live curated research connectors, and longer-horizon discovery automation built on top of the existing
-pilot packaging, proof surfaces, public benchmark pack, external evaluation bundle writer, and cited pancreatic
-oncology watchtower.
+proof set and schedule-aware research-intel foundation toward recurring watchtower automation, broader de-identified or
+externally supplied benchmark inputs, and longer-horizon discovery calibration built on top of the existing pilot
+packaging, proof surfaces, public benchmark pack, external evaluation bundle writer, and cited pancreatic oncology
+watchtower.
 
 ## Current State
 
@@ -22,8 +22,8 @@ oncology watchtower.
 - Research-intel opportunities now carry contributor packets for issue, benchmark, dataset, rule, trial, case-brief, and tooling follow-through, with packet artifacts written under `artifacts/research-intel/packets/`.
 - Safe experiment support is stronger too: benchmark and rule opportunities now expose both readiness and stress-test modes with dimension-level scoring, while still staying proposal-only and human-gated.
 - Governance for paid-source access and donation-funded operations is now documented in `docs/RESEARCH_INTELLIGENCE_GOVERNANCE.md`, and autonomous payment or procurement remains explicitly out of scope.
-- The first research-intel slice is intentionally seeded and manual-triggered rather than a live internet crawler. It establishes the shared data model, artifact flow, audit surfaces, and contributor UX while keeping source polling, paid access, and richer autonomy in later phases.
-- Phase 1 of the scientific-discovery pivot is now underway: discovery ingest supports fixture-backed connector runs, opt-in live connector scaffolding for Europe PMC and ClinicalTrials.gov, source-health tracking, and per-document provenance plus novelty metadata.
+- The research-intel watchtower is still fixture-first and operator-triggered for reproducibility, but it now also carries selectively live-ready curated connectors with pancreas-aware filtering and source-health tracking instead of remaining purely seeded.
+- Phase 1 of the scientific-discovery pivot is now implemented: discovery ingest supports fixture-backed connector runs, selectively live-ready Europe PMC, ClinicalTrials.gov, NCI, FDA, and GitHub-backed open-source discovery connectors, source-health tracking, and per-document provenance plus novelty metadata.
 - Phase 2 is now underway as well: the pancreatic oncology graph is richer, typed, family-aware, and exposed through graph-backed entity resolution plus a dedicated `/research-intel/graph` surface.
 - Phase 3 is now underway as well: the research council persists independent opinions, peer critique, explicit confidence, open questions, evidence gaps, and next experiments.
 - Phase 4 is now underway too: opportunities are now typed discovery-to-action specs with evidence bundles, measurable outcomes, downstream artifact hints, and artifact-backed promotion flows.
@@ -52,11 +52,11 @@ Confirmed on 2026-04-04:
 - `make validate-strict` passes
 - Summary: `12 pass, 0 warn, 0 fail`
 - Research-intel validation now covers seeded catalogs plus a temp-database ingest and digest run, reporting `9` sources, `7` topics, `25` graph nodes, `7` seeded documents, and a passing artifact-backed digest pipeline
-- Discovery ingest now also validates `9` discovery fixtures and `5` live-ready sources through the same catalog check, runs the ingest pipeline in fixture mode for reproducible validation, and verifies that a schedule snapshot is available after ingest
+- Discovery ingest now also validates `9` discovery fixtures and `8` live-ready sources through the same catalog check, runs the ingest pipeline in fixture mode for reproducible validation, and verifies that a schedule snapshot is available after ingest
 - Opportunity generation now also emits structured JSON and Markdown action specs under `artifacts/research-intel/opportunities/`, plus contributor packet artifacts under `artifacts/research-intel/packets/`
 - Research-intel validation now also runs one safe experiment and records a ratchet outcome in the strict pipeline summary
-- `pytest` now passes with `152 passed`
-- `cd apps/api && .venv/bin/python -m pytest tests/test_auth.py tests/test_research_intel.py -q` passed with `21 passed`
+- `pytest` now passes with `154 passed`
+- `cd apps/api && .venv/bin/python -m pytest tests/test_research_intel.py tests/test_research_intel_connectors.py -q` passed with `10 passed`
 - `npm run lint` and `npm run build` in `apps/web` both pass with the new `/research-intel` routes included in the build
 
 Previously confirmed during the broader post-Phase-6 slice:

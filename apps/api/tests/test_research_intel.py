@@ -69,6 +69,7 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert any("early_detection" in item["topic_ids"] for item in documents)
     assert all(item["ingest_mode"] == "fixture" for item in documents)
     assert all(item["provenance"]["connector_id"] for item in documents)
+    assert any("filtered_out_count" in item["provenance"] for item in documents)
     assert any(item["novelty_score"] for item in documents)
     assert any(any(entity["node_id"] == "liquid_biopsy" for entity in item["graph_entities"]) for item in documents)
     assert any(any(entity["node_id"] == "neoadjuvant_therapy" for entity in item["graph_entities"]) for item in documents)
@@ -81,6 +82,8 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert response.status_code == 200
     sources = response.json()
     pubmed = next(item for item in sources if item["source_id"] == "pubmed")
+    open_source_watch = next(item for item in sources if item["source_id"] == "open_source_watch")
+    nci = next(item for item in sources if item["source_id"] == "nci")
     assert pubmed["health_status"] == "healthy"
     assert pubmed["last_success_at"]
     assert pubmed["connector_id"] == "europe_pmc_search"
@@ -88,13 +91,16 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert pubmed["schedule_state"] == "scheduled"
     assert pubmed["next_run_at"]
     assert pubmed["interval_hours"] == 12
+    assert open_source_watch["connector_id"] == "github_repository_search"
+    assert open_source_watch["live_ready"] is True
+    assert nci["live_ready"] is True
 
     response = client.get("/api/v1/research-intel/schedule")
     assert response.status_code == 200
     schedule = response.json()
     assert schedule["due_count"] == 0
     assert schedule["scheduled_count"] >= 1
-    assert schedule["live_ready_count"] >= 5
+    assert schedule["live_ready_count"] >= 8
 
     response = client.get("/api/v1/research-intel/graph")
     assert response.status_code == 200
@@ -349,7 +355,7 @@ def test_research_intel_schedule_and_due_only_ingest_are_operator_friendly() -> 
     schedule = response.json()
     assert schedule["total_sources"] >= 9
     assert schedule["due_count"] >= 1
-    assert schedule["live_ready_count"] >= 5
+    assert schedule["live_ready_count"] >= 8
     assert any(item["schedule_state"] == "due" for item in schedule["sources"])
 
     response = client.post(

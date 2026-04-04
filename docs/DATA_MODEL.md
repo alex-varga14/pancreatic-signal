@@ -244,7 +244,7 @@ Current fields:
 
 Notes:
 
-- `raw_metadata` now carries discovery provenance such as ingest mode, connector, source URL, fixture path when relevant, and novelty score.
+- `raw_metadata` now carries discovery provenance such as ingest mode, connector, source URL, fixture path when relevant, novelty score, and connector-side filter summaries like fetched counts, retained counts, and filtered-out counts.
 - `raw_metadata` also carries graph-entity matches used for graph views and graph-backed topic reinforcement, including concept-family metadata, match strategy, and related-match counts.
 
 ### `ResearchEvidenceRecord`

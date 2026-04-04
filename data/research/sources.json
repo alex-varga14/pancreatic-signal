@@ -113,8 +113,20 @@
         "priority": "medium",
         "connector_id": "rss_feed",
         "default_mode": "fixture",
-        "live_enabled": false,
+        "live_enabled": true,
         "fixture_path": "discovery_fixtures/nci.json",
+        "feed_url": "https://www.cancer.gov/publishedcontent/rss/news-events/cancer-currents-blog.rss",
+        "include_terms": [
+          "pancreatic",
+          "pancreas",
+          "pdac",
+          "ipmn",
+          "kras",
+          "liquid biopsy",
+          "screening",
+          "radiomics"
+        ],
+        "fetch_multiplier": 4,
         "document_type": "guidance"
       },
       "enabled": true
@@ -132,8 +144,18 @@
         "priority": "medium",
         "connector_id": "rss_feed",
         "default_mode": "fixture",
-        "live_enabled": false,
+        "live_enabled": true,
         "fixture_path": "discovery_fixtures/fda.json",
+        "feed_url": "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/drugs/rss.xml",
+        "include_terms": [
+          "pancreatic",
+          "pancreas",
+          "pdac",
+          "biomarker",
+          "companion diagnostic",
+          "oncology"
+        ],
+        "fetch_multiplier": 4,
         "document_type": "regulatory_update"
       },
       "enabled": true
@@ -168,10 +190,22 @@
       "polling_config": {
         "interval_hours": 24,
         "priority": "medium",
-        "connector_id": "rss_feed",
+        "connector_id": "github_repository_search",
         "default_mode": "fixture",
-        "live_enabled": false,
+        "live_enabled": true,
         "fixture_path": "discovery_fixtures/open_source_watch.json",
+        "max_documents_per_run": 5,
+        "query": "\"pancreatic cancer\"",
+        "sort": "updated",
+        "order": "desc",
+        "auth_env_var": "GITHUB_TOKEN",
+        "include_terms": [
+          "pancreatic",
+          "pancreas",
+          "pdac"
+        ],
+        "min_stars": 1,
+        "fetch_multiplier": 4,
         "document_type": "news"
       },
       "enabled": true

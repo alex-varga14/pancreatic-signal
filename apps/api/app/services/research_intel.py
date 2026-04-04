@@ -282,7 +282,7 @@ def ensure_research_intel_seeded() -> None:
             source_id = descriptor["source_id"]
             record = existing_sources.get(source_id)
             if record is None:
-                session.add(
+                session.merge(
                     ResearchSourceRecord(
                         source_id=source_id,
                         label=descriptor["label"],
@@ -317,7 +317,7 @@ def ensure_research_intel_seeded() -> None:
             topic_id = descriptor["topic_id"]
             record = existing_topics.get(topic_id)
             if record is None:
-                session.add(
+                session.merge(
                     ResearchTopicRecord(
                         topic_id=topic_id,
                         label=descriptor["label"],
@@ -532,6 +532,8 @@ def run_research_ingest(
                 "mode": batch.get("mode"),
                 "connector_id": batch.get("connector_id"),
                 "document_count": len(documents),
+                "fetched_document_count": batch.get("fetched_document_count"),
+                "filtered_out_count": batch.get("filtered_out_count"),
                 "query": batch.get("query"),
                 "source_url": batch.get("source_url"),
                 "fetched_at": fetched_at.isoformat(),
@@ -1613,6 +1615,8 @@ def _is_live_ready(polling_config: dict[str, Any]) -> bool:
         return bool(str(polling_config.get("query") or "").strip())
     if connector_id == "rss_feed":
         return bool(str(polling_config.get("feed_url") or "").strip())
+    if connector_id == "github_repository_search":
+        return bool(str(polling_config.get("query") or "").strip())
     return False
 
 
@@ -1810,6 +1814,12 @@ def _apply_document_provenance(
             else None
         ),
         "fixture_path": batch.get("fixture_path"),
+        "fetched_document_count": batch.get("fetched_document_count"),
+        "retained_document_count": batch.get("retained_document_count"),
+        "filtered_out_count": batch.get("filtered_out_count"),
+        "include_terms": list(batch.get("include_terms") or []),
+        "exclude_terms": list(batch.get("exclude_terms") or []),
+        "min_stars": batch.get("min_stars"),
     }
     normalized["raw_metadata"] = raw_metadata
 

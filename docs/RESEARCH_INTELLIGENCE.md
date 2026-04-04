@@ -132,6 +132,7 @@ The current workflow follows five explicit phases.
 The first foundation slice ships with:
 
 - `9` source definitions
+- `8` live-ready source definitions
 - `7` topic watchlists
 - `25` lightweight graph nodes
 - `7` seeded pancreatic oncology documents
@@ -146,7 +147,9 @@ Phase 1 is now in progress with these capabilities:
 - fixture-backed connector ingestion is available through `auto` and `fixture` modes
 - source health is persisted in the source registry state
 - document provenance and novelty are stored and exposed through the API
-- opt-in live connector code paths now cover a broader curated set of Europe PMC and ClinicalTrials.gov watches, while the remaining sources stay fixture-backed until their live contracts are hardened
+- opt-in live connector code paths now cover a broader curated set of Europe PMC and ClinicalTrials.gov watches, official NCI and FDA feeds, and GitHub-backed open-source discovery
+- broad feeds can now be filtered down to pancreas-relevant items through connector-level include and exclude terms
+- the open-source watch now uses GitHub repository search in live mode while still preserving a fixture-backed validation path
 
 ## Phase 7 Watchtower Scheduling Status
 
@@ -264,7 +267,6 @@ The implementation direction borrows selectively from several open-source resear
 
 ## Next Slices
 
-- add broader live curated connectors on top of the seeded catalog
 - turn schedule snapshots into recurring automation hooks or hosted jobs once the connector set is trusted
 - deepen graph coverage and cross-document entity resolution against a wider live corpus
 - extend council comparison from short windows into longer-horizon calibration and recurring-theme analysis

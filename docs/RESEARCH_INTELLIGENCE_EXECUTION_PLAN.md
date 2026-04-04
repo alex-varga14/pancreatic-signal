@@ -209,6 +209,8 @@ Acceptance gate:
 
 Current progress:
 - the source catalog now includes a broader curated set of Europe PMC and ClinicalTrials.gov watches
+- official NCI and FDA feed watches are now live-ready with connector-level pancreas filters
+- the open-source watch is now live-ready through GitHub repository search while preserving fixture-backed reproducibility
 - the API exposes a schedule snapshot with due counts, live-ready counts, and per-source next-run timing
 - due-only ingest is available through the API, CLI, Make targets, and `/research-intel/schedule`
 - strict validation now checks the schedule snapshot alongside ingest, digest, and experiment flows

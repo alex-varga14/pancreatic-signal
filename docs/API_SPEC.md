@@ -423,7 +423,7 @@ Behavior:
 Return normalized pancreatic oncology documents with citations, topic labels, evidence spans, and relevance scores.
 
 Behavior:
-- Includes `novelty_score`, `ingest_mode`, graph entities, and provenance metadata describing connector, source URL, and fetch context.
+- Includes `novelty_score`, `ingest_mode`, graph entities, and provenance metadata describing connector, source URL, fetch context, and connector-side filtering details such as fetched-versus-retained counts and applied include or exclude terms.
 - Graph entities now include concept-family metadata, match strategy, and related-match counts to support richer cross-document reasoning.
 
 Query params:
