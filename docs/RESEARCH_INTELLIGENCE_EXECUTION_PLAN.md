@@ -125,6 +125,12 @@ Required outputs:
 Acceptance gate:
 - council outputs are durable, comparable across runs, and citation-backed
 
+Current progress:
+- stage 1 now persists primary topics, key claims, confidence labels, open questions, and evidence gaps
+- stage 2 now persists peer critique, challenge targets, preferred actions, and confidence adjustments
+- stage 3 now persists overall confidence, open questions, evidence gaps, next experiments, and promotion guardrails
+- legacy council payloads remain readable so future runs can compare new and old digests safely
+
 ### Phase 4. Discovery-to-Action Engine
 
 Goal:

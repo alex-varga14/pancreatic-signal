@@ -28,6 +28,7 @@ from app.schemas.research_intel import (
     ResearchCaseBriefDocument,
     ResearchCaseBriefTopic,
     ResearchCouncilPayload,
+    ResearchCouncilPeerCritique,
     ResearchCouncilStage1Opinion,
     ResearchCouncilStage2Ranking,
     ResearchCouncilStage3Synthesis,
@@ -1019,8 +1020,6 @@ def get_research_digest(digest_id: str) -> ResearchDigestDetail | None:
 
         topic_rows = session.execute(select(ResearchTopicRecord)).scalars().all()
         topic_label_map = {row.topic_id: row.label for row in topic_rows}
-        source_rows = session.execute(select(ResearchSourceRecord)).scalars().all()
-        source_map = {row.source_id: row for row in source_rows}
         documents = session.execute(
             select(ResearchDocumentRecord).where(
                 ResearchDocumentRecord.document_id.in_(digest.supporting_document_ids or [])
@@ -1036,7 +1035,7 @@ def get_research_digest(digest_id: str) -> ResearchDigestDetail | None:
             if document_id in document_map
         ]
         summary_json = digest.summary_json or {}
-        council = ResearchCouncilPayload.model_validate(digest.council_payload or {})
+        council = ResearchCouncilPayload.model_validate(_normalize_council_payload(digest.council_payload))
         return ResearchDigestDetail(
             digest_id=digest.digest_id,
             title=digest.title,
@@ -1857,15 +1856,20 @@ def _build_digest_payload(
         topic_label_map=topic_label_map,
     )
     stage_2 = _build_stage_2_rankings(
+        documents=docs,
         ranked_topics=ranked_topics,
         topic_counter=topic_counter,
         opportunity_counter=opportunity_counter,
         topic_label_map=topic_label_map,
+        source_map=source_map,
     )
     stage_3 = _build_stage_3_synthesis(
         documents=docs,
         ranked_topics=ranked_topics,
         topic_label_map=topic_label_map,
+        stage_1=stage_1,
+        stage_2=stage_2,
+        source_map=source_map,
     )
     council = ResearchCouncilPayload(
         stage_1=stage_1,
@@ -1943,16 +1947,63 @@ def _build_stage_1_opinions(
     topic_label_map: dict[str, str],
 ) -> list[ResearchCouncilStage1Opinion]:
     opinions: list[ResearchCouncilStage1Opinion] = []
+    top_topics = [topic_label_map.get(item, item) for item in ranked_topics[:3]]
+    top_citations = [document.citation_key for document in documents[:3]]
+    graph_labels = _top_graph_labels(documents, limit=4)
+    source_kinds = Counter(_document_source_kind(document) for document in documents)
+
     for persona in _PERSONAS:
-        top_topics = [topic_label_map.get(item, item) for item in ranked_topics[:3]]
-        top_citations = [document.citation_key for document in documents[:3]]
         opportunity_types = []
+        confidence_label = "medium"
+        key_claims: list[str] = []
+        open_questions: list[str] = []
+        evidence_gaps: list[str] = []
+
         if persona["persona"] == "literature_scout":
             opportunity_types = ["benchmark_gap", "trial_catalog_gap"]
+            confidence_label = "high" if _count_high_trust_documents(documents) >= 3 else "medium"
+            key_claims = [
+                f"Recent cited movement concentrates in {', '.join(top_topics) or 'general pancreatic oncology updates'}.",
+                f"Graph activity is anchored by {', '.join(graph_labels[:2]) or 'broad disease-level concepts'}.",
+            ]
+            open_questions = [
+                "Which cited signals represent durable movement rather than one-off novelty spikes?",
+                "Are biomarker and screening claims replicated outside the current cohorts or source mix?",
+            ]
+            evidence_gaps = [
+                "Need clearer replication status across cohorts and institutions.",
+                "Need stronger separation between emerging and well-established evidence.",
+            ]
         elif persona["persona"] == "translational_oncologist":
             opportunity_types = ["trial_catalog_gap", "case_brief"]
+            confidence_label = "high" if any(document.nct_id for document in documents) else "medium"
+            key_claims = [
+                "Trial, procedure, and follow-up signals are useful only when kept separate from diagnosis claims.",
+                f"Current digest pressure is strongest around {', '.join(top_topics[:2]) or 'screening and trial implications'}.",
+            ]
+            open_questions = [
+                "Which cohorts require tissue confirmation, biomarker gating, or surveillance-specific branching?",
+                "How should case briefs distinguish surveillance action from explicit malignancy suspicion?",
+            ]
+            evidence_gaps = [
+                "Need more explicit cohort and eligibility detail from trial-linked sources.",
+                "Need stronger procedural evidence for follow-up timing and escalation pathways.",
+            ]
         else:
             opportunity_types = ["community_project", "external_tooling"]
+            confidence_label = "medium" if source_kinds.get("news", 0) + source_kinds.get("preprint", 0) >= 1 else "low"
+            key_claims = [
+                "The most reusable output is still benchmark, tooling, and open evaluation infrastructure.",
+                f"Graph links between {', '.join(graph_labels[:2]) or 'workflow and data artifacts'} suggest contributor-ready build opportunities.",
+            ]
+            open_questions = [
+                "Which datasets, manifests, or benchmark packs could be released or expanded openly next?",
+                "What tooling would let contributors validate these discoveries without relying on opaque automation?",
+            ]
+            evidence_gaps = [
+                "Need more openly reusable labels, manifests, and benchmark metadata.",
+                "Need clearer mapping from research findings to contributor-sized build tasks.",
+            ]
 
         opinions.append(
             ResearchCouncilStage1Opinion(
@@ -1964,6 +2015,11 @@ def _build_stage_1_opinions(
                 ),
                 citations=top_citations,
                 proposed_opportunity_types=opportunity_types,
+                primary_topics=top_topics,
+                confidence_label=confidence_label,
+                key_claims=key_claims,
+                open_questions=open_questions,
+                evidence_gaps=evidence_gaps,
             )
         )
     return opinions
@@ -1971,26 +2027,92 @@ def _build_stage_1_opinions(
 
 def _build_stage_2_rankings(
     *,
+    documents: list[ResearchDocumentRecord],
     ranked_topics: list[str],
     topic_counter: Counter[str],
     opportunity_counter: Counter[str],
     topic_label_map: dict[str, str],
+    source_map: dict[str, ResearchSourceRecord],
 ) -> list[ResearchCouncilStage2Ranking]:
     rankings: list[ResearchCouncilStage2Ranking] = []
     reversed_topics = list(reversed(ranked_topics))
+    challenge_targets = {
+        "literature_scout": "open_source_builder",
+        "translational_oncologist": "literature_scout",
+        "open_source_builder": "translational_oncologist",
+    }
+    high_trust_docs = _count_high_trust_documents(documents)
+    preprint_like_docs = sum(
+        1 for document in documents if _document_source_kind(document) in {"preprint", "news"}
+    )
     for persona in _PERSONAS:
+        challenge_target = challenge_targets.get(persona["persona"])
+        peer_critiques: list[ResearchCouncilPeerCritique]
+        preferred_actions: list[str]
+        confidence_adjustment = "hold"
         if persona["persona"] == "literature_scout":
             topics = ranked_topics[:3]
             opportunities = [item for item, _count in opportunity_counter.most_common(2)]
             critique = "Breadth is improving, but benchmarkable wording variation still needs explicit capture."
+            peer_critiques = [
+                ResearchCouncilPeerCritique(
+                    reviewer_persona="literature_scout",
+                    target_persona=challenge_target or "open_source_builder",
+                    alignment="mixed",
+                    strengths=["Good pressure toward reusable tooling and benchmark output."],
+                    concerns=["Tooling proposals may outrun the strength or maturity of the current evidence base."],
+                    requested_evidence=[
+                        "Show replication or independent confirmation before elevating emerging findings into roadmap commitments.",
+                    ],
+                )
+            ]
+            preferred_actions = [
+                "Track which topics are moving because of high-trust sources versus preprints or news.",
+                "Preserve a question backlog for signals that look novel but still under-validated.",
+            ]
+            confidence_adjustment = "hold" if high_trust_docs >= 2 else "lower"
         elif persona["persona"] == "translational_oncologist":
             topics = ranked_topics[:2] + reversed_topics[:1]
             opportunities = ["trial_catalog_gap", "case_brief"]
             critique = "Clinical utility rises when trial cues and follow-up implications stay separated from diagnosis claims."
+            peer_critiques = [
+                ResearchCouncilPeerCritique(
+                    reviewer_persona="translational_oncologist",
+                    target_persona=challenge_target or "literature_scout",
+                    alignment="mixed",
+                    strengths=["Strong topic surveillance and breadth across the cited stream."],
+                    concerns=["Breadth alone does not resolve cohort eligibility, follow-up timing, or tissue-confirmation needs."],
+                    requested_evidence=[
+                        "Surface cohort-specific eligibility, procedure, and escalation details before promoting translational claims.",
+                    ],
+                )
+            ]
+            preferred_actions = [
+                "Map cited trial and procedure language into explicit case-brief and trial-catalog follow-ups.",
+                "Keep surveillance and malignancy-escalation pathways operationally separate.",
+            ]
+            confidence_adjustment = "raise" if any(document.nct_id for document in documents) else "hold"
         else:
             topics = reversed_topics[:2] + ranked_topics[:1]
             opportunities = ["community_project", "benchmark_gap"]
             critique = "The highest-leverage work is still tooling and dataset infrastructure, not more black-box scoring."
+            peer_critiques = [
+                ResearchCouncilPeerCritique(
+                    reviewer_persona="open_source_builder",
+                    target_persona=challenge_target or "translational_oncologist",
+                    alignment="contests" if preprint_like_docs else "mixed",
+                    strengths=["Keeps the digest tied to operationally meaningful trial and follow-up consequences."],
+                    concerns=["A trial-centric view can underweight benchmark, dataset, and tooling work the community still needs."],
+                    requested_evidence=[
+                        "Show what benchmark or tooling artifact would make the cited discovery reusable by outside contributors.",
+                    ],
+                )
+            ]
+            preferred_actions = [
+                "Turn graph-backed findings into benchmark specs, manifests, and issue-ready tooling proposals.",
+                "Avoid promoting discovery output that does not yet map to a reproducible public artifact.",
+            ]
+            confidence_adjustment = "lower" if preprint_like_docs > high_trust_docs else "hold"
 
         rankings.append(
             ResearchCouncilStage2Ranking(
@@ -1998,6 +2120,10 @@ def _build_stage_2_rankings(
                 ranked_topics=[topic_label_map.get(item, item) for item in topics if item],
                 ranked_opportunity_types=[item for item in opportunities if item],
                 critique=critique,
+                challenge_target_persona=challenge_target,
+                peer_critiques=peer_critiques,
+                preferred_actions=preferred_actions,
+                confidence_adjustment=confidence_adjustment,
             )
         )
     return rankings
@@ -2008,6 +2134,9 @@ def _build_stage_3_synthesis(
     documents: list[ResearchDocumentRecord],
     ranked_topics: list[str],
     topic_label_map: dict[str, str],
+    stage_1: list[ResearchCouncilStage1Opinion],
+    stage_2: list[ResearchCouncilStage2Ranking],
+    source_map: dict[str, ResearchSourceRecord],
 ) -> ResearchCouncilStage3Synthesis:
     consensus_points = [
         (
@@ -2016,6 +2145,16 @@ def _build_stage_3_synthesis(
         for topic_id in ranked_topics[:3]
     ]
     disagreement_points = []
+    evidence_gaps = _unique_preserve_order(
+        item
+        for opinion in stage_1
+        for item in opinion.evidence_gaps
+    )[:5]
+    open_questions = _unique_preserve_order(
+        item
+        for opinion in stage_1
+        for item in opinion.open_questions
+    )[:5]
     if len(ranked_topics) > 2:
         disagreement_points.append(
             "Agents diverged on whether the next step should prioritize trial catalog depth or benchmark tooling breadth."
@@ -2024,28 +2163,154 @@ def _build_stage_3_synthesis(
         disagreement_points.append(
             "Trial-heavy sources point toward matching opportunities, while workflow sources point toward open benchmark work."
         )
+    disagreement_points.extend(
+        _unique_preserve_order(
+            concern
+            for ranking in stage_2
+            for critique in ranking.peer_critiques
+            if critique.alignment != "supports"
+            for concern in critique.concerns
+        )[:3]
+    )
     recommended_actions = [
         "Refresh the benchmark backlog with new wording, confounder, or follow-up variants from this digest.",
         "Review trial-catalog gaps surfaced by the current cited corpus before editing rule assets.",
+        "Carry unresolved questions into the next digest rather than collapsing them into a single narrative.",
         "Publish only cited takeaways and keep promotion actions human-gated.",
     ]
+    next_experiments = [
+        "Compare benchmark coverage against the current graph entities to see which active concepts still lack evaluation fixtures.",
+        "Stress-test case briefs against trial-eligibility and follow-up language surfaced in this digest.",
+        "Track whether high-novelty graph entities persist across future high-trust sources before broad promotion.",
+    ]
+    promotion_guardrails = [
+        "Do not promote claims that remain uncited or supported only by weakly aligned sources.",
+        "Separate exploratory questions from operational recommendations in every promoted artifact.",
+        "Require a measurable downstream artifact such as a benchmark spec, rule change, or trial-catalog update before escalating action.",
+    ]
+    overall_confidence = _derive_council_confidence(documents=documents, source_map=source_map, stage_2=stage_2)
     return ResearchCouncilStage3Synthesis(
         chairman_summary=(
             "The council agrees that pancreatic oncology monitoring should feed benchmark growth, trial-catalog upkeep, "
-            "and contributor tooling, while remaining separate from automatic case scoring."
+            "and contributor tooling, while remaining separate from automatic case scoring and while preserving open questions "
+            "instead of forcing false certainty."
         ),
+        overall_confidence=overall_confidence,
         consensus_points=consensus_points,
         disagreement_points=disagreement_points,
+        evidence_gaps=evidence_gaps,
+        open_questions=open_questions,
         recommended_actions=recommended_actions,
+        next_experiments=next_experiments,
+        promotion_guardrails=promotion_guardrails,
     )
 
 
 def _calculate_disagreement_score(stage_2: list[ResearchCouncilStage2Ranking]) -> float:
-    first_choices = [tuple(item.ranked_topics[:1]) for item in stage_2 if item.ranked_topics]
-    if not first_choices:
+    topic_first_choices = [item.ranked_topics[0] for item in stage_2 if item.ranked_topics]
+    opportunity_first_choices = [
+        item.ranked_opportunity_types[0]
+        for item in stage_2
+        if item.ranked_opportunity_types
+    ]
+    peer_critiques = [critique for item in stage_2 for critique in item.peer_critiques]
+    if not topic_first_choices:
         return 0.0
-    unique = len({item[0] for item in first_choices})
-    return round(min(1.0, unique / max(1, len(first_choices))), 4)
+    topic_divergence = len(set(topic_first_choices)) / max(1, len(topic_first_choices))
+    opportunity_divergence = (
+        len(set(opportunity_first_choices)) / max(1, len(opportunity_first_choices))
+        if opportunity_first_choices
+        else 0.0
+    )
+    critique_tension = (
+        sum(1 for critique in peer_critiques if critique.alignment != "supports") / max(1, len(peer_critiques))
+        if peer_critiques
+        else 0.0
+    )
+    return round(min(1.0, 0.45 * topic_divergence + 0.25 * opportunity_divergence + 0.30 * critique_tension), 4)
+
+
+def _top_graph_labels(documents: list[ResearchDocumentRecord], *, limit: int) -> list[str]:
+    counts: Counter[str] = Counter()
+    for document in documents:
+        for entity in list((document.raw_metadata or {}).get("graph_entities") or []):
+            label = str(entity.get("label") or entity.get("node_id") or "").strip()
+            if label:
+                counts[label] += 1
+    return [label for label, _count in counts.most_common(limit)]
+
+
+def _document_source_kind(document: ResearchDocumentRecord) -> str:
+    source_descriptor = _source_catalog_map().get(document.source_id) or {}
+    return str(source_descriptor.get("source_kind") or "unknown")
+
+
+def _count_high_trust_documents(documents: list[ResearchDocumentRecord]) -> int:
+    source_catalog = _source_catalog_map()
+    return sum(
+        1
+        for document in documents
+        if str((source_catalog.get(document.source_id) or {}).get("trust_level") or "") == "high"
+    )
+
+
+def _derive_council_confidence(
+    *,
+    documents: list[ResearchDocumentRecord],
+    source_map: dict[str, ResearchSourceRecord],
+    stage_2: list[ResearchCouncilStage2Ranking],
+) -> str:
+    high_trust_docs = sum(
+        1
+        for document in documents
+        if (
+            source_map.get(document.source_id) is not None
+            and source_map[document.source_id].trust_level == "high"
+        )
+    )
+    evidence_types = {
+        (source_map.get(document.source_id).source_kind if source_map.get(document.source_id) else "unknown")
+        for document in documents
+    }
+    any_lower = any(item.confidence_adjustment == "lower" for item in stage_2)
+    if high_trust_docs >= 3 and {"trial_registry", "guideline", "literature"} & evidence_types and not any_lower:
+        return "high"
+    if high_trust_docs >= 2:
+        return "medium"
+    return "low"
+
+
+def _unique_preserve_order(items: Any) -> list[str]:
+    seen: set[str] = set()
+    output: list[str] = []
+    for item in items:
+        text = str(item or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        output.append(text)
+    return output
+
+
+def _normalize_council_payload(payload: Any) -> dict[str, Any]:
+    value = dict(payload or {})
+    value.setdefault("stage_1", [])
+    value.setdefault("stage_2", [])
+    value.setdefault(
+        "stage_3",
+        {
+            "chairman_summary": "Council synthesis unavailable for this digest version.",
+            "overall_confidence": "medium",
+            "consensus_points": [],
+            "disagreement_points": [],
+            "evidence_gaps": [],
+            "open_questions": [],
+            "recommended_actions": [],
+            "next_experiments": [],
+            "promotion_guardrails": [],
+        },
+    )
+    return value
 
 
 def _render_digest_markdown(
@@ -2077,18 +2342,46 @@ def _render_digest_markdown(
         lines.append(f"- {document.title} ({document.citation_key})")
     lines.extend(["", "## Council stage 1"])
     for opinion in stage_1:
-        lines.append(f"- {opinion.persona}: {opinion.summary}")
+        lines.append(
+            f"- {opinion.persona} ({opinion.confidence_label} confidence): {opinion.summary}"
+        )
+        if opinion.primary_topics:
+            lines.append(f"  - topics: {', '.join(opinion.primary_topics)}")
+        for claim in opinion.key_claims:
+            lines.append(f"  - claim: {claim}")
+        for question in opinion.open_questions[:2]:
+            lines.append(f"  - question: {question}")
+        for gap in opinion.evidence_gaps[:2]:
+            lines.append(f"  - gap: {gap}")
     lines.extend(["", "## Council stage 2"])
     for ranking in stage_2:
         lines.append(
             f"- {ranking.persona}: topics {', '.join(ranking.ranked_topics)}; critique: {ranking.critique}"
         )
+        if ranking.challenge_target_persona:
+            lines.append(f"  - challenges: {ranking.challenge_target_persona}")
+        if ranking.ranked_opportunity_types:
+            lines.append(
+                f"  - opportunity types: {', '.join(ranking.ranked_opportunity_types)}"
+            )
+        if ranking.confidence_adjustment:
+            lines.append(f"  - confidence adjustment: {ranking.confidence_adjustment}")
+        for action in ranking.preferred_actions[:2]:
+            lines.append(f"  - preferred action: {action}")
+        for critique in ranking.peer_critiques:
+            lines.append(
+                f"  - peer review ({critique.alignment}) on {critique.target_persona}: "
+                f"{'; '.join(critique.concerns or critique.strengths)}"
+            )
+            for requested in critique.requested_evidence[:1]:
+                lines.append(f"    - requested evidence: {requested}")
     lines.extend(
         [
             "",
             "## Chairman synthesis",
             stage_3.chairman_summary,
             "",
+            f"Overall confidence: {stage_3.overall_confidence}",
             f"Disagreement score: {disagreement_score:.2f}",
             "",
             "Consensus:",
@@ -2101,10 +2394,30 @@ def _render_digest_markdown(
         lines.append("Disagreement:")
         for item in stage_3.disagreement_points:
             lines.append(f"- {item}")
+    if stage_3.evidence_gaps:
+        lines.append("")
+        lines.append("Evidence gaps:")
+        for item in stage_3.evidence_gaps:
+            lines.append(f"- {item}")
+    if stage_3.open_questions:
+        lines.append("")
+        lines.append("Open questions:")
+        for item in stage_3.open_questions:
+            lines.append(f"- {item}")
     lines.append("")
     lines.append("Recommended actions:")
     for item in stage_3.recommended_actions:
         lines.append(f"- {item}")
+    if stage_3.next_experiments:
+        lines.append("")
+        lines.append("Next experiments:")
+        for item in stage_3.next_experiments:
+            lines.append(f"- {item}")
+    if stage_3.promotion_guardrails:
+        lines.append("")
+        lines.append("Promotion guardrails:")
+        for item in stage_3.promotion_guardrails:
+            lines.append(f"- {item}")
     return "\n".join(lines)
 
 

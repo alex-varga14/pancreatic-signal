@@ -558,6 +558,20 @@ export type ResearchCouncilStage1Opinion = {
   summary: string;
   citations: string[];
   proposed_opportunity_types: string[];
+  primary_topics: string[];
+  confidence_label: string;
+  key_claims: string[];
+  open_questions: string[];
+  evidence_gaps: string[];
+};
+
+export type ResearchCouncilPeerCritique = {
+  reviewer_persona: string;
+  target_persona: string;
+  alignment: string;
+  strengths: string[];
+  concerns: string[];
+  requested_evidence: string[];
 };
 
 export type ResearchCouncilStage2Ranking = {
@@ -565,13 +579,22 @@ export type ResearchCouncilStage2Ranking = {
   ranked_topics: string[];
   ranked_opportunity_types: string[];
   critique: string;
+  challenge_target_persona?: string | null;
+  peer_critiques: ResearchCouncilPeerCritique[];
+  preferred_actions: string[];
+  confidence_adjustment: string;
 };
 
 export type ResearchCouncilStage3Synthesis = {
   chairman_summary: string;
+  overall_confidence: string;
   consensus_points: string[];
   disagreement_points: string[];
+  evidence_gaps: string[];
+  open_questions: string[];
   recommended_actions: string[];
+  next_experiments: string[];
+  promotion_guardrails: string[];
 };
 
 export type ResearchCouncilPayload = {

@@ -440,8 +440,9 @@ Return cited digest summaries with publication status, disagreement score, and c
 ### `GET /research-intel/digests/{digest_id}`
 Return a digest detail view with supporting documents plus persisted council stages:
 - stage 1 independent opinions
-- stage 2 peer ranking and critique
-- stage 3 chairman synthesis
+- stage 1 confidence, open questions, and evidence gaps
+- stage 2 peer ranking, critique, requested evidence, and confidence adjustment
+- stage 3 chairman synthesis, overall confidence, next experiments, and promotion guardrails
 
 ### `GET /research-intel/opportunities`
 Return human-gated research opportunities generated from the digest flow.

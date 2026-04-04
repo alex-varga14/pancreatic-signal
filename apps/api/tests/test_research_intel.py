@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.schemas.research_intel import ResearchCouncilPayload
 from app.store.memory_store import CASE_STORE
 
 
@@ -105,7 +106,19 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     digest = response.json()
     assert digest["supporting_documents"]
     assert len(digest["council"]["stage_1"]) == 3
+    assert all(item["confidence_label"] for item in digest["council"]["stage_1"])
+    assert all(item["open_questions"] for item in digest["council"]["stage_1"])
+    assert all(item["evidence_gaps"] for item in digest["council"]["stage_1"])
+    assert all(item["peer_critiques"] for item in digest["council"]["stage_2"])
+    assert all(item["preferred_actions"] for item in digest["council"]["stage_2"])
+    assert digest["council"]["stage_3"]["overall_confidence"] in {"high", "medium", "low"}
+    assert digest["council"]["stage_3"]["open_questions"]
+    assert digest["council"]["stage_3"]["evidence_gaps"]
+    assert digest["council"]["stage_3"]["next_experiments"]
+    assert digest["council"]["stage_3"]["promotion_guardrails"]
     assert digest["council"]["stage_3"]["recommended_actions"]
+    assert "Open questions:" in digest["summary_markdown"]
+    assert "Promotion guardrails:" in digest["summary_markdown"]
 
     response = client.get("/api/v1/research-intel/opportunities")
     assert response.status_code == 200
@@ -198,3 +211,37 @@ def test_research_intel_seeded_mode_is_still_available_for_bootstrap_runs() -> N
     payload = response.json()["run"]
     assert payload["metadata"]["requested_mode"] == "seeded"
     assert payload["processed"] == 6
+
+
+def test_research_intel_legacy_council_payloads_remain_readable() -> None:
+    payload = ResearchCouncilPayload.model_validate(
+        {
+            "stage_1": [
+                {
+                    "persona": "literature_scout",
+                    "focus": "Track literature",
+                    "summary": "Legacy digest payload",
+                    "citations": ["PMID:1234"],
+                    "proposed_opportunity_types": ["benchmark_gap"],
+                }
+            ],
+            "stage_2": [
+                {
+                    "persona": "literature_scout",
+                    "ranked_topics": ["Early Detection"],
+                    "ranked_opportunity_types": ["benchmark_gap"],
+                    "critique": "Legacy critique",
+                }
+            ],
+            "stage_3": {
+                "chairman_summary": "Legacy chairman summary",
+                "consensus_points": ["Keep the council payload backward compatible."],
+                "disagreement_points": [],
+                "recommended_actions": ["Regenerate the digest when richer council fields are available."],
+            },
+        }
+    )
+
+    assert payload.stage_1[0].confidence_label == "medium"
+    assert payload.stage_2[0].confidence_adjustment == "hold"
+    assert payload.stage_3.overall_confidence == "medium"

@@ -201,6 +201,20 @@ class ResearchCouncilStage1Opinion(BaseModel):
     summary: str
     citations: list[str] = Field(default_factory=list)
     proposed_opportunity_types: list[ResearchOpportunityType] = Field(default_factory=list)
+    primary_topics: list[str] = Field(default_factory=list)
+    confidence_label: str = "medium"
+    key_claims: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    evidence_gaps: list[str] = Field(default_factory=list)
+
+
+class ResearchCouncilPeerCritique(BaseModel):
+    reviewer_persona: str
+    target_persona: str
+    alignment: str
+    strengths: list[str] = Field(default_factory=list)
+    concerns: list[str] = Field(default_factory=list)
+    requested_evidence: list[str] = Field(default_factory=list)
 
 
 class ResearchCouncilStage2Ranking(BaseModel):
@@ -208,13 +222,22 @@ class ResearchCouncilStage2Ranking(BaseModel):
     ranked_topics: list[str] = Field(default_factory=list)
     ranked_opportunity_types: list[ResearchOpportunityType] = Field(default_factory=list)
     critique: str
+    challenge_target_persona: str | None = None
+    peer_critiques: list[ResearchCouncilPeerCritique] = Field(default_factory=list)
+    preferred_actions: list[str] = Field(default_factory=list)
+    confidence_adjustment: str = "hold"
 
 
 class ResearchCouncilStage3Synthesis(BaseModel):
     chairman_summary: str
+    overall_confidence: str = "medium"
     consensus_points: list[str] = Field(default_factory=list)
     disagreement_points: list[str] = Field(default_factory=list)
+    evidence_gaps: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
     recommended_actions: list[str] = Field(default_factory=list)
+    next_experiments: list[str] = Field(default_factory=list)
+    promotion_guardrails: list[str] = Field(default_factory=list)
 
 
 class ResearchCouncilPayload(BaseModel):

@@ -91,8 +91,9 @@ The current workflow follows five explicit phases.
 ### 3. Deliberate
 
 - persist stage 1 independent opinions
-- persist stage 2 ranking and critique
-- persist stage 3 chairman synthesis
+- persist stage 1 open questions, evidence gaps, confidence labels, and proposed opportunity types
+- persist stage 2 ranking, critique, peer review, and confidence adjustments
+- persist stage 3 chairman synthesis with overall confidence, next experiments, and promotion guardrails
 - record disagreement instead of hiding it
 
 ### 4. Publish
@@ -135,6 +136,15 @@ Phase 2 is now underway with these capabilities:
 - graph-backed entity resolution runs during document normalization
 - graph entities now help reinforce topic assignment and evidence extraction
 - a dedicated graph surface exposes active nodes, edge relationships, and document-backed entity heat
+
+## Phase 3 Council Status
+
+Phase 3 is now underway with these capabilities:
+
+- stage 1 opinions now carry primary topics, confidence labels, key claims, open questions, and evidence gaps
+- stage 2 rankings now include explicit peer critiques, challenge targets, preferred actions, and confidence adjustments
+- stage 3 synthesis now records overall confidence, evidence gaps, open questions, next experiments, and promotion guardrails
+- persisted council payloads remain backward-compatible with older digest versions
 
 ## Opportunity Types
 
@@ -183,6 +193,6 @@ The implementation direction borrows selectively from several open-source resear
 ## Next Slices
 
 - add live curated connectors on top of the seeded catalog
-- deepen ontology tagging, clustering, and disagreement scoring
+- turn council deliberation into stronger multi-run comparison and calibration
 - add sandboxed benchmark and rule experiment runners for promoted opportunities
 - document donation governance and paid-source procurement policy before any funding automation is considered
