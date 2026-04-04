@@ -190,6 +190,7 @@ def run_opportunity_experiment(
             opportunity_id=opportunity_id,
             actor_user_id=actor.user_id,
             write_artifacts=payload.write_artifacts,
+            experiment_kind=payload.experiment_kind,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -159,6 +159,7 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert first_opportunity["action_payload"]["proposed_steps"]
     assert first_opportunity["action_payload"]["measurable_outcomes"]
     assert first_opportunity["action_payload"]["promotion_guardrails"]
+    assert first_opportunity["action_payload"]["contributor_packets"]
 
     opportunity_artifact_path = next(
         path
@@ -170,13 +171,19 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert "## Objective" in opportunity_artifact_text
     assert "## Evidence bundle" in opportunity_artifact_text
     assert "## Suggested downstream artifact" in opportunity_artifact_text
+    assert "## Contributor packets" in opportunity_artifact_text
 
     supported_opportunity = next(
         item for item in opportunities if item["opportunity_type"] in {"benchmark_gap", "rule_gap"}
     )
+    experiment_kind = (
+        "benchmark_stress_test"
+        if supported_opportunity["opportunity_type"] == "benchmark_gap"
+        else "rule_stress_test"
+    )
     experiment_response = client.post(
         f"/api/v1/research-intel/opportunities/{supported_opportunity['opportunity_id']}/experiment",
-        json={"write_artifacts": True},
+        json={"write_artifacts": True, "experiment_kind": experiment_kind},
         headers=_auth_headers("research-admin"),
     )
     assert experiment_response.status_code == 200
@@ -184,6 +191,7 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert experiment_run["run_type"] == "experiment"
     assert experiment_run["metadata"]["ratchet_outcome"] in {"keep", "discard"}
     assert experiment_run["metadata"]["metric_name"]
+    assert experiment_run["metadata"]["experiment_kind"] == experiment_kind
     assert any(path.startswith("artifacts/research-intel/experiments/") for path in experiment_run["artifact_paths"])
 
     experiment_artifact_path = next(
@@ -191,6 +199,7 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     )
     experiment_artifact_text = _artifact_text(experiment_artifact_path)
     assert "## Scores" in experiment_artifact_text
+    assert "## Scored dimensions" in experiment_artifact_text
     assert "## Acceptance gates" in experiment_artifact_text
 
     opportunities_after_experiment = client.get("/api/v1/research-intel/opportunities").json()
@@ -200,6 +209,8 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert experimented["action_payload"]["last_experiment"]["metric_name"]
     assert experimented["action_payload"]["last_experiment"]["ratchet_outcome"] in {"keep", "discard"}
     assert experimented["action_payload"]["last_experiment"]["artifact_paths"]
+    assert experimented["action_payload"]["last_experiment"]["experiment_summary"]
+    assert experimented["action_payload"]["last_experiment"]["scored_dimensions"]
 
     promote_response = client.post(
         f"/api/v1/research-intel/opportunities/{opportunity_id}/promote",
@@ -213,6 +224,7 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert "## Discovery question" in promotion_text
     assert "## Evidence bundle" in promotion_text
     assert "## Measurable outcomes" in promotion_text
+    assert "## Contributor packets" in promotion_text
 
     unsupported_opportunity = next(
         item
@@ -256,6 +268,45 @@ def test_research_intel_case_brief_maps_case_to_topics_and_documents() -> None:
     assert payload["matched_topics"]
     assert payload["supporting_documents"]
     assert "case score automatically" in payload["summary"]
+
+
+def test_research_intel_digest_history_tracks_recurring_questions_across_runs() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    ingest_response = client.post(
+        "/api/v1/research-intel/runs/ingest",
+        json={"mode": "fixture", "write_artifacts": False},
+        headers=_auth_headers("research-admin"),
+    )
+    assert ingest_response.status_code == 200
+
+    first_digest = client.post(
+        "/api/v1/research-intel/runs/digest",
+        json={"publish": True, "write_artifacts": False},
+        headers=_auth_headers("research-admin"),
+    )
+    assert first_digest.status_code == 200
+
+    second_digest = client.post(
+        "/api/v1/research-intel/runs/digest",
+        json={"publish": True, "write_artifacts": False},
+        headers=_auth_headers("research-admin"),
+    )
+    assert second_digest.status_code == 200
+
+    digests = client.get("/api/v1/research-intel/digests").json()
+    assert len(digests) >= 2
+    latest = digests[0]
+    previous = digests[1]
+    assert latest["trend"]["previous_digest_id"] == previous["digest_id"]
+    assert latest["trend"]["confidence_trend"] in {"holding", "raising", "lowering"}
+
+    detail = client.get(f"/api/v1/research-intel/digests/{latest['digest_id']}").json()
+    assert detail["history"]["recent_digests"]
+    assert len(detail["history"]["recent_digests"]) >= 2
+    assert detail["history"]["recurring_open_questions"]
+    assert "## Across runs" in detail["summary_markdown"]
 
 
 def test_research_intel_documents_support_filters_and_viewer_cannot_trigger_runs() -> None:

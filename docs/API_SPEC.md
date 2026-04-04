@@ -445,19 +445,24 @@ Behavior:
 ### `GET /research-intel/digests`
 Return cited digest summaries with publication status, disagreement score, and citation counts.
 
+Behavior:
+- Digest list items now also include a trend snapshot showing the previous digest, confidence movement, disagreement delta, citation delta, and topic churn.
+
 ### `GET /research-intel/digests/{digest_id}`
 Return a digest detail view with supporting documents plus persisted council stages:
 - stage 1 independent opinions
 - stage 1 confidence, open questions, and evidence gaps
 - stage 2 peer ranking, critique, requested evidence, and confidence adjustment
 - stage 3 chairman synthesis, overall confidence, next experiments, and promotion guardrails
+- a multi-run history snapshot with recent digest window, recurring open questions, recurring disagreement points, and resolved items
 
 ### `GET /research-intel/opportunities`
 Return human-gated research opportunities generated from the digest flow.
 
 Behavior:
 - Each opportunity includes a typed action payload with objective, why-now rationale, discovery question, evidence bundle, proposed steps, measurable outcomes, and promotion guardrails.
-- When available, the action payload also includes the latest experiment result with ratchet outcome, score deltas, and artifact paths.
+- Each opportunity now also includes contributor packets for issue-ready, benchmark-ready, dataset-ready, rule, trial, case-brief, or tooling follow-through depending on type.
+- When available, the action payload also includes the latest experiment result with ratchet outcome, score deltas, dimension-level scoring, and artifact paths.
 
 Query params:
 - `opportunity_type`
@@ -545,14 +550,15 @@ Run a safe experiment for a supported opportunity.
 Request:
 ```json
 {
-  "write_artifacts": true
+  "write_artifacts": true,
+  "experiment_kind": "benchmark_stress_test"
 }
 ```
 
 Behavior:
 - Supports benchmark-gap and rule-gap opportunities only.
-- Evaluates proposal readiness through deterministic scoring rather than code mutation.
-- Records baseline, candidate score, delta, threshold, evidence coverage, and keep-or-discard ratchet outcome.
+- Evaluates proposal readiness or stress-test resilience through deterministic scoring rather than code mutation.
+- Records baseline, candidate score, delta, threshold, evidence coverage, scored dimensions, and keep-or-discard ratchet outcome.
 - Writes experiment artifacts under `artifacts/research-intel/experiments/` when enabled.
 
 Access:

@@ -27,6 +27,11 @@ def parse_args() -> argparse.Namespace:
         help="Specific opportunity id to evaluate. Defaults to the highest-confidence supported opportunity.",
     )
     parser.add_argument(
+        "--experiment-kind",
+        default="",
+        help="Optional experiment kind override such as benchmark_stress_test or rule_stress_test.",
+    )
+    parser.add_argument(
         "--no-artifacts",
         action="store_true",
         help="Skip writing JSON and Markdown artifacts.",
@@ -55,6 +60,7 @@ def main() -> None:
         opportunity_id=opportunity_id,
         actor_user_id=args.actor_user_id,
         write_artifacts=not args.no_artifacts,
+        experiment_kind=args.experiment_kind.strip() or None,
     )
     if run is None:
         raise SystemExit(f"Opportunity {opportunity_id} was not found.")

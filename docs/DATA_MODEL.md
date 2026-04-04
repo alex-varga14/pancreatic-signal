@@ -308,6 +308,16 @@ Current fields:
 - `created_at`
 - `updated_at`
 
+`summary_json` now also stores the durable digest-history snapshot used for multi-run comparison:
+
+- `key_takeaways`
+- `history.trend`
+- `history.recent_digests`
+- `history.recurring_open_questions`
+- `history.recurring_disagreement_points`
+- `history.resolved_open_questions`
+- `history.resolved_disagreement_points`
+
 ### `ResearchOpportunityRecord`
 
 Stores human-gated research-intel proposals tied to topics and cited documents.
@@ -344,11 +354,25 @@ Current fields:
 - `next_experiments`
 - `measurable_outcomes`
 - `promotion_guardrails`
+- `contributor_packets`
 - `suggested_target`
 - `council_confidence`
 - `council_personas`
 - `theme_snapshot`
 - `last_experiment`
+
+`contributor_packets` stores concrete downstream handoff bundles for issue, benchmark, dataset, rule, trial, case-brief, or tooling work. Each packet includes:
+
+- `packet_kind`
+- `title`
+- `summary`
+- `suggested_owner`
+- `repo_targets`
+- `issue_labels`
+- `checklist`
+- `output_artifacts`
+- `validation_steps`
+- `handoff_notes`
 
 `last_experiment` stores the latest safe experiment result for supported benchmark or rule opportunities, including:
 
@@ -361,6 +385,9 @@ Current fields:
 - `threshold`
 - `min_delta`
 - `evidence_coverage_score`
+- `experiment_summary`
+- `stress_dimensions`
+- `scored_dimensions`
 - `notes`
 - `artifact_paths`
 - `run_id`

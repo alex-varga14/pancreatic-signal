@@ -64,10 +64,10 @@ This project is most helpful to the larger open-source community when it offers:
 The highest-value collaboration areas after the current pilot hardening work are:
 
 1. expand the research-intel foundation into live curated connectors and stronger discovery coverage
-2. strengthen council comparison, confidence calibration, and question backlogs
-3. turn strong research-intel opportunities into well-scoped benchmark, rule, dataset, and tooling contribution paths
+2. extend council history from short digest windows into longer-horizon calibration and recurring-theme analysis
+3. exercise the contributor-packet workflow against larger benchmark and dataset contributions from outside collaborators
 4. deepen reviewer ergonomics and trial abstraction as explainable downstream surfaces of the discovery engine
-5. expand curated source quality and live discovery coverage where the watchtower still leans on fixtures
+5. keep governance and procurement notes current as source coverage expands beyond public-open feeds
 
 ## Open-Source Guardrails
 

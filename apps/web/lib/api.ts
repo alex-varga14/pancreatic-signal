@@ -634,6 +634,42 @@ export type ResearchDigestDocumentRef = {
   topic_labels: string[];
 };
 
+export type ResearchDigestTrend = {
+  previous_digest_id?: string | null;
+  previous_generated_at?: string | null;
+  confidence_trend: string;
+  disagreement_delta?: number | null;
+  citation_delta?: number | null;
+  new_topic_labels: string[];
+  persistent_topic_labels: string[];
+  dropped_topic_labels: string[];
+};
+
+export type ResearchDigestRecurringItem = {
+  text: string;
+  occurrence_count: number;
+  digest_ids: string[];
+  last_seen_at?: string | null;
+};
+
+export type ResearchDigestHistoryItem = {
+  digest_id: string;
+  generated_at: string;
+  overall_confidence: string;
+  disagreement_score: number;
+  citation_count: number;
+  topic_labels: string[];
+};
+
+export type ResearchDigestHistorySnapshot = {
+  trend: ResearchDigestTrend;
+  recent_digests: ResearchDigestHistoryItem[];
+  recurring_open_questions: ResearchDigestRecurringItem[];
+  recurring_disagreement_points: ResearchDigestRecurringItem[];
+  resolved_open_questions: string[];
+  resolved_disagreement_points: string[];
+};
+
 export type ResearchGraphEdge = {
   source: string;
   target: string;
@@ -675,6 +711,7 @@ export type ResearchDigestListItem = {
   topic_labels: string[];
   disagreement_score: number;
   citation_count: number;
+  trend: ResearchDigestTrend;
 };
 
 export type ResearchDigestDetail = ResearchDigestListItem & {
@@ -684,6 +721,7 @@ export type ResearchDigestDetail = ResearchDigestListItem & {
   key_takeaways: string[];
   supporting_documents: ResearchDigestDocumentRef[];
   council: ResearchCouncilPayload;
+  history: ResearchDigestHistorySnapshot;
 };
 
 export type ResearchOpportunityEvidence = {
@@ -703,9 +741,34 @@ export type ResearchOpportunityArtifactSpec = {
   target_hint?: "github_issue" | "docs_draft" | "benchmark_task" | null;
 };
 
+export type ResearchContributorPacket = {
+  packet_kind:
+    | "issue_packet"
+    | "benchmark_packet"
+    | "dataset_packet"
+    | "rule_packet"
+    | "trial_packet"
+    | "case_brief_packet"
+    | "tooling_packet";
+  title: string;
+  summary: string;
+  suggested_owner: string;
+  repo_targets: string[];
+  issue_labels: string[];
+  checklist: string[];
+  output_artifacts: string[];
+  validation_steps: string[];
+  handoff_notes: string[];
+};
+
 export type ResearchOpportunityExperimentResult = {
   supported: boolean;
-  experiment_kind?: "benchmark_readiness" | "rule_explainability" | null;
+  experiment_kind?:
+    | "benchmark_readiness"
+    | "benchmark_stress_test"
+    | "rule_explainability"
+    | "rule_stress_test"
+    | null;
   ratchet_outcome: "keep" | "discard";
   metric_name: string;
   baseline_value?: number | null;
@@ -714,6 +777,9 @@ export type ResearchOpportunityExperimentResult = {
   threshold?: number | null;
   min_delta?: number | null;
   evidence_coverage_score?: number | null;
+  experiment_summary: string;
+  stress_dimensions: string[];
+  scored_dimensions: Record<string, number>;
   notes: string[];
   artifact_paths: string[];
   run_id?: number | null;
@@ -735,6 +801,7 @@ export type ResearchOpportunityActionPayload = {
   next_experiments: string[];
   measurable_outcomes: string[];
   promotion_guardrails: string[];
+  contributor_packets: ResearchContributorPacket[];
   suggested_target: "github_issue" | "docs_draft" | "benchmark_task";
   council_confidence: string;
   council_personas: string[];
@@ -1177,6 +1244,11 @@ export async function runResearchOpportunityExperiment(
   opportunityId: string,
   payload?: {
     write_artifacts?: boolean;
+    experiment_kind?:
+      | "benchmark_readiness"
+      | "benchmark_stress_test"
+      | "rule_explainability"
+      | "rule_stress_test";
   },
 ): Promise<ResearchRunDetail> {
   const res = await apiFetch(`/api/v1/research-intel/opportunities/${opportunityId}/experiment`, {

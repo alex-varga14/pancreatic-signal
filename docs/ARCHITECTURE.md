@@ -19,7 +19,7 @@ Pancreatic Signal is a modular monorepo with two primary product pillars: explai
 5. The API creates or updates case, report, and finding records.
 6. Structured adapter imports also persist an import-run summary plus per-item audit results.
 7. In parallel, research-intel ingests a pancreatic oncology watch catalog through seeded, fixture-backed, or opt-in live connector modes, computes a watchtower schedule over those sources, records source health plus provenance, resolves graph-backed pancreatic oncology entities, classifies documents into topic watchlists, extracts cited evidence, and stores council-ready artifacts.
-8. Digest generation turns those research documents into persisted council summaries, disagreement metrics, and human-gated opportunities.
+8. Digest generation turns those research documents into persisted council summaries, multi-run history snapshots, disagreement metrics, and human-gated opportunities.
 9. The web app reads persisted case detail, review history, feedback, hybrid guidance, import metadata, trial matches, and case-linked research briefs for human review.
 10. Evaluation and benchmark helpers consume the same stored or generated outputs for reproducible proof artifacts, while research-intel opportunities can propose future benchmark, rule, or trial-catalog work.
 
@@ -115,9 +115,10 @@ Research-intel is intentionally a sibling domain, not an extension of the case-l
 - topic classification against a lightweight pancreatic ontology and graph
 - cited evidence extraction for every stored research document
 - three-stage council generation with persisted stage outputs and disagreement score
+- digest-history snapshots that compare the current digest against recent runs and preserve recurring open questions plus disagreement points
 - opportunity generation for benchmark gaps, rule gaps, trial-catalog gaps, case briefs, community projects, and external tooling
-- typed discovery-to-action specs that connect each opportunity to evidence bundles, open questions, measurable outcomes, and downstream artifact hints
-- proposal-only experiment runs for benchmark and rule opportunities, with ratchet outcomes and artifact-backed audit trails
+- typed discovery-to-action specs that connect each opportunity to evidence bundles, open questions, measurable outcomes, contributor packets, and downstream artifact hints
+- proposal-only experiment runs for benchmark and rule opportunities, with readiness or stress-test modes, ratchet outcomes, and artifact-backed audit trails
 
 These outputs are allowed to inform case briefs, benchmark planning, and contributor priorities, but not to mutate the triage engine automatically.
 

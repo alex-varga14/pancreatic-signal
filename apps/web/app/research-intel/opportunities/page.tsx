@@ -41,6 +41,23 @@ function formatScore(value?: number | null): string {
 }
 
 
+function experimentOptionsForType(opportunityType: string): Array<{ value: string; label: string }> {
+  if (opportunityType === "benchmark_gap") {
+    return [
+      { value: "benchmark_readiness", label: "Benchmark readiness" },
+      { value: "benchmark_stress_test", label: "Benchmark stress test" },
+    ];
+  }
+  if (opportunityType === "rule_gap") {
+    return [
+      { value: "rule_explainability", label: "Rule explainability" },
+      { value: "rule_stress_test", label: "Rule stress test" },
+    ];
+  }
+  return [];
+}
+
+
 function ChipList({ items }: { items: string[] }) {
   if (items.length === 0) return null;
   return (
@@ -278,6 +295,33 @@ export default async function ResearchOpportunitiesPage({
                 <SectionList title="Promotion guardrails" items={opportunity.action_payload.promotion_guardrails} />
               </div>
 
+              {opportunity.action_payload.contributor_packets.length > 0 ? (
+                <div style={{ marginTop: 14 }}>
+                  <p style={{ margin: "0 0 8px", fontWeight: 700 }}>Contributor packets</p>
+                  <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+                    {opportunity.action_payload.contributor_packets.map((packet) => (
+                      <div
+                        key={`${opportunity.opportunity_id}-${packet.packet_kind}`}
+                        style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, background: "#f8fafc" }}
+                      >
+                        <p style={{ margin: 0, color: "#0f172a" }}>
+                          <strong>{packet.title}</strong>
+                        </p>
+                        <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>{packet.summary}</p>
+                        <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: 13 }}>
+                          {formatLabel(packet.packet_kind)} • owner {packet.suggested_owner || "n/a"}
+                        </p>
+                        <SectionList title="Checklist" items={packet.checklist} />
+                        <SectionList title="Repo targets" items={packet.repo_targets} />
+                        <SectionList title="Expected outputs" items={packet.output_artifacts} />
+                        <SectionList title="Validation steps" items={packet.validation_steps} />
+                        <SectionList title="Handoff notes" items={packet.handoff_notes} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               <p style={{ margin: "14px 0 0", color: "#64748b" }}>
                 Related rationale codes: {opportunity.related_rationale_codes.join(", ") || "none"} • related trial tags:{" "}
                 {opportunity.related_trial_ids.join(", ") || "none"}
@@ -290,6 +334,11 @@ export default async function ResearchOpportunitiesPage({
                     <strong>{formatLabel(opportunity.action_payload.last_experiment.ratchet_outcome)}</strong> via{" "}
                     {formatLabel(opportunity.action_payload.last_experiment.experiment_kind || "proposal_validation")}
                   </p>
+                  {opportunity.action_payload.last_experiment.experiment_summary ? (
+                    <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
+                      {opportunity.action_payload.last_experiment.experiment_summary}
+                    </p>
+                  ) : null}
                   <p style={{ margin: "8px 0 0", color: "#475569" }}>
                     {opportunity.action_payload.last_experiment.metric_name}: baseline{" "}
                     {formatScore(opportunity.action_payload.last_experiment.baseline_value)} • candidate{" "}
@@ -301,6 +350,18 @@ export default async function ResearchOpportunitiesPage({
                     {formatScore(opportunity.action_payload.last_experiment.min_delta)} • evidence coverage{" "}
                     {formatScore(opportunity.action_payload.last_experiment.evidence_coverage_score)}
                   </p>
+                  {Object.keys(opportunity.action_payload.last_experiment.scored_dimensions).length > 0 ? (
+                    <div style={{ marginTop: 10 }}>
+                      <p style={{ margin: "0 0 8px", fontWeight: 700 }}>Scored dimensions</p>
+                      <ul style={{ paddingLeft: 18, margin: 0, color: "#334155" }}>
+                        {Object.entries(opportunity.action_payload.last_experiment.scored_dimensions).map(([label, value]) => (
+                          <li key={label} style={{ marginBottom: 6 }}>
+                            {formatLabel(label)}: {formatScore(value)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                   <SectionList title="Experiment notes" items={opportunity.action_payload.last_experiment.notes} />
                   {opportunity.action_payload.last_experiment.artifact_paths.length > 0 ? (
                     <p style={{ margin: "10px 0 0", color: "#475569" }}>
@@ -352,6 +413,17 @@ export default async function ResearchOpportunitiesPage({
               {canRunExperiment ? (
                 <form action={runResearchOpportunityExperimentAction} style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 14 }}>
                   <input type="hidden" name="opportunity_id" value={opportunity.opportunity_id} />
+                  <select
+                    name="experiment_kind"
+                    defaultValue={experimentOptionsForType(opportunity.opportunity_type)[0]?.value || ""}
+                    style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "10px 12px", background: "white" }}
+                  >
+                    {experimentOptionsForType(opportunity.opportunity_type).map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     type="submit"
                     style={{

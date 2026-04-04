@@ -14,6 +14,18 @@ function formatDateTime(value?: string | null): string {
 }
 
 
+function formatSignedNumber(value?: number | null): string {
+  if (value === undefined || value === null) return "n/a";
+  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
+}
+
+
+function formatSignedInteger(value?: number | null): string {
+  if (value === undefined || value === null) return "n/a";
+  return `${value >= 0 ? "+" : ""}${value}`;
+}
+
+
 export default async function ResearchDigestsPage() {
   const digests = await getResearchDigests();
 
@@ -56,6 +68,17 @@ export default async function ResearchDigestsPage() {
               <p style={{ margin: "0 0 12px", color: "#475569" }}>
                 Topics: {digest.topic_labels.join(", ") || "unbucketed"}
               </p>
+              <p style={{ margin: "0 0 12px", color: "#334155", lineHeight: 1.6 }}>
+                Across runs: {digest.trend.confidence_trend}
+                {digest.trend.previous_digest_id ? ` from ${digest.trend.previous_digest_id}` : ""}
+                {" • "}disagreement {formatSignedNumber(digest.trend.disagreement_delta)}
+                {" • "}citations {formatSignedInteger(digest.trend.citation_delta)}
+              </p>
+              {digest.trend.new_topic_labels.length > 0 ? (
+                <p style={{ margin: "0 0 12px", color: "#475569" }}>
+                  New topics: {digest.trend.new_topic_labels.join(", ")}
+                </p>
+              ) : null}
               <Link href={`/research-intel/digests/${digest.digest_id}`} style={{ color: "#2563eb" }}>
                 Open full digest
               </Link>

@@ -131,6 +131,7 @@ Current progress:
 - stage 1 now persists primary topics, key claims, confidence labels, open questions, and evidence gaps
 - stage 2 now persists peer critique, challenge targets, preferred actions, and confidence adjustments
 - stage 3 now persists overall confidence, open questions, evidence gaps, next experiments, and promotion guardrails
+- digests now also persist multi-run history snapshots with trend, recurring open questions, recurring disagreement points, resolved items, and recent digest windows
 - legacy council payloads remain readable so future runs can compare new and old digests safely
 
 ### Phase 4. Discovery-to-Action Engine
@@ -150,6 +151,8 @@ Acceptance gate:
 Current progress:
 - opportunities now store typed action specs with objective, why-now rationale, discovery question, measurable outcomes, and artifact hints
 - digest runs now emit opportunity JSON and Markdown artifacts alongside digest artifacts
+- opportunities now also emit issue-ready, benchmark-ready, dataset-ready, rule, trial, case-brief, and tooling contributor packets
+- contributor packet artifacts now live under `artifacts/research-intel/packets/`
 - promotion artifacts now preserve cited evidence bundles, open questions, and measurable outcomes for downstream contributors
 
 ### Phase 5. Safe Scientific Experimentation
@@ -168,6 +171,7 @@ Acceptance gate:
 Current progress:
 - benchmark-gap and rule-gap opportunities now support manual experiment runs through the research-intel API and CLI
 - each run records baseline, candidate score, delta, threshold, evidence coverage, and keep-or-discard ratchet outcome
+- experiments now also support stress-test modes with dimension-level scoring so contributors can see where a packet is still weak
 - experiment artifacts now live under `artifacts/research-intel/experiments/`
 - experiment runs stay proposal-only and do not mutate code, merge changes, or alter triage scores
 
@@ -209,6 +213,24 @@ Current progress:
 - due-only ingest is available through the API, CLI, Make targets, and `/research-intel/schedule`
 - strict validation now checks the schedule snapshot alongside ingest, digest, and experiment flows
 
+### Governance And Source Policy
+
+Goal:
+- keep paid-source access, donation-funded operations, and procurement aligned with the open-source and human-gated mission
+
+Required outputs:
+- explicit source access classes
+- donation and procurement rules
+- audit expectations for restricted or paid sources
+
+Acceptance gate:
+- future operators can expand sources or funding paths without relying on unstated assumptions
+
+Current progress:
+- governance policy is now documented in `docs/RESEARCH_INTELLIGENCE_GOVERNANCE.md`
+- public-open sources remain the default, while paid or institution-restricted sources stay modeled but human-gated
+- autonomous payment, subscription purchase, and crypto treasury execution remain out of scope
+
 ## Phase Review Checklist
 
 Before a phase is considered complete, confirm:
@@ -222,9 +244,10 @@ Before a phase is considered complete, confirm:
 
 ## Immediate Next Slice
 
-Phase 7 is now in place. The highest-value next slice after the watchtower scheduling work is to deepen the live scientific-discovery loop:
+The branch wrap-up slice is now in place. The highest-value next work after this checkpoint is:
 
 - expand live curated connector coverage beyond the current official literature and trial baseline
-- improve graph breadth and cross-document entity resolution
-- compare council runs across time so recurring disagreements and open questions stay visible
-- sharpen contributor-ready opportunity and experiment flows around concrete research questions
+- turn schedule-aware discovery into trusted recurring automation or hosted jobs
+- deepen graph breadth and cross-document entity resolution against a larger live corpus
+- extend council history from short digest windows into longer-horizon calibration and recurring-theme analysis
+- bring in larger collaborator-supplied benchmark or dataset drops that exercise the new contributor packets

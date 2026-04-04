@@ -36,6 +36,12 @@ function formatDateTime(value?: string | null): string {
 }
 
 
+function formatSigned(value?: number | null, digits = 2): string {
+  if (value === undefined || value === null) return "n/a";
+  return `${value >= 0 ? "+" : ""}${value.toFixed(digits)}`;
+}
+
+
 function humanizeToken(value: string): string {
   return value.replaceAll("_", " ");
 }
@@ -139,6 +145,7 @@ export default async function ResearchDigestDetailPage({
             <p><strong>Disagreement:</strong> {digest.disagreement_score.toFixed(2)}</p>
             <p><strong>Citations:</strong> {digest.citation_count}</p>
             <p><strong>Overall confidence:</strong> {digest.council.stage_3.overall_confidence}</p>
+            <p><strong>Confidence trend:</strong> {digest.trend.confidence_trend}</p>
           </div>
 
           <div style={panelStyle}>
@@ -233,6 +240,74 @@ export default async function ResearchDigestDetailPage({
             </article>
           ))}
         </div>
+      </section>
+
+      <section style={{ ...panelStyle, marginTop: 16 }}>
+        <h2 style={{ marginTop: 0 }}>Across runs</h2>
+        <p style={{ color: "#334155", lineHeight: 1.7 }}>
+          Previous digest: {digest.trend.previous_digest_id || "none"} {" • "}
+          disagreement delta {formatSigned(digest.trend.disagreement_delta)} {" • "}
+          citation delta {formatSigned(digest.trend.citation_delta ?? null, 0)}
+        </p>
+        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+          <LabeledList title="New topics" items={digest.trend.new_topic_labels} />
+          <LabeledList title="Persistent topics" items={digest.trend.persistent_topic_labels} />
+          <LabeledList title="Dropped topics" items={digest.trend.dropped_topic_labels} />
+          <LabeledList
+            title="Resolved open questions"
+            items={digest.history.resolved_open_questions}
+            emptyLabel="No previously open questions resolved in this digest window."
+          />
+          <LabeledList
+            title="Resolved disagreement"
+            items={digest.history.resolved_disagreement_points}
+            emptyLabel="No previously recorded disagreement points resolved in this digest window."
+          />
+        </div>
+        {digest.history.recurring_open_questions.length > 0 ? (
+          <div style={{ marginTop: 16 }}>
+            <p style={{ margin: "0 0 8px", fontWeight: 600 }}>Recurring open questions</p>
+            <ul style={{ paddingLeft: 18, margin: 0, color: "#334155" }}>
+              {digest.history.recurring_open_questions.map((item) => (
+                <li key={item.text} style={{ marginBottom: 8, lineHeight: 1.6 }}>
+                  {item.text} ({item.occurrence_count} digests)
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {digest.history.recurring_disagreement_points.length > 0 ? (
+          <div style={{ marginTop: 16 }}>
+            <p style={{ margin: "0 0 8px", fontWeight: 600 }}>Recurring disagreement points</p>
+            <ul style={{ paddingLeft: 18, margin: 0, color: "#334155" }}>
+              {digest.history.recurring_disagreement_points.map((item) => (
+                <li key={item.text} style={{ marginBottom: 8, lineHeight: 1.6 }}>
+                  {item.text} ({item.occurrence_count} digests)
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {digest.history.recent_digests.length > 0 ? (
+          <div style={{ marginTop: 16 }}>
+            <p style={{ margin: "0 0 8px", fontWeight: 600 }}>Recent digest window</p>
+            <div style={{ display: "grid", gap: 10 }}>
+              {digest.history.recent_digests.map((item) => (
+                <div key={item.digest_id} style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12, background: "#f8fafc" }}>
+                  <p style={{ margin: 0, color: "#0f172a" }}>
+                    <strong>{item.digest_id}</strong> • {formatDateTime(item.generated_at)}
+                  </p>
+                  <p style={{ margin: "6px 0 0", color: "#475569" }}>
+                    confidence {item.overall_confidence} • disagreement {item.disagreement_score.toFixed(2)} • citations {item.citation_count}
+                  </p>
+                  <p style={{ margin: "6px 0 0", color: "#64748b" }}>
+                    {item.topic_labels.join(", ") || "unbucketed"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section style={{ ...panelStyle, marginTop: 16 }}>

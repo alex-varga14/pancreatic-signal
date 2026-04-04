@@ -62,11 +62,21 @@ export async function promoteResearchOpportunityAction(formData: FormData): Prom
 
 export async function runResearchOpportunityExperimentAction(formData: FormData): Promise<void> {
   const opportunityId = String(formData.get("opportunity_id") || "").trim();
+  const experimentKind = String(formData.get("experiment_kind") || "").trim();
   if (!opportunityId) {
     throw new Error("Opportunity id is required.");
   }
 
-  await runResearchOpportunityExperiment(opportunityId, { write_artifacts: true });
+  await runResearchOpportunityExperiment(opportunityId, {
+    write_artifacts: true,
+    experiment_kind: experimentKind
+      ? (experimentKind as
+          | "benchmark_readiness"
+          | "benchmark_stress_test"
+          | "rule_explainability"
+          | "rule_stress_test")
+      : undefined,
+  });
   revalidatePath("/research-intel");
   revalidatePath("/research-intel/opportunities");
   revalidatePath("/research-intel/schedule");

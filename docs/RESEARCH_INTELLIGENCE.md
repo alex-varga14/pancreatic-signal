@@ -173,6 +173,7 @@ Phase 3 is now underway with these capabilities:
 - stage 1 opinions now carry primary topics, confidence labels, key claims, open questions, and evidence gaps
 - stage 2 rankings now include explicit peer critiques, challenge targets, preferred actions, and confidence adjustments
 - stage 3 synthesis now records overall confidence, evidence gaps, open questions, next experiments, and promotion guardrails
+- digests now also persist multi-run history snapshots with trend, recurring open questions, recurring disagreement points, resolved items, and recent digest windows
 - persisted council payloads remain backward-compatible with older digest versions
 
 ## Phase 4 Discovery-To-Action Status
@@ -183,6 +184,8 @@ Phase 4 is now underway with these capabilities:
 - each opportunity carries a discovery objective, why-now rationale, discovery question, and measurable outcomes
 - each opportunity also carries a cited evidence bundle, open questions, evidence gaps, next experiments, and promotion guardrails
 - digest runs now write contributor-ready opportunity JSON and Markdown artifacts under `artifacts/research-intel/opportunities/`
+- opportunities now also include contributor packets for issue-ready, benchmark-ready, dataset-ready, rule, trial, case-brief, and tooling follow-through
+- contributor packet artifacts now live under `artifacts/research-intel/packets/`
 - promotion artifacts now preserve the same structured discovery-to-action context instead of collapsing into shallow summaries
 
 ## Phase 5 Safe Experimentation Status
@@ -192,6 +195,7 @@ Phase 5 is now underway with these capabilities:
 - benchmark-gap and rule-gap opportunities can be evaluated through a dedicated experiment runner
 - experiments are deterministic proposal checks, not code edits or score mutations
 - each experiment records baseline, candidate score, delta, threshold, evidence coverage, and a keep-or-discard ratchet outcome
+- experiments now also support stress-test modes with scored dimensions for wording variance, confounder handling, traceability, and handoff quality
 - experiment artifacts are written under `artifacts/research-intel/experiments/`
 - the latest experiment result is persisted back onto the opportunity payload for future comparison
 
@@ -203,6 +207,15 @@ Phase 6 is now in place with these capabilities:
 - the repository now frames triage, benchmark proof, imports, and case briefs as applied surfaces of the research engine
 - contributor context now starts from cited evidence, graph activity, council output, opportunities, and experiment artifacts
 - safety boundaries still remain explicit: no autonomous diagnosis, no score mutation from research-intel output, and no autonomous spending
+
+## Governance Status
+
+Governance is now explicitly documented for the research-first pivot:
+
+- paid-source access and donation-funded operations are documented in [RESEARCH_INTELLIGENCE_GOVERNANCE.md](./RESEARCH_INTELLIGENCE_GOVERNANCE.md)
+- public and openly accessible sources remain the default
+- paid or institution-restricted sources may be modeled, but procurement and renewal stay human-gated
+- no autonomous payment, subscription purchase, or crypto treasury execution is in scope
 
 ## Opportunity Types
 
@@ -253,8 +266,7 @@ The implementation direction borrows selectively from several open-source resear
 
 - add broader live curated connectors on top of the seeded catalog
 - turn schedule snapshots into recurring automation hooks or hosted jobs once the connector set is trusted
-- turn council deliberation into stronger multi-run comparison and calibration
-- deepen graph coverage and cross-document entity resolution
-- deepen opportunity promotion into issue-ready, benchmark-ready, and dataset-ready contributor workflows
-- expand experiment coverage beyond proposal-readiness scoring into richer benchmark and rule stress tests
-- document donation governance and paid-source procurement policy before any funding automation is considered
+- deepen graph coverage and cross-document entity resolution against a wider live corpus
+- extend council comparison from short windows into longer-horizon calibration and recurring-theme analysis
+- expand contributor packets against larger collaborator benchmark drops and public dataset bundles
+- keep governance and procurement notes current before any paid-source expansion is activated

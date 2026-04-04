@@ -3,11 +3,12 @@
 Updated: 2026-04-04
 
 This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, Phase 6
-hosted smoke evidence capture is now complete, and the codebase now also carries the Phase 7 watchtower-scheduling work
-that turns Research Intelligence into a more operator-ready standing discovery system. The best next work should now move
-from the expanded proof set and schedule-aware research-intel foundation toward broader de-identified or externally
-supplied benchmark inputs, richer live curated research connectors, and deeper contributor workflows built on top of the
-existing pilot packaging, proof surfaces, public benchmark pack, external evaluation bundle writer, and cited pancreatic
+hosted smoke evidence capture is now complete, and the codebase now also carries the research-intel branch-wrap work that
+adds watchtower scheduling, multi-run council comparison, contributor packets, richer stress-test experiments, and
+explicit governance for paid-source or donation-funded expansion. The best next work should now move from the expanded
+proof set and schedule-aware research-intel foundation toward broader de-identified or externally supplied benchmark
+inputs, richer live curated research connectors, and longer-horizon discovery automation built on top of the existing
+pilot packaging, proof surfaces, public benchmark pack, external evaluation bundle writer, and cited pancreatic
 oncology watchtower.
 
 ## Current State
@@ -17,6 +18,10 @@ oncology watchtower.
 - A second primary pillar, Research Intelligence, is now implemented with a sibling `/research-intel` workspace, a `/api/v1/research-intel/*` namespace, seeded pancreatic oncology source and topic catalogs, a lightweight domain graph, persisted run audits, normalized research documents, cited evidence spans, topic watchlists, council digests, opportunity proposals, and case-level research briefs.
 - Landing, about, quickstart, README, and handoff surfaces now frame Research Intelligence as the primary entry point, with triage, imports, benchmark proof, and case briefs positioned as explainable downstream applications of the discovery engine.
 - The discovery layer now also includes watchtower scheduling: broader curated literature and trial watches, due-only ingest support, schedule snapshots, consecutive-failure tracking, a `make research-intel-ingest-due` path, and a dedicated `/research-intel/schedule` workspace.
+- Research-intel digests now compare themselves against recent runs, preserving confidence trend, disagreement deltas, recurring open questions, recurring disagreement points, and resolved items instead of treating each digest as a sealed one-off summary.
+- Research-intel opportunities now carry contributor packets for issue, benchmark, dataset, rule, trial, case-brief, and tooling follow-through, with packet artifacts written under `artifacts/research-intel/packets/`.
+- Safe experiment support is stronger too: benchmark and rule opportunities now expose both readiness and stress-test modes with dimension-level scoring, while still staying proposal-only and human-gated.
+- Governance for paid-source access and donation-funded operations is now documented in `docs/RESEARCH_INTELLIGENCE_GOVERNANCE.md`, and autonomous payment or procurement remains explicitly out of scope.
 - The first research-intel slice is intentionally seeded and manual-triggered rather than a live internet crawler. It establishes the shared data model, artifact flow, audit surfaces, and contributor UX while keeping source polling, paid access, and richer autonomy in later phases.
 - Phase 1 of the scientific-discovery pivot is now underway: discovery ingest supports fixture-backed connector runs, opt-in live connector scaffolding for Europe PMC and ClinicalTrials.gov, source-health tracking, and per-document provenance plus novelty metadata.
 - Phase 2 is now underway as well: the pancreatic oncology graph is richer, typed, family-aware, and exposed through graph-backed entity resolution plus a dedicated `/research-intel/graph` surface.
@@ -37,20 +42,20 @@ oncology watchtower.
 - HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component plus repetition separators, normalize common HL7 escape sequences, and clean composite metadata fields with subcomponent-aware extraction before the existing report-text assembly flows into triage and audit persistence.
 - Top-level repo docs now reflect the implemented platform instead of the earlier scaffold framing, and the repository includes checked-in contributor, security, and code-of-conduct docs appropriate for a near-1.0 open-source handoff.
 - The repo still includes checked-in GitHub Actions workflows for strict validation plus hosted base, attachment-backed FHIR success-path, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage, and the hosted pilot workflow now supports narrower manual FHIR-only plus HL7-only dispatches with per-job raw-log and structured-summary artifacts. Those hosted slices are now verified with green March 25, 2026 runs for FHIR and HL7, while HL7 remains manual-only in the default weekly matrix by explicit decision.
-- The highest-value remaining work is no longer bootstrapping or late-Phase-6 smoke capture. The repo-side Phase 6D release polish is already in place, the research-first repositioning is now visible across product and docs surfaces, the first benchmark-realism proof expansion is complete, the external starter pack matches that reviewer-facing proof shape, the repo now includes two checked-in external proof packs, and `/proof` now compares them directly, so the next work should move toward broader collaborator-supplied or deidentified benchmark inputs plus deeper live discovery coverage instead of reopening parser or smoke-baseline work.
+- The highest-value remaining work is no longer bootstrapping or late-Phase-6 smoke capture. The repo-side Phase 6D release polish is already in place, the research-first repositioning is visible across product and docs surfaces, the watchtower and council history loop are in place, the external starter pack matches the reviewer-facing proof shape, and `/proof` compares the checked-in packs directly, so the next work should move toward broader collaborator-supplied or deidentified benchmark inputs, deeper live discovery coverage, and trusted recurring watchtower automation instead of reopening parser or smoke-baseline work.
 - The next benchmark-proof slice should focus on either a larger collaborator-supplied benchmark drop through the registry flow or deeper cross-pack analysis features such as bucket-level comparisons or reviewer-focused filtering, rather than just adding another static pack section.
 
 ## Fresh Validation Status
 
-Confirmed on 2026-04-03:
+Confirmed on 2026-04-04:
 
 - `make validate-strict` passes
 - Summary: `12 pass, 0 warn, 0 fail`
 - Research-intel validation now covers seeded catalogs plus a temp-database ingest and digest run, reporting `9` sources, `7` topics, `25` graph nodes, `7` seeded documents, and a passing artifact-backed digest pipeline
 - Discovery ingest now also validates `9` discovery fixtures and `5` live-ready sources through the same catalog check, runs the ingest pipeline in fixture mode for reproducible validation, and verifies that a schedule snapshot is available after ingest
-- Opportunity generation now also emits structured JSON and Markdown action specs under `artifacts/research-intel/opportunities/`
+- Opportunity generation now also emits structured JSON and Markdown action specs under `artifacts/research-intel/opportunities/`, plus contributor packet artifacts under `artifacts/research-intel/packets/`
 - Research-intel validation now also runs one safe experiment and records a ratchet outcome in the strict pipeline summary
-- `pytest` now passes with `151 passed`
+- `pytest` now passes with `152 passed`
 - `cd apps/api && .venv/bin/python -m pytest tests/test_auth.py tests/test_research_intel.py -q` passed with `21 passed`
 - `npm run lint` and `npm run build` in `apps/web` both pass with the new `/research-intel` routes included in the build
 

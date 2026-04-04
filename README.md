@@ -11,7 +11,9 @@ Pancreatic Signal is no longer a scaffold. As of 2026-04-03, this repository inc
 - a sibling `/research-intel` workspace for pancreatic oncology monitoring, topic watchlists, cited digests, and opportunity planning
 - seeded research-intel source catalogs, topic ontology, lightweight knowledge graph, action-spec opportunity engine, case briefs, and run-audit records
 - a schedule-aware watchtower layer with due-source planning, curated connector expansion, and a `/research-intel/schedule` workspace
-- a sandboxed research-intel experiment runner for benchmark and rule proposals with ratchet-style keep or discard outcomes
+- multi-run digest comparison with recurring open-question and disagreement tracking across digest history
+- contributor-ready packets for issue, benchmark, dataset, rule, trial, case-brief, and tooling follow-through
+- a sandboxed research-intel experiment runner for benchmark and rule proposals with readiness and stress-test modes plus ratchet-style keep or discard outcomes
 - deterministic, evidence-backed report triage with rationale codes and auditability
 - a reviewer worklist with case detail, review actions, and research-safe views
 - evaluation and export paths for retrospective benchmarking
@@ -65,6 +67,7 @@ It is not:
 │   ├── EVALUATION.md
 │   ├── RESEARCH_INTELLIGENCE.md
 │   ├── RESEARCH_INTELLIGENCE_EXECUTION_PLAN.md
+│   ├── RESEARCH_INTELLIGENCE_GOVERNANCE.md
 │   ├── DEPLOYMENT.md
 │   ├── RELEASE_RUNBOOK.md
 │   ├── RELEASE_READINESS.md
@@ -97,7 +100,8 @@ Current product focus:
 
 - cited pancreatic oncology monitoring, topic watchlists, and opportunity surfacing
 - structured discovery-to-action specs for benchmarks, rules, trial upkeep, and contributor tooling
-- safe experiment runs that score proposal readiness without mutating code or case scores automatically
+- multi-run council history that preserves recurring disagreements and open questions across digests
+- safe experiment runs that score proposal readiness or stress-test contributor packets without mutating code or case scores automatically
 - CT and MRI abdomen report text
 - deterministic rules and explainable scoring
 - reviewer and navigator workflow support

@@ -27,6 +27,7 @@ from app.schemas.research_intel import (
     ResearchCaseBrief,
     ResearchCaseBriefDocument,
     ResearchCaseBriefTopic,
+    ResearchContributorPacket,
     ResearchOpportunityActionPayload,
     ResearchOpportunityArtifactSpec,
     ResearchOpportunityEvidence,
@@ -38,9 +39,14 @@ from app.schemas.research_intel import (
     ResearchCouncilStage3Synthesis,
     ResearchDigestDetail,
     ResearchDigestDocumentRef,
+    ResearchDigestHistoryItem,
+    ResearchDigestHistorySnapshot,
     ResearchDigestListItem,
+    ResearchDigestRecurringItem,
+    ResearchDigestTrend,
     ResearchDocument,
     ResearchEvidence,
+    ResearchExperimentKind,
     ResearchGraphEdge,
     ResearchGraphEntity,
     ResearchGraphNode,
@@ -94,6 +100,10 @@ _OPPORTUNITY_PERSONA_PRIORITY = {
     "external_tooling": ["open_source_builder"],
 }
 _EXPERIMENT_SUPPORTED_OPPORTUNITY_TYPES = {"benchmark_gap", "rule_gap"}
+_EXPERIMENT_KIND_BY_OPPORTUNITY = {
+    "benchmark_gap": ("benchmark_readiness", "benchmark_stress_test"),
+    "rule_gap": ("rule_explainability", "rule_stress_test"),
+}
 
 
 def _utcnow() -> datetime:
@@ -802,10 +812,14 @@ def run_research_digest(
             run.completed_at = _utcnow()
             return _build_run_detail(run, [])
 
+        previous_digests = session.execute(
+            select(ResearchDigestRecord).order_by(ResearchDigestRecord.generated_at.desc()).limit(5)
+        ).scalars().all()
         digest_payload = _build_digest_payload(
             documents=documents,
             topic_label_map=topic_label_map,
             source_map=source_map,
+            previous_digests=previous_digests,
         )
         council = ResearchCouncilPayload.model_validate(digest_payload["council_payload"])
         digest_id = digest_payload["digest_id"]
@@ -1052,20 +1066,25 @@ def list_research_digests() -> list[ResearchDigestListItem]:
         rows = session.execute(
             select(ResearchDigestRecord).order_by(ResearchDigestRecord.generated_at.desc())
         ).scalars().all()
-        return [
-            ResearchDigestListItem(
-                digest_id=row.digest_id,
-                title=row.title,
-                status=row.status,
-                publication_scope=row.publication_scope,
-                generated_at=row.generated_at,
-                topic_ids=row.topic_ids or [],
-                topic_labels=[topic_label_map[item] for item in row.topic_ids or [] if item in topic_label_map],
-                disagreement_score=row.disagreement_score,
-                citation_count=row.citation_count,
+        items: list[ResearchDigestListItem] = []
+        for row in rows:
+            summary_json = row.summary_json or {}
+            history = _normalize_digest_history(summary_json.get("history"))
+            items.append(
+                ResearchDigestListItem(
+                    digest_id=row.digest_id,
+                    title=row.title,
+                    status=row.status,
+                    publication_scope=row.publication_scope,
+                    generated_at=row.generated_at,
+                    topic_ids=row.topic_ids or [],
+                    topic_labels=[topic_label_map[item] for item in row.topic_ids or [] if item in topic_label_map],
+                    disagreement_score=row.disagreement_score,
+                    citation_count=row.citation_count,
+                    trend=history.trend,
+                )
             )
-            for row in rows
-        ]
+        return items
 
 
 def get_research_digest(digest_id: str) -> ResearchDigestDetail | None:
@@ -1093,6 +1112,7 @@ def get_research_digest(digest_id: str) -> ResearchDigestDetail | None:
         ]
         summary_json = digest.summary_json or {}
         council = ResearchCouncilPayload.model_validate(_normalize_council_payload(digest.council_payload))
+        history = _normalize_digest_history(summary_json.get("history"))
         return ResearchDigestDetail(
             digest_id=digest.digest_id,
             title=digest.title,
@@ -1109,6 +1129,8 @@ def get_research_digest(digest_id: str) -> ResearchDigestDetail | None:
             key_takeaways=list(summary_json.get("key_takeaways") or []),
             supporting_documents=refs,
             council=council,
+            trend=history.trend,
+            history=history,
         )
 
 
@@ -1172,6 +1194,7 @@ def run_research_opportunity_experiment(
     opportunity_id: str,
     actor_user_id: str,
     write_artifacts: bool = True,
+    experiment_kind: ResearchExperimentKind | None = None,
 ) -> ResearchRunDetail | None:
     ensure_research_intel_seeded()
     started_at = _utcnow()
@@ -1182,6 +1205,11 @@ def run_research_opportunity_experiment(
             return None
         if row.opportunity_type not in _EXPERIMENT_SUPPORTED_OPPORTUNITY_TYPES:
             raise ValueError("Experiments currently support only benchmark and rule opportunities.")
+        selected_experiment_kind = experiment_kind or _default_experiment_kind_for_opportunity(row.opportunity_type)
+        if selected_experiment_kind not in _supported_experiment_kinds_for_opportunity(row.opportunity_type):
+            raise ValueError(
+                f"Experiment kind {selected_experiment_kind} is not supported for {row.opportunity_type} opportunities."
+            )
 
         action_payload = ResearchOpportunityActionPayload.model_validate(row.action_payload or {})
         topic_rows = session.execute(select(ResearchTopicRecord)).scalars().all()
@@ -1197,6 +1225,7 @@ def run_research_opportunity_experiment(
             metadata_json={
                 "opportunity_id": opportunity_id,
                 "opportunity_type": row.opportunity_type,
+                "experiment_kind": selected_experiment_kind,
                 "write_artifacts": write_artifacts,
             },
         )
@@ -1220,7 +1249,9 @@ def run_research_opportunity_experiment(
             row=row,
             action_payload=action_payload,
             run_id=run.id,
+            experiment_kind=selected_experiment_kind,
         )
+        evaluation_stage = "stress_test" if "stress_test" in selected_experiment_kind else "score_candidate"
         run_items.extend(
             [
                 ResearchRunItemRecord(
@@ -1234,7 +1265,7 @@ def run_research_opportunity_experiment(
                 ResearchRunItemRecord(
                     run_id=run.id,
                     item_index=3,
-                    stage="score_candidate",
+                    stage=evaluation_stage,
                     status="completed",
                     source_identifier=opportunity_id,
                     document_id=action_payload.digest_id,
@@ -1287,6 +1318,7 @@ def run_research_opportunity_experiment(
             "delta": experiment.delta,
             "threshold": experiment.threshold,
             "min_delta": experiment.min_delta,
+            "experiment_summary": experiment.experiment_summary,
             "write_artifacts": write_artifacts,
         }
 
@@ -2240,6 +2272,7 @@ def _build_digest_payload(
     documents: list[ResearchDocumentRecord],
     topic_label_map: dict[str, str],
     source_map: dict[str, ResearchSourceRecord],
+    previous_digests: list[ResearchDigestRecord],
 ) -> dict[str, Any]:
     docs = sorted(
         documents,
@@ -2284,6 +2317,7 @@ def _build_digest_payload(
     )
     disagreement_score = _calculate_disagreement_score(stage_2)
     generated_at = _utcnow()
+    digest_id = f"digest-{generated_at.strftime('%Y%m%d-%H%M%S-%f')}"
     supporting_document_ids = [document.document_id for document in docs]
     key_takeaways = [
         (
@@ -2296,6 +2330,16 @@ def _build_digest_payload(
         key_takeaways.append(f"{document.title} ({document.citation_key})")
 
     key_takeaways = key_takeaways[:5]
+    history = _build_digest_history_snapshot(
+        digest_id=digest_id,
+        generated_at=generated_at,
+        ranked_topics=ranked_topics,
+        topic_label_map=topic_label_map,
+        disagreement_score=disagreement_score,
+        citation_count=len(supporting_document_ids),
+        council=council,
+        previous_digests=previous_digests,
+    )
     summary_markdown = _render_digest_markdown(
         generated_at=generated_at,
         ranked_topics=ranked_topics,
@@ -2306,8 +2350,8 @@ def _build_digest_payload(
         stage_2=stage_2,
         stage_3=stage_3,
         disagreement_score=disagreement_score,
+        history=history,
     )
-    digest_id = f"digest-{generated_at.strftime('%Y%m%d-%H%M%S')}"
     artifact_json = {
         "digest_id": digest_id,
         "title": "Pancreatic oncology research intelligence digest",
@@ -2316,6 +2360,7 @@ def _build_digest_payload(
         "topic_labels": [topic_label_map.get(item, item) for item in ranked_topics],
         "disagreement_score": disagreement_score,
         "key_takeaways": key_takeaways,
+        "history": history.model_dump(mode="json"),
         "supporting_documents": [
             {
                 "document_id": document.document_id,
@@ -2339,6 +2384,7 @@ def _build_digest_payload(
         "summary_markdown": summary_markdown,
         "summary_json": {
             "key_takeaways": key_takeaways,
+            "history": history.model_dump(mode="json"),
         },
         "disagreement_score": disagreement_score,
         "citation_count": len(supporting_document_ids),
@@ -2686,6 +2732,179 @@ def _derive_council_confidence(
     return "low"
 
 
+def _confidence_rank(confidence: str) -> int:
+    return {"low": 0, "medium": 1, "high": 2}.get(confidence, 1)
+
+
+def _confidence_trend(current: str, previous: str | None) -> str:
+    if previous is None:
+        return "new"
+    if _confidence_rank(current) > _confidence_rank(previous):
+        return "raising"
+    if _confidence_rank(current) < _confidence_rank(previous):
+        return "lowering"
+    return "holding"
+
+
+def _digest_history_item_from_record(
+    row: ResearchDigestRecord,
+    *,
+    topic_label_map: dict[str, str],
+) -> ResearchDigestHistoryItem:
+    council = ResearchCouncilPayload.model_validate(_normalize_council_payload(row.council_payload))
+    return ResearchDigestHistoryItem(
+        digest_id=row.digest_id,
+        generated_at=row.generated_at,
+        overall_confidence=council.stage_3.overall_confidence,
+        disagreement_score=row.disagreement_score,
+        citation_count=row.citation_count,
+        topic_labels=[topic_label_map[item] for item in row.topic_ids or [] if item in topic_label_map],
+    )
+
+
+def _build_recurring_digest_items(
+    *,
+    current_items: list[str],
+    history_rows: list[tuple[str, datetime, list[str]]],
+) -> list[ResearchDigestRecurringItem]:
+    counts: dict[str, int] = {}
+    digest_ids: dict[str, list[str]] = defaultdict(list)
+    last_seen_at: dict[str, datetime] = {}
+
+    for digest_id, generated_at, items in history_rows:
+        for item in _unique_preserve_order(items):
+            counts[item] = counts.get(item, 0) + 1
+            digest_ids.setdefault(item, []).append(digest_id)
+            last_seen_at[item] = generated_at
+
+    recurring = [
+        ResearchDigestRecurringItem(
+            text=item,
+            occurrence_count=counts[item],
+            digest_ids=digest_ids.get(item, []),
+            last_seen_at=last_seen_at.get(item),
+        )
+        for item in _unique_preserve_order(current_items)
+        if counts.get(item, 0) >= 2
+    ]
+    recurring.sort(key=lambda item: (-item.occurrence_count, item.text))
+    return recurring[:5]
+
+
+def _build_digest_history_snapshot(
+    *,
+    digest_id: str,
+    generated_at: datetime,
+    ranked_topics: list[str],
+    topic_label_map: dict[str, str],
+    disagreement_score: float,
+    citation_count: int,
+    council: ResearchCouncilPayload,
+    previous_digests: list[ResearchDigestRecord],
+) -> ResearchDigestHistorySnapshot:
+    topic_labels = [topic_label_map.get(item, item) for item in ranked_topics]
+    previous = previous_digests[0] if previous_digests else None
+    previous_council = (
+        ResearchCouncilPayload.model_validate(_normalize_council_payload(previous.council_payload))
+        if previous is not None
+        else None
+    )
+    previous_topic_labels = (
+        [topic_label_map[item] for item in previous.topic_ids or [] if item in topic_label_map]
+        if previous is not None
+        else []
+    )
+    trend = ResearchDigestTrend(
+        previous_digest_id=previous.digest_id if previous is not None else None,
+        previous_generated_at=previous.generated_at if previous is not None else None,
+        confidence_trend=_confidence_trend(
+            council.stage_3.overall_confidence,
+            previous_council.stage_3.overall_confidence if previous_council is not None else None,
+        ),
+        disagreement_delta=(
+            round(disagreement_score - previous.disagreement_score, 4)
+            if previous is not None
+            else None
+        ),
+        citation_delta=(citation_count - previous.citation_count) if previous is not None else None,
+        new_topic_labels=[item for item in topic_labels if item not in previous_topic_labels],
+        persistent_topic_labels=[item for item in topic_labels if item in previous_topic_labels],
+        dropped_topic_labels=[item for item in previous_topic_labels if item not in topic_labels],
+    )
+    recent_digests = [
+        ResearchDigestHistoryItem(
+            digest_id=digest_id,
+            generated_at=generated_at,
+            overall_confidence=council.stage_3.overall_confidence,
+            disagreement_score=disagreement_score,
+            citation_count=citation_count,
+            topic_labels=topic_labels,
+        )
+    ]
+    recent_digests.extend(
+        _digest_history_item_from_record(row, topic_label_map=topic_label_map)
+        for row in previous_digests[:4]
+    )
+    question_history_rows = [
+        (digest_id, generated_at, list(council.stage_3.open_questions)),
+        *[
+            (
+                row.digest_id,
+                row.generated_at,
+                list(
+                    ResearchCouncilPayload.model_validate(_normalize_council_payload(row.council_payload)).stage_3.open_questions
+                ),
+            )
+            for row in previous_digests[:4]
+        ],
+    ]
+    disagreement_history_rows = [
+        (digest_id, generated_at, list(council.stage_3.disagreement_points)),
+        *[
+            (
+                row.digest_id,
+                row.generated_at,
+                list(
+                    ResearchCouncilPayload.model_validate(_normalize_council_payload(row.council_payload)).stage_3.disagreement_points
+                ),
+            )
+            for row in previous_digests[:4]
+        ],
+    ]
+    resolved_open_questions = (
+        [
+            item
+            for item in previous_council.stage_3.open_questions
+            if item not in set(council.stage_3.open_questions)
+        ][:5]
+        if previous_council is not None
+        else []
+    )
+    resolved_disagreement_points = (
+        [
+            item
+            for item in previous_council.stage_3.disagreement_points
+            if item not in set(council.stage_3.disagreement_points)
+        ][:5]
+        if previous_council is not None
+        else []
+    )
+    return ResearchDigestHistorySnapshot(
+        trend=trend,
+        recent_digests=recent_digests,
+        recurring_open_questions=_build_recurring_digest_items(
+            current_items=list(council.stage_3.open_questions),
+            history_rows=question_history_rows,
+        ),
+        recurring_disagreement_points=_build_recurring_digest_items(
+            current_items=list(council.stage_3.disagreement_points),
+            history_rows=disagreement_history_rows,
+        ),
+        resolved_open_questions=resolved_open_questions,
+        resolved_disagreement_points=resolved_disagreement_points,
+    )
+
+
 def _unique_preserve_order(items: Any) -> list[str]:
     seen: set[str] = set()
     output: list[str] = []
@@ -2719,6 +2938,17 @@ def _normalize_council_payload(payload: Any) -> dict[str, Any]:
     return value
 
 
+def _normalize_digest_history(payload: Any) -> ResearchDigestHistorySnapshot:
+    value = dict(payload or {})
+    value.setdefault("trend", {})
+    value.setdefault("recent_digests", [])
+    value.setdefault("recurring_open_questions", [])
+    value.setdefault("recurring_disagreement_points", [])
+    value.setdefault("resolved_open_questions", [])
+    value.setdefault("resolved_disagreement_points", [])
+    return ResearchDigestHistorySnapshot.model_validate(value)
+
+
 def _render_digest_markdown(
     *,
     generated_at: datetime,
@@ -2730,6 +2960,7 @@ def _render_digest_markdown(
     stage_2: list[ResearchCouncilStage2Ranking],
     stage_3: ResearchCouncilStage3Synthesis,
     disagreement_score: float,
+    history: ResearchDigestHistorySnapshot,
 ) -> str:
     lines = [
         "# Pancreatic oncology research intelligence digest",
@@ -2743,6 +2974,21 @@ def _render_digest_markdown(
     lines.extend(["", "## Key takeaways"])
     for takeaway in key_takeaways:
         lines.append(f"- {takeaway}")
+    if history.recent_digests:
+        lines.extend(["", "## Across runs"])
+        lines.append(f"- confidence trend: {history.trend.confidence_trend}")
+        if history.trend.previous_digest_id:
+            lines.append(f"- previous digest: {history.trend.previous_digest_id}")
+        if history.trend.disagreement_delta is not None:
+            lines.append(f"- disagreement delta: {history.trend.disagreement_delta:+.2f}")
+        if history.trend.citation_delta is not None:
+            lines.append(f"- citation delta: {history.trend.citation_delta:+d}")
+        for label in history.trend.new_topic_labels[:3]:
+            lines.append(f"- new topic: {label}")
+        for item in history.recurring_open_questions[:3]:
+            lines.append(f"- recurring open question ({item.occurrence_count}x): {item.text}")
+        for item in history.recurring_disagreement_points[:2]:
+            lines.append(f"- recurring disagreement ({item.occurrence_count}x): {item.text}")
     lines.extend(["", "## Supporting documents"])
     for document in documents:
         lines.append(f"- {document.title} ({document.citation_key})")
@@ -2841,6 +3087,7 @@ def _upsert_opportunities_for_digest(
     created = 0
     updated = 0
     artifact_paths: list[str] = []
+    digest_history = _normalize_digest_history((digest.summary_json or {}).get("history"))
     topic_to_documents: dict[str, list[ResearchDocumentRecord]] = defaultdict(list)
     for document in documents:
         for topic_id in document.topic_ids or []:
@@ -2858,6 +3105,7 @@ def _upsert_opportunities_for_digest(
             action_payload = _build_opportunity_action_payload(
                 opportunity_id=opportunity_id,
                 digest=digest,
+                digest_history=digest_history,
                 opportunity_type=opportunity_type,
                 topic=topic,
                 topic_label_map=topic_label_map,
@@ -2975,6 +3223,7 @@ def _build_opportunity_action_payload(
     *,
     opportunity_id: str,
     digest: ResearchDigestRecord,
+    digest_history: ResearchDigestHistorySnapshot,
     opportunity_type: str,
     topic: ResearchTopicRecord,
     topic_label_map: dict[str, str],
@@ -3024,6 +3273,17 @@ def _build_opportunity_action_payload(
         + [item for opinion in relevant_stage_1 for item in opinion.primary_topics]
         + _top_graph_labels(supporting_documents, limit=3)
     )[:5]
+    contributor_packets = _build_contributor_packets(
+        opportunity_id=opportunity_id,
+        opportunity_type=opportunity_type,
+        topic=topic,
+        action_payload_context={
+            "open_questions": open_questions,
+            "evidence_gaps": evidence_gaps,
+            "theme_snapshot": theme_snapshot,
+        },
+        digest_history=digest_history,
+    )
     return ResearchOpportunityActionPayload(
         human_gate=True,
         digest_id=digest.digest_id,
@@ -3055,11 +3315,290 @@ def _build_opportunity_action_payload(
             topic_label=topic.label,
         ),
         promotion_guardrails=list(council.stage_3.promotion_guardrails),
+        contributor_packets=contributor_packets,
         suggested_target=_default_promotion_target(opportunity_type),
         council_confidence=council.stage_3.overall_confidence,
         council_personas=[item.persona for item in relevant_stage_1],
         theme_snapshot=theme_snapshot,
     )
+
+
+def _contributor_repo_targets(opportunity_type: str) -> list[str]:
+    if opportunity_type == "benchmark_gap":
+        return [
+            "docs/examples/benchmark-manifest-template.json",
+            "docs/examples/benchmark-label-template.jsonl",
+            "data/examples/report_labels.jsonl",
+            "scripts/write_demo_benchmark.py",
+            "apps/web/app/proof/page.tsx",
+        ]
+    if opportunity_type == "rule_gap":
+        return [
+            "data/ontologies/pancreatic_signal_rules.json",
+            "apps/api/app/services/ontology.py",
+            "apps/api/app/services/research_intel.py",
+            "apps/api/tests/test_research_intel.py",
+        ]
+    if opportunity_type == "trial_catalog_gap":
+        return [
+            "data/trials/pdac_trial_rules.json",
+            "apps/api/app/services/trial_matching.py",
+            "apps/api/tests/test_research_intel.py",
+        ]
+    if opportunity_type == "case_brief":
+        return [
+            "apps/api/app/services/research_intel.py",
+            "apps/web/app/cases/[caseId]/page.tsx",
+            "apps/web/app/cases/[caseId]/research/page.tsx",
+        ]
+    if opportunity_type == "community_project":
+        return [
+            "docs/BENCHMARK_SUBMISSIONS.md",
+            "docs/examples/published-external-benchmarks.json",
+            "apps/web/app/proof/page.tsx",
+        ]
+    return [
+        "apps/api/app/services/research_intel.py",
+        "apps/web/app/research-intel/page.tsx",
+        "apps/web/app/research-intel/opportunities/page.tsx",
+    ]
+
+
+def _build_contributor_packets(
+    *,
+    opportunity_id: str,
+    opportunity_type: str,
+    topic: ResearchTopicRecord,
+    action_payload_context: dict[str, list[str]],
+    digest_history: ResearchDigestHistorySnapshot,
+) -> list[ResearchContributorPacket]:
+    repo_targets = _contributor_repo_targets(opportunity_type)
+    trend = digest_history.trend
+    handoff_notes = [
+        f"Council confidence trend is {trend.confidence_trend}.",
+        (
+            f"Recurring open questions carried into this digest: "
+            f"{', '.join(item.text for item in digest_history.recurring_open_questions[:2])}."
+            if digest_history.recurring_open_questions
+            else "No recurring open questions were detected across the current digest window."
+        ),
+        (
+            f"Recurring disagreement points: "
+            f"{', '.join(item.text for item in digest_history.recurring_disagreement_points[:2])}."
+            if digest_history.recurring_disagreement_points
+            else "No recurring disagreement points were detected across the current digest window."
+        ),
+    ]
+    packets = [
+        ResearchContributorPacket(
+            packet_kind="issue_packet",
+            title=f"Issue-ready packet for {topic.label.lower()}",
+            summary=(
+                f"Open a contributor-facing issue for {topic.label.lower()} with cited evidence, acceptance gates, "
+                "and explicit next steps tied back to the current digest."
+            ),
+            suggested_owner="maintainer" if opportunity_type in {"rule_gap", "trial_catalog_gap", "case_brief"} else "contributor",
+            repo_targets=repo_targets,
+            issue_labels=[
+                "research-intel",
+                opportunity_type,
+                topic.topic_id,
+            ],
+            checklist=[
+                "Summarize the cited discovery pressure in one paragraph.",
+                "Link the evidence bundle and current acceptance gates.",
+                "Call out the first measurable outcome before implementation begins.",
+            ],
+            output_artifacts=[
+                f"artifacts/research-intel/promotions/{opportunity_id}-github_issue.md",
+            ],
+            validation_steps=[
+                "Keep the work human-gated and citation-backed.",
+                "Preserve explainability boundaries and avoid automatic scoring changes.",
+            ],
+            handoff_notes=handoff_notes,
+        )
+    ]
+
+    if opportunity_type == "benchmark_gap":
+        packets.extend(
+            [
+                ResearchContributorPacket(
+                    packet_kind="benchmark_packet",
+                    title=f"Benchmark packet for {topic.label.lower()}",
+                    summary="Expand the benchmark set with deidentified or synthetic cases that reflect the cited discovery pattern.",
+                    suggested_owner="benchmark contributor",
+                    repo_targets=repo_targets,
+                    issue_labels=["research-intel", "benchmark", topic.topic_id],
+                    checklist=[
+                        "Draft new benchmark rows with expected rationale codes and reviewer focus.",
+                        "Capture wording variance, confounders, and follow-up cues from the digest.",
+                        "Keep every new case tied to cited evidence and deidentification policy.",
+                    ],
+                    output_artifacts=[
+                        f"docs/examples/{topic.topic_id}-benchmark-manifest.json",
+                        f"docs/examples/{topic.topic_id}-benchmark-labels.jsonl",
+                    ],
+                    validation_steps=[
+                        "Validate benchmark submission structure before publishing.",
+                        "Update proof-facing benchmark surfaces only after labels and rationale cues are reviewed.",
+                    ],
+                    handoff_notes=handoff_notes,
+                ),
+                ResearchContributorPacket(
+                    packet_kind="dataset_packet",
+                    title=f"Dataset packet for {topic.label.lower()}",
+                    summary="Package a reusable evidence-backed dataset or manifest slice so outside contributors can reproduce the discovery signal safely.",
+                    suggested_owner="dataset maintainer",
+                    repo_targets=[
+                        "docs/BENCHMARK_SUBMISSIONS.md",
+                        "docs/examples/published-external-benchmarks.json",
+                        "docs/examples/benchmark-submission-template.json",
+                    ],
+                    issue_labels=["research-intel", "dataset", topic.topic_id],
+                    checklist=[
+                        "Choose the minimum viable case cohort or manifest slice.",
+                        "Document labeling policy, deidentification status, and evidence provenance.",
+                        "Make the packet consumable without private chat context.",
+                    ],
+                    output_artifacts=[
+                        f"docs/examples/{topic.topic_id}-external-submission.json",
+                    ],
+                    validation_steps=[
+                        "Ensure the dataset packet is reproducible and citation-backed.",
+                    ],
+                    handoff_notes=handoff_notes,
+                ),
+            ]
+        )
+    elif opportunity_type == "rule_gap":
+        packets.append(
+            ResearchContributorPacket(
+                packet_kind="rule_packet",
+                title=f"Rule packet for {topic.label.lower()}",
+                summary="Prepare an explainable rule update with explicit rationale coverage, confounder handling, and tests.",
+                suggested_owner="maintainer",
+                repo_targets=repo_targets,
+                issue_labels=["research-intel", "rules", topic.topic_id],
+                checklist=[
+                    "Describe the missing rule behavior in plain language.",
+                    "Map the digest evidence to explicit rationale or ontology updates.",
+                    "Define tests that protect explainability and confounder handling.",
+                ],
+                output_artifacts=[
+                    f"artifacts/research-intel/opportunities/{opportunity_id}.md",
+                ],
+                validation_steps=[
+                    "Keep the rule path explainable and test-backed.",
+                    "Do not merge any opaque scoring behavior from research-intel output.",
+                ],
+                handoff_notes=handoff_notes,
+            )
+        )
+    elif opportunity_type == "trial_catalog_gap":
+        packets.append(
+            ResearchContributorPacket(
+                packet_kind="trial_packet",
+                title=f"Trial packet for {topic.label.lower()}",
+                summary="Package a trial-catalog update that separates eligibility, follow-up, and screening context from diagnosis claims.",
+                suggested_owner="trial maintainer",
+                repo_targets=repo_targets,
+                issue_labels=["research-intel", "trials", topic.topic_id],
+                checklist=[
+                    "Extract the eligibility or pathway gap from the cited digest.",
+                    "Document why the current trial mapping is incomplete.",
+                    "Keep translational guidance bounded and explainable.",
+                ],
+                output_artifacts=[
+                    f"artifacts/research-intel/promotions/{opportunity_id}-docs_draft.md",
+                ],
+                validation_steps=[
+                    "Avoid enrollment advice and preserve human review boundaries.",
+                ],
+                handoff_notes=handoff_notes,
+            )
+        )
+    elif opportunity_type == "case_brief":
+        packets.append(
+            ResearchContributorPacket(
+                packet_kind="case_brief_packet",
+                title=f"Case-brief packet for {topic.label.lower()}",
+                summary="Translate the digest into a better case-level brief without mutating triage scores or reviewer state.",
+                suggested_owner="product maintainer",
+                repo_targets=repo_targets,
+                issue_labels=["research-intel", "case-brief", topic.topic_id],
+                checklist=[
+                    "Tie the brief to rationale codes or trial abstractions already present in the product.",
+                    "Expose only cited research context and open questions.",
+                    "Keep the brief additive to reviewer workflow.",
+                ],
+                output_artifacts=[
+                    f"artifacts/research-intel/opportunities/{opportunity_id}.json",
+                ],
+                validation_steps=[
+                    "Do not let case briefs rewrite scores, urgency, or reviewer actions.",
+                ],
+                handoff_notes=handoff_notes,
+            )
+        )
+    elif opportunity_type == "community_project":
+        packets.append(
+            ResearchContributorPacket(
+                packet_kind="dataset_packet",
+                title=f"Community dataset packet for {topic.label.lower()}",
+                summary="Shape the topic into a contributor-ready dataset or open benchmark project that can be adopted outside the core maintainers.",
+                suggested_owner="community maintainer",
+                repo_targets=repo_targets,
+                issue_labels=["research-intel", "community", "dataset", topic.topic_id],
+                checklist=[
+                    "Define the reusable artifact the community can actually build next.",
+                    "Document the safety boundary and required citations.",
+                    "Keep the scope small enough for an outside contributor to finish.",
+                ],
+                output_artifacts=[
+                    f"docs/examples/{topic.topic_id}-community-pack.json",
+                ],
+                validation_steps=[
+                    "Package the work so it does not depend on hidden institutional data.",
+                ],
+                handoff_notes=handoff_notes,
+            )
+        )
+    else:
+        packets.append(
+            ResearchContributorPacket(
+                packet_kind="tooling_packet",
+                title=f"Tooling packet for {topic.label.lower()}",
+                summary="Turn the discovery signal into a focused tooling task for the research watchtower or contributor workflow.",
+                suggested_owner="tooling contributor",
+                repo_targets=repo_targets,
+                issue_labels=["research-intel", "tooling", topic.topic_id],
+                checklist=[
+                    "Describe the operator or contributor pain point clearly.",
+                    "Tie the tooling request to cited evidence and theme snapshots.",
+                    "List the validation hook that proves the tooling change helped.",
+                ],
+                output_artifacts=[
+                    f"artifacts/research-intel/opportunities/{opportunity_id}.md",
+                ],
+                validation_steps=[
+                    "Keep the output transparent and human-auditable.",
+                ],
+                handoff_notes=handoff_notes,
+            )
+        )
+
+    if action_payload_context.get("open_questions"):
+        for packet in packets:
+            packet.handoff_notes = list(packet.handoff_notes) + [
+                f"Current open-question backlog: {', '.join(action_payload_context['open_questions'][:2])}.",
+            ]
+    if action_payload_context.get("evidence_gaps"):
+        for packet in packets:
+            packet.handoff_notes = list(packet.handoff_notes) + [
+                f"Evidence gaps to protect during implementation: {', '.join(action_payload_context['evidence_gaps'][:2])}.",
+            ]
+    return packets
 
 
 def _artifact_kind_for_opportunity(opportunity_type: str) -> str:
@@ -3316,95 +3855,245 @@ def _evaluate_opportunity_experiment(
     row: ResearchOpportunityRecord,
     action_payload: ResearchOpportunityActionPayload,
     run_id: int,
+    experiment_kind: ResearchExperimentKind,
 ) -> ResearchOpportunityExperimentResult:
-    experiment_kind = _experiment_kind_for_opportunity(row.opportunity_type)
     evidence_count = len(action_payload.evidence_bundle)
     measurable_count = len(action_payload.measurable_outcomes)
     step_count = len(action_payload.proposed_steps)
     gate_count = len(action_payload.acceptance_gates)
     open_question_count = len(action_payload.open_questions)
+    evidence_gap_count = len(action_payload.evidence_gaps)
     theme_count = len(action_payload.theme_snapshot)
     rationale_count = len(row.related_rationale_codes or [])
+    contributor_packet_count = len(action_payload.contributor_packets)
+    dataset_packet_count = sum(
+        1 for packet in action_payload.contributor_packets if packet.packet_kind == "dataset_packet"
+    )
+    benchmark_packet_count = sum(
+        1 for packet in action_payload.contributor_packets if packet.packet_kind == "benchmark_packet"
+    )
+    rule_packet_count = sum(
+        1 for packet in action_payload.contributor_packets if packet.packet_kind == "rule_packet"
+    )
     council_bonus = _council_confidence_bonus(action_payload.council_confidence)
 
     if experiment_kind == "benchmark_readiness":
         metric_name = "benchmark_readiness_score"
         threshold = 0.74
         min_delta = 0.05
-        evidence_coverage_score = round(
-            min(
-                1.0,
-                0.30
-                + 0.16 * min(3, evidence_count)
-                + 0.05 * min(3, theme_count)
-                + 0.04 * min(2, measurable_count)
-                - 0.04 * max(0, open_question_count - 2),
-            ),
-            4,
+        stress_dimensions = ["evidence_coverage", "artifact_specificity", "contributor_handoff"]
+        scored_dimensions = _round_dimension_scores(
+            {
+                "evidence_coverage": min(
+                    1.0,
+                    0.32
+                    + 0.16 * min(3, evidence_count)
+                    + 0.05 * min(3, theme_count)
+                    + 0.04 * min(2, measurable_count)
+                    - 0.04 * max(0, open_question_count - 2),
+                ),
+                "artifact_specificity": min(
+                    1.0,
+                    0.36
+                    + 0.08 * min(3, measurable_count)
+                    + 0.06 * min(3, step_count)
+                    + 0.06 * min(2, benchmark_packet_count)
+                    + (0.08 if action_payload.artifact_spec.artifact_kind == "benchmark_spec" else 0.0),
+                ),
+                "contributor_handoff": min(
+                    1.0,
+                    0.34
+                    + 0.09 * min(3, contributor_packet_count)
+                    + 0.05 * min(3, gate_count)
+                    + 0.05 * min(2, dataset_packet_count),
+                ),
+            }
         )
+        evidence_coverage_score = scored_dimensions["evidence_coverage"]
         heuristic_baseline = round(
-            min(
-                0.88,
-                0.42
-                + 0.06 * min(3, evidence_count)
-                + 0.05 * min(2, theme_count),
-            ),
+            min(0.88, 0.43 + 0.06 * min(3, evidence_count) + 0.04 * min(2, theme_count)),
             4,
         )
         candidate_value = round(
             min(
                 0.99,
-                0.48
-                + 0.08 * min(3, evidence_count)
-                + 0.05 * min(3, measurable_count)
-                + 0.04 * min(3, step_count)
-                + 0.03 * min(3, gate_count)
-                + (0.07 if action_payload.artifact_spec.artifact_kind == "benchmark_spec" else 0.0)
+                _average_dimension_score(scored_dimensions)
                 + council_bonus
-                + 0.05 * evidence_coverage_score
                 - 0.03 * max(0, open_question_count - 2),
             ),
             4,
         )
-    else:
-        metric_name = "rule_explainability_score"
-        threshold = 0.76
-        min_delta = 0.04
+        experiment_summary = (
+            "Readiness scored the opportunity on evidence coverage, downstream artifact specificity, and whether the "
+            "handoff is concrete enough for benchmark contributors."
+        )
+    elif experiment_kind == "benchmark_stress_test":
+        metric_name = "benchmark_stress_score"
+        threshold = 0.78
+        min_delta = 0.03
+        stress_dimensions = [
+            "wording_variance",
+            "confounder_coverage",
+            "follow_up_specificity",
+            "dataset_reusability",
+        ]
+        scored_dimensions = _round_dimension_scores(
+            {
+                "wording_variance": min(
+                    1.0,
+                    0.35 + 0.08 * min(4, theme_count) + 0.07 * min(3, evidence_count),
+                ),
+                "confounder_coverage": min(
+                    1.0,
+                    0.30
+                    + 0.08 * min(3, open_question_count)
+                    + 0.07 * min(3, evidence_gap_count)
+                    + 0.06 * min(3, measurable_count),
+                ),
+                "follow_up_specificity": min(
+                    1.0,
+                    0.33
+                    + 0.07 * min(3, measurable_count)
+                    + 0.07 * min(3, gate_count)
+                    + 0.05 * min(3, step_count),
+                ),
+                "dataset_reusability": min(
+                    1.0,
+                    0.34
+                    + 0.10 * min(2, dataset_packet_count)
+                    + 0.08 * min(2, benchmark_packet_count)
+                    + 0.05 * min(3, contributor_packet_count),
+                ),
+            }
+        )
         evidence_coverage_score = round(
-            min(
-                1.0,
-                0.28
-                + 0.14 * min(3, evidence_count)
-                + 0.08 * min(3, rationale_count)
-                + 0.04 * min(3, gate_count)
-                - 0.04 * max(0, open_question_count - 1),
-            ),
+            (scored_dimensions["wording_variance"] + scored_dimensions["confounder_coverage"]) / 2,
             4,
         )
         heuristic_baseline = round(
-            min(
-                0.86,
-                0.40
-                + 0.05 * min(3, evidence_count)
-                + 0.07 * min(3, rationale_count),
-            ),
+            min(0.87, 0.44 + 0.05 * min(3, evidence_count) + 0.05 * min(2, contributor_packet_count)),
             4,
         )
         candidate_value = round(
             min(
                 0.99,
-                0.46
-                + 0.07 * min(3, evidence_count)
-                + 0.07 * min(3, rationale_count)
-                + 0.05 * min(3, measurable_count)
-                + 0.04 * min(3, gate_count)
-                + 0.04 * min(3, step_count)
-                + (0.07 if action_payload.artifact_spec.artifact_kind == "rule_spec" else 0.0)
+                _average_dimension_score(scored_dimensions)
                 + council_bonus
-                + 0.04 * evidence_coverage_score
+                - 0.02 * max(0, evidence_gap_count - 2),
+            ),
+            4,
+        )
+        experiment_summary = (
+            "Stress testing scored whether the benchmark opportunity can survive wording variance, confounders, "
+            "follow-up nuance, and dataset packaging pressure."
+        )
+    elif experiment_kind == "rule_explainability":
+        metric_name = "rule_explainability_score"
+        threshold = 0.76
+        min_delta = 0.04
+        stress_dimensions = ["evidence_traceability", "rationale_alignment", "acceptance_clarity"]
+        scored_dimensions = _round_dimension_scores(
+            {
+                "evidence_traceability": min(
+                    1.0,
+                    0.30
+                    + 0.14 * min(3, evidence_count)
+                    + 0.08 * min(3, rationale_count)
+                    - 0.04 * max(0, open_question_count - 1),
+                ),
+                "rationale_alignment": min(
+                    1.0,
+                    0.34
+                    + 0.09 * min(3, rationale_count)
+                    + 0.06 * min(3, measurable_count)
+                    + (0.08 if action_payload.artifact_spec.artifact_kind == "rule_spec" else 0.0),
+                ),
+                "acceptance_clarity": min(
+                    1.0,
+                    0.36
+                    + 0.07 * min(3, gate_count)
+                    + 0.06 * min(3, step_count)
+                    + 0.05 * min(2, rule_packet_count),
+                ),
+            }
+        )
+        evidence_coverage_score = scored_dimensions["evidence_traceability"]
+        heuristic_baseline = round(
+            min(0.86, 0.41 + 0.05 * min(3, evidence_count) + 0.07 * min(3, rationale_count)),
+            4,
+        )
+        candidate_value = round(
+            min(
+                0.99,
+                _average_dimension_score(scored_dimensions)
+                + council_bonus
                 - 0.03 * max(0, open_question_count - 1),
             ),
             4,
+        )
+        experiment_summary = (
+            "Explainability scored whether the rule proposal stays traceable to evidence, rationale families, and "
+            "explicit acceptance criteria."
+        )
+    else:
+        metric_name = "rule_stress_score"
+        threshold = 0.79
+        min_delta = 0.03
+        stress_dimensions = [
+            "negation_resilience",
+            "confounder_handling",
+            "rationale_traceability",
+            "boundary_safety",
+        ]
+        scored_dimensions = _round_dimension_scores(
+            {
+                "negation_resilience": min(
+                    1.0,
+                    0.32 + 0.07 * min(3, rationale_count) + 0.06 * min(3, evidence_count),
+                ),
+                "confounder_handling": min(
+                    1.0,
+                    0.30
+                    + 0.08 * min(3, evidence_gap_count)
+                    + 0.07 * min(3, open_question_count)
+                    + 0.05 * min(3, gate_count),
+                ),
+                "rationale_traceability": min(
+                    1.0,
+                    0.35
+                    + 0.10 * min(3, rationale_count)
+                    + 0.06 * min(2, rule_packet_count)
+                    + 0.05 * min(3, contributor_packet_count),
+                ),
+                "boundary_safety": min(
+                    1.0,
+                    0.34
+                    + 0.07 * min(3, gate_count)
+                    + 0.06 * min(3, measurable_count)
+                    + 0.05 * min(3, step_count),
+                ),
+            }
+        )
+        evidence_coverage_score = round(
+            (scored_dimensions["confounder_handling"] + scored_dimensions["rationale_traceability"]) / 2,
+            4,
+        )
+        heuristic_baseline = round(
+            min(0.87, 0.43 + 0.05 * min(3, rationale_count) + 0.05 * min(2, contributor_packet_count)),
+            4,
+        )
+        candidate_value = round(
+            min(
+                0.99,
+                _average_dimension_score(scored_dimensions)
+                + council_bonus
+                - 0.02 * max(0, evidence_gap_count - 1),
+            ),
+            4,
+        )
+        experiment_summary = (
+            "Stress testing scored whether the rule proposal stays safe under confounders, negation pressure, and "
+            "explainability boundary checks."
         )
 
     previous = action_payload.last_experiment
@@ -3443,15 +4132,33 @@ def _evaluate_opportunity_experiment(
         threshold=threshold,
         min_delta=min_delta,
         evidence_coverage_score=evidence_coverage_score,
+        experiment_summary=experiment_summary,
+        stress_dimensions=stress_dimensions,
+        scored_dimensions=scored_dimensions,
         notes=notes,
         run_id=run_id,
     )
 
 
-def _experiment_kind_for_opportunity(opportunity_type: str) -> str:
-    if opportunity_type == "benchmark_gap":
-        return "benchmark_readiness"
+def _supported_experiment_kinds_for_opportunity(opportunity_type: str) -> tuple[str, ...]:
+    return _EXPERIMENT_KIND_BY_OPPORTUNITY.get(opportunity_type, ())
+
+
+def _default_experiment_kind_for_opportunity(opportunity_type: str) -> str:
+    supported = _supported_experiment_kinds_for_opportunity(opportunity_type)
+    if supported:
+        return supported[0]
     return "rule_explainability"
+
+
+def _round_dimension_scores(scores: dict[str, float]) -> dict[str, float]:
+    return {key: round(min(1.0, max(0.0, value)), 4) for key, value in scores.items()}
+
+
+def _average_dimension_score(scores: dict[str, float]) -> float:
+    if not scores:
+        return 0.0
+    return round(sum(scores.values()) / len(scores), 4)
 
 
 def _council_confidence_bonus(confidence: str) -> float:
@@ -3585,6 +4292,15 @@ def _write_opportunity_promotion_artifact(
         lines.extend(["", "## Measurable outcomes"])
         for item in action_payload.measurable_outcomes:
             lines.append(f"- {item}")
+    if action_payload.contributor_packets:
+        lines.extend(["", "## Contributor packets"])
+        for packet in action_payload.contributor_packets:
+            lines.append(f"- {packet.packet_kind}: {packet.title}")
+            lines.append(f"  - summary: {packet.summary}")
+            if packet.repo_targets:
+                lines.append(f"  - repo targets: {', '.join(packet.repo_targets)}")
+            if packet.output_artifacts:
+                lines.append(f"  - outputs: {', '.join(packet.output_artifacts)}")
     if action_payload.promotion_guardrails:
         lines.extend(["", "## Promotion guardrails"])
         for item in action_payload.promotion_guardrails:
@@ -3688,12 +4404,85 @@ def _write_opportunity_action_artifacts(
             lines.append(f"- suggested path: `{action_payload.artifact_spec.suggested_path}`")
         if action_payload.artifact_spec.summary:
             lines.append(f"- summary: {action_payload.artifact_spec.summary}")
+    if action_payload.contributor_packets:
+        lines.extend(["", "## Contributor packets"])
+        for packet in action_payload.contributor_packets:
+            lines.append(f"- {packet.packet_kind}: {packet.title}")
+            lines.append(f"  - summary: {packet.summary}")
+            if packet.suggested_owner:
+                lines.append(f"  - suggested owner: {packet.suggested_owner}")
+            if packet.issue_labels:
+                lines.append(f"  - labels: {', '.join(packet.issue_labels)}")
+            if packet.repo_targets:
+                lines.append(f"  - repo targets: {', '.join(packet.repo_targets)}")
+            for item in packet.checklist[:3]:
+                lines.append(f"  - checklist: {item}")
 
     markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return [
+    paths = [
         str(json_path.relative_to(_repo_root())),
         str(markdown_path.relative_to(_repo_root())),
     ]
+    paths.extend(_write_contributor_packet_artifacts(row=row, action_payload=action_payload))
+    return paths
+
+
+def _write_contributor_packet_artifacts(
+    *,
+    row: ResearchOpportunityRecord,
+    action_payload: ResearchOpportunityActionPayload,
+) -> list[str]:
+    if not action_payload.contributor_packets:
+        return []
+    artifact_root = _artifact_root() / "packets"
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    artifact_paths: list[str] = []
+    for packet in action_payload.contributor_packets:
+        basename = f"{row.opportunity_id}-{packet.packet_kind}"
+        json_path = artifact_root / f"{basename}.json"
+        markdown_path = artifact_root / f"{basename}.md"
+        json_path.write_text(packet.model_dump_json(indent=2), encoding="utf-8")
+        lines = [
+            f"# {packet.title}",
+            "",
+            f"- opportunity id: `{row.opportunity_id}`",
+            f"- packet kind: `{packet.packet_kind}`",
+            f"- suggested owner: `{packet.suggested_owner or 'n/a'}`",
+            "",
+            packet.summary,
+        ]
+        if packet.issue_labels:
+            lines.extend(["", "## Issue labels"])
+            for item in packet.issue_labels:
+                lines.append(f"- {item}")
+        if packet.repo_targets:
+            lines.extend(["", "## Repo targets"])
+            for item in packet.repo_targets:
+                lines.append(f"- {item}")
+        if packet.checklist:
+            lines.extend(["", "## Checklist"])
+            for item in packet.checklist:
+                lines.append(f"- {item}")
+        if packet.validation_steps:
+            lines.extend(["", "## Validation steps"])
+            for item in packet.validation_steps:
+                lines.append(f"- {item}")
+        if packet.output_artifacts:
+            lines.extend(["", "## Expected outputs"])
+            for item in packet.output_artifacts:
+                lines.append(f"- {item}")
+        if packet.handoff_notes:
+            lines.extend(["", "## Handoff notes"])
+            for item in packet.handoff_notes:
+                lines.append(f"- {item}")
+        markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        artifact_paths.extend(
+            [
+                str(json_path.relative_to(_repo_root())),
+                str(markdown_path.relative_to(_repo_root())),
+            ]
+        )
+    return artifact_paths
 
 
 def _write_opportunity_experiment_artifacts(
@@ -3722,6 +4511,7 @@ def _write_opportunity_experiment_artifacts(
         "evidence_gaps": list(action_payload.evidence_gaps),
         "measurable_outcomes": list(action_payload.measurable_outcomes),
         "acceptance_gates": list(action_payload.acceptance_gates),
+        "contributor_packets": [packet.model_dump(mode="json") for packet in action_payload.contributor_packets],
     }
     json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
@@ -3746,6 +4536,12 @@ def _write_opportunity_experiment_artifacts(
             else "- evidence coverage: n/a"
         ),
     ]
+    if experiment.experiment_summary:
+        lines.extend(["", "## Experiment summary", experiment.experiment_summary])
+    if experiment.scored_dimensions:
+        lines.extend(["", "## Scored dimensions"])
+        for key, value in experiment.scored_dimensions.items():
+            lines.append(f"- {key}: {value:.2f}")
     if action_payload.objective:
         lines.extend(["", "## Objective", action_payload.objective])
     if action_payload.discovery_question:
@@ -3762,6 +4558,12 @@ def _write_opportunity_experiment_artifacts(
         lines.extend(["", "## Acceptance gates"])
         for item in action_payload.acceptance_gates:
             lines.append(f"- {item}")
+    if action_payload.contributor_packets:
+        lines.extend(["", "## Contributor packets"])
+        for packet in action_payload.contributor_packets:
+            lines.append(f"- {packet.packet_kind}: {packet.title}")
+            if packet.output_artifacts:
+                lines.append(f"  - outputs: {', '.join(packet.output_artifacts)}")
     if action_payload.evidence_bundle:
         lines.extend(["", "## Evidence bundle"])
         for item in action_payload.evidence_bundle:
