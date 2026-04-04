@@ -447,6 +447,9 @@ Return a digest detail view with supporting documents plus persisted council sta
 ### `GET /research-intel/opportunities`
 Return human-gated research opportunities generated from the digest flow.
 
+Behavior:
+- Each opportunity includes a typed action payload with objective, why-now rationale, discovery question, evidence bundle, proposed steps, measurable outcomes, and promotion guardrails.
+
 Query params:
 - `opportunity_type`
 - `status`
@@ -502,6 +505,7 @@ Request:
 Behavior:
 - Builds council outputs, disagreement tracking, digest summaries, and research opportunities from the current document store.
 - Writes JSON and Markdown artifacts under `artifacts/research-intel/` when `write_artifacts=true`.
+- Opportunity artifacts are also written under `artifacts/research-intel/opportunities/` when enabled.
 
 Access:
 - Allowed roles: `analyst`, `navigator`, `admin`
@@ -519,7 +523,7 @@ Request:
 Behavior:
 - Marks the opportunity as promoted.
 - Persists the promotion target and timestamp.
-- Writes a promotion artifact for downstream contributor workflows.
+- Writes a promotion artifact for downstream contributor workflows, including the structured action payload and cited evidence bundle.
 
 Access:
 - Allowed roles: `analyst`, `navigator`, `admin`

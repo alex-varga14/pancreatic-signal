@@ -661,6 +661,47 @@ export type ResearchDigestDetail = ResearchDigestListItem & {
   council: ResearchCouncilPayload;
 };
 
+export type ResearchOpportunityEvidence = {
+  document_id: string;
+  citation_key: string;
+  title: string;
+  source_kind?: string | null;
+  topic_labels: string[];
+  why_it_matters: string;
+};
+
+export type ResearchOpportunityArtifactSpec = {
+  artifact_kind: string;
+  title: string;
+  summary: string;
+  suggested_path?: string | null;
+  target_hint?: "github_issue" | "docs_draft" | "benchmark_task" | null;
+};
+
+export type ResearchOpportunityActionPayload = {
+  human_gate: boolean;
+  digest_id?: string | null;
+  objective: string;
+  why_now: string;
+  discovery_question: string;
+  artifact_spec: ResearchOpportunityArtifactSpec;
+  evidence_bundle: ResearchOpportunityEvidence[];
+  proposed_steps: string[];
+  acceptance_gates: string[];
+  open_questions: string[];
+  evidence_gaps: string[];
+  next_experiments: string[];
+  measurable_outcomes: string[];
+  promotion_guardrails: string[];
+  suggested_target: "github_issue" | "docs_draft" | "benchmark_task";
+  council_confidence: string;
+  council_personas: string[];
+  theme_snapshot: string[];
+  promoted_by_user_id?: string | null;
+  last_promotion_target?: "github_issue" | "docs_draft" | "benchmark_task" | null;
+  promotion_artifact_path?: string | null;
+};
+
 export type ResearchOpportunity = {
   opportunity_id: string;
   opportunity_type: string;
@@ -673,7 +714,7 @@ export type ResearchOpportunity = {
   supporting_document_ids: string[];
   related_rationale_codes: string[];
   related_trial_ids: string[];
-  action_payload: Record<string, unknown>;
+  action_payload: ResearchOpportunityActionPayload;
   promotion_target?: string | null;
   promoted_at?: string | null;
   created_at: string;

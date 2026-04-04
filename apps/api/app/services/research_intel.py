@@ -27,6 +27,9 @@ from app.schemas.research_intel import (
     ResearchCaseBrief,
     ResearchCaseBriefDocument,
     ResearchCaseBriefTopic,
+    ResearchOpportunityActionPayload,
+    ResearchOpportunityArtifactSpec,
+    ResearchOpportunityEvidence,
     ResearchCouncilPayload,
     ResearchCouncilPeerCritique,
     ResearchCouncilStage1Opinion,
@@ -80,6 +83,14 @@ _PERSONAS = [
         "focus": "Look for benchmark, tooling, and workflow opportunities for the open-source community.",
     },
 ]
+_OPPORTUNITY_PERSONA_PRIORITY = {
+    "rule_gap": ["translational_oncologist", "literature_scout"],
+    "benchmark_gap": ["literature_scout", "open_source_builder"],
+    "trial_catalog_gap": ["translational_oncologist", "literature_scout"],
+    "case_brief": ["translational_oncologist"],
+    "community_project": ["open_source_builder", "literature_scout"],
+    "external_tooling": ["open_source_builder"],
+}
 
 
 def _utcnow() -> datetime:
@@ -759,6 +770,7 @@ def run_research_digest(
             topic_label_map=topic_label_map,
             source_map=source_map,
         )
+        council = ResearchCouncilPayload.model_validate(digest_payload["council_payload"])
         digest_id = digest_payload["digest_id"]
         digest = session.get(ResearchDigestRecord, digest_id)
         if digest is None:
@@ -798,7 +810,11 @@ def run_research_digest(
             session=session,
             digest=digest,
             topic_record_map=topic_record_map,
+            topic_label_map=topic_label_map,
+            source_map=source_map,
             documents=documents,
+            council=council,
+            write_artifacts=write_artifacts,
         )
 
         run_items = [
@@ -824,6 +840,7 @@ def run_research_digest(
                     markdown_lines=digest_payload["summary_markdown"].splitlines(),
                 )
             )
+            artifact_paths.extend(created_opportunities["artifact_paths"])
 
         run.processed_count = len(documents)
         run.created_count = 1 + created_opportunities["created"]
@@ -837,6 +854,7 @@ def run_research_digest(
             "digest_id": digest.digest_id,
             "opportunities_created": created_opportunities["created"],
             "opportunities_updated": created_opportunities["updated"],
+            "opportunity_artifacts_written": len(created_opportunities["artifact_paths"]),
         }
 
     return get_research_run(run.id) or _build_run_detail(run, [])
@@ -1099,13 +1117,12 @@ def promote_research_opportunity(
         row.status = "promoted"
         row.promotion_target = target
         row.promoted_at = _utcnow()
-        row.action_payload = {
-            **(row.action_payload or {}),
-            "promoted_by": actor_user_id,
-            "promotion_target": target,
-        }
-
         artifact_path = _write_opportunity_promotion_artifact(row, target=target)
+        action_payload = ResearchOpportunityActionPayload.model_validate(row.action_payload or {})
+        action_payload.promoted_by_user_id = actor_user_id
+        action_payload.last_promotion_target = target
+        action_payload.promotion_artifact_path = artifact_path
+        row.action_payload = action_payload.model_dump(mode="json")
         topic_rows = session.execute(select(ResearchTopicRecord)).scalars().all()
         topic_label_map = {topic.topic_id: topic.label for topic in topic_rows}
         return _build_opportunity_response(row, topic_label_map), artifact_path
@@ -2426,10 +2443,15 @@ def _upsert_opportunities_for_digest(
     session: Any,
     digest: ResearchDigestRecord,
     topic_record_map: dict[str, ResearchTopicRecord],
+    topic_label_map: dict[str, str],
+    source_map: dict[str, ResearchSourceRecord],
     documents: list[ResearchDocumentRecord],
-) -> dict[str, int]:
+    council: ResearchCouncilPayload,
+    write_artifacts: bool,
+) -> dict[str, Any]:
     created = 0
     updated = 0
+    artifact_paths: list[str] = []
     topic_to_documents: dict[str, list[ResearchDocumentRecord]] = defaultdict(list)
     for document in documents:
         for topic_id in document.topic_ids or []:
@@ -2444,58 +2466,64 @@ def _upsert_opportunities_for_digest(
             continue
         for opportunity_type in (topic.opportunity_types or [])[:2]:
             opportunity_id = f"ropp-{opportunity_type}-{topic_id}"
+            action_payload = _build_opportunity_action_payload(
+                opportunity_id=opportunity_id,
+                digest=digest,
+                opportunity_type=opportunity_type,
+                topic=topic,
+                topic_label_map=topic_label_map,
+                source_map=source_map,
+                supporting_documents=supporting_documents,
+                council=council,
+            )
             title = _opportunity_title(opportunity_type=opportunity_type, topic_label=topic.label)
             summary = _opportunity_summary(
-                opportunity_type=opportunity_type,
-                topic_label=topic.label,
-                documents=supporting_documents,
+                title=title,
+                action_payload=action_payload,
             )
-            confidence = round(
-                min(
-                    0.99,
-                    0.45
-                    + 0.12 * len(supporting_documents)
-                    + 0.08 * (topic.topic_heat or 0.0),
-                ),
-                4,
+            confidence = _derive_opportunity_confidence(
+                opportunity_type=opportunity_type,
+                topic=topic,
+                supporting_documents=supporting_documents,
+                council=council,
             )
             record = session.get(ResearchOpportunityRecord, opportunity_id)
-            action_payload = {
-                "human_gate": True,
-                "digest_id": digest.digest_id,
-                "acceptance_gates": _acceptance_gates(opportunity_type),
-                "suggested_target": _default_promotion_target(opportunity_type),
-            }
             if record is None:
-                session.add(
-                    ResearchOpportunityRecord(
-                        opportunity_id=opportunity_id,
-                        opportunity_type=opportunity_type,
-                        title=title,
-                        summary=summary,
-                        status="proposed",
-                        confidence_score=confidence,
-                        topic_ids=[topic_id],
-                        supporting_document_ids=[item.document_id for item in supporting_documents],
-                        related_rationale_codes=topic.related_rationale_codes or [],
-                        related_trial_ids=topic.related_trial_tags or [],
-                        action_payload=action_payload,
+                record = ResearchOpportunityRecord(
+                    opportunity_id=opportunity_id,
+                    opportunity_type=opportunity_type,
+                    title=title,
+                    summary=summary,
+                    status="proposed",
+                    confidence_score=confidence,
+                    topic_ids=[topic_id],
+                    supporting_document_ids=[item.document_id for item in supporting_documents],
+                    related_rationale_codes=topic.related_rationale_codes or [],
+                    related_trial_ids=topic.related_trial_tags or [],
+                    action_payload=action_payload.model_dump(mode="json"),
+                )
+                session.add(record)
+                created += 1
+            else:
+                record.title = title
+                record.summary = summary
+                record.status = "proposed" if record.status != "promoted" else record.status
+                record.confidence_score = confidence
+                record.topic_ids = [topic_id]
+                record.supporting_document_ids = [item.document_id for item in supporting_documents]
+                record.related_rationale_codes = topic.related_rationale_codes or []
+                record.related_trial_ids = topic.related_trial_tags or []
+                record.action_payload = action_payload.model_dump(mode="json")
+                updated += 1
+            if write_artifacts:
+                session.flush()
+                artifact_paths.extend(
+                    _write_opportunity_action_artifacts(
+                        row=record,
+                        topic_label_map=topic_label_map,
                     )
                 )
-                created += 1
-                continue
-
-            record.title = title
-            record.summary = summary
-            record.status = "proposed" if record.status != "promoted" else record.status
-            record.confidence_score = confidence
-            record.topic_ids = [topic_id]
-            record.supporting_document_ids = [item.document_id for item in supporting_documents]
-            record.related_rationale_codes = topic.related_rationale_codes or []
-            record.related_trial_ids = topic.related_trial_tags or []
-            record.action_payload = action_payload
-            updated += 1
-    return {"created": created, "updated": updated}
+    return {"created": created, "updated": updated, "artifact_paths": artifact_paths}
 
 
 def _opportunity_title(*, opportunity_type: str, topic_label: str) -> str:
@@ -2514,14 +2542,383 @@ def _opportunity_title(*, opportunity_type: str, topic_label: str) -> str:
 
 def _opportunity_summary(
     *,
+    title: str,
+    action_payload: ResearchOpportunityActionPayload,
+) -> str:
+    citations = ", ".join(item.citation_key for item in action_payload.evidence_bundle[:2]) or "the current cited corpus"
+    return (
+        f"{title}. {action_payload.why_now} Start from {citations} and keep any downstream change human-reviewed."
+    )
+
+
+def _derive_opportunity_confidence(
+    *,
+    opportunity_type: str,
+    topic: ResearchTopicRecord,
+    supporting_documents: list[ResearchDocumentRecord],
+    council: ResearchCouncilPayload,
+) -> float:
+    base = 0.42 + 0.11 * len(supporting_documents) + 0.06 * (topic.topic_heat or 0.0)
+    if opportunity_type in {"rule_gap", "trial_catalog_gap"}:
+        base += 0.03
+    elif opportunity_type in {"community_project", "external_tooling"}:
+        base -= 0.02
+    if council.stage_3.overall_confidence == "high":
+        base += 0.12
+    elif council.stage_3.overall_confidence == "medium":
+        base += 0.06
+    support_mentions = sum(
+        1
+        for opinion in council.stage_1
+        if opportunity_type in opinion.proposed_opportunity_types
+    ) + sum(
+        1
+        for ranking in council.stage_2
+        if opportunity_type in ranking.ranked_opportunity_types
+    )
+    base += 0.03 * support_mentions
+    if council.stage_3.overall_confidence == "low":
+        base -= 0.05
+    return round(min(0.99, max(0.35, base)), 4)
+
+
+def _build_opportunity_action_payload(
+    *,
+    opportunity_id: str,
+    digest: ResearchDigestRecord,
+    opportunity_type: str,
+    topic: ResearchTopicRecord,
+    topic_label_map: dict[str, str],
+    source_map: dict[str, ResearchSourceRecord],
+    supporting_documents: list[ResearchDocumentRecord],
+    council: ResearchCouncilPayload,
+) -> ResearchOpportunityActionPayload:
+    personas = _OPPORTUNITY_PERSONA_PRIORITY.get(opportunity_type, [])
+    relevant_stage_1 = [item for item in council.stage_1 if item.persona in personas] or list(council.stage_1)
+    open_questions = _unique_preserve_order(
+        item
+        for opinion in relevant_stage_1
+        for item in opinion.open_questions
+    )[:4]
+    evidence_gaps = _unique_preserve_order(
+        item
+        for opinion in relevant_stage_1
+        for item in opinion.evidence_gaps
+    )[:4]
+    if not open_questions:
+        open_questions = list(council.stage_3.open_questions[:4])
+    else:
+        open_questions = _unique_preserve_order(open_questions + list(council.stage_3.open_questions))[:4]
+    if not evidence_gaps:
+        evidence_gaps = list(council.stage_3.evidence_gaps[:4])
+    else:
+        evidence_gaps = _unique_preserve_order(evidence_gaps + list(council.stage_3.evidence_gaps))[:4]
+
+    evidence_bundle = [
+        _build_opportunity_evidence(
+            document=document,
+            source_map=source_map,
+            topic_label_map=topic_label_map,
+            opportunity_type=opportunity_type,
+        )
+        for document in supporting_documents
+    ]
+    artifact_spec = ResearchOpportunityArtifactSpec(
+        artifact_kind=_artifact_kind_for_opportunity(opportunity_type),
+        title=_artifact_title_for_opportunity(opportunity_type=opportunity_type, topic_label=topic.label),
+        summary=_artifact_summary_for_opportunity(opportunity_type=opportunity_type, topic_label=topic.label),
+        suggested_path=_suggested_opportunity_path(opportunity_id, opportunity_type),
+        target_hint=_default_promotion_target(opportunity_type),
+    )
+    theme_snapshot = _unique_preserve_order(
+        [topic.label]
+        + [item for opinion in relevant_stage_1 for item in opinion.primary_topics]
+        + _top_graph_labels(supporting_documents, limit=3)
+    )[:5]
+    return ResearchOpportunityActionPayload(
+        human_gate=True,
+        digest_id=digest.digest_id,
+        objective=_opportunity_objective(opportunity_type=opportunity_type, topic_label=topic.label),
+        why_now=_opportunity_why_now(
+            opportunity_type=opportunity_type,
+            topic_label=topic.label,
+            supporting_documents=supporting_documents,
+            council=council,
+        ),
+        discovery_question=_opportunity_discovery_question(
+            opportunity_type=opportunity_type,
+            topic_label=topic.label,
+            open_questions=open_questions,
+        ),
+        artifact_spec=artifact_spec,
+        evidence_bundle=evidence_bundle,
+        proposed_steps=_opportunity_proposed_steps(opportunity_type=opportunity_type, topic_label=topic.label),
+        acceptance_gates=_acceptance_gates(opportunity_type),
+        open_questions=open_questions,
+        evidence_gaps=evidence_gaps,
+        next_experiments=_opportunity_next_experiments(
+            opportunity_type=opportunity_type,
+            topic_label=topic.label,
+            stage_3_experiments=council.stage_3.next_experiments,
+        ),
+        measurable_outcomes=_opportunity_measurable_outcomes(
+            opportunity_type=opportunity_type,
+            topic_label=topic.label,
+        ),
+        promotion_guardrails=list(council.stage_3.promotion_guardrails),
+        suggested_target=_default_promotion_target(opportunity_type),
+        council_confidence=council.stage_3.overall_confidence,
+        council_personas=[item.persona for item in relevant_stage_1],
+        theme_snapshot=theme_snapshot,
+    )
+
+
+def _artifact_kind_for_opportunity(opportunity_type: str) -> str:
+    if opportunity_type == "rule_gap":
+        return "rule_spec"
+    if opportunity_type == "benchmark_gap":
+        return "benchmark_spec"
+    if opportunity_type == "trial_catalog_gap":
+        return "trial_catalog_spec"
+    if opportunity_type == "case_brief":
+        return "case_brief_spec"
+    if opportunity_type == "community_project":
+        return "community_project_spec"
+    return "external_tooling_spec"
+
+
+def _artifact_title_for_opportunity(*, opportunity_type: str, topic_label: str) -> str:
+    if opportunity_type == "rule_gap":
+        return f"Explainable rule proposal for {topic_label.lower()}"
+    if opportunity_type == "benchmark_gap":
+        return f"Benchmark expansion spec for {topic_label.lower()}"
+    if opportunity_type == "trial_catalog_gap":
+        return f"Trial-catalog update spec for {topic_label.lower()}"
+    if opportunity_type == "case_brief":
+        return f"Case-brief enrichment spec for {topic_label.lower()}"
+    if opportunity_type == "community_project":
+        return f"Community project brief for {topic_label.lower()}"
+    return f"External tooling brief for {topic_label.lower()}"
+
+
+def _artifact_summary_for_opportunity(*, opportunity_type: str, topic_label: str) -> str:
+    if opportunity_type == "rule_gap":
+        return f"Translate cited {topic_label.lower()} findings into explainable rule coverage proposals and tests."
+    if opportunity_type == "benchmark_gap":
+        return f"Turn cited {topic_label.lower()} signals into reproducible benchmark additions and reviewer expectations."
+    if opportunity_type == "trial_catalog_gap":
+        return f"Capture trial and eligibility movement in {topic_label.lower()} without implying enrollment guidance."
+    if opportunity_type == "case_brief":
+        return f"Improve case-facing research briefs for {topic_label.lower()} with cited follow-up context."
+    if opportunity_type == "community_project":
+        return f"Shape a contributor-ready open-source build around {topic_label.lower()}."
+    return f"Define reusable tooling that helps contributors work with {topic_label.lower()} evidence and artifacts."
+
+
+def _suggested_opportunity_path(opportunity_id: str, opportunity_type: str) -> str:
+    target = _default_promotion_target(opportunity_type)
+    if target == "docs_draft":
+        return f"docs/research-intel/{opportunity_id}.md"
+    if target == "benchmark_task":
+        return f"artifacts/research-intel/benchmark-tasks/{opportunity_id}.md"
+    return f"artifacts/research-intel/github-issues/{opportunity_id}.md"
+
+
+def _opportunity_objective(*, opportunity_type: str, topic_label: str) -> str:
+    if opportunity_type == "rule_gap":
+        return f"Propose explainable rule updates that better cover cited {topic_label.lower()} signals without weakening auditability."
+    if opportunity_type == "benchmark_gap":
+        return f"Add benchmark fixtures that capture wording, confounders, or follow-up patterns emerging in {topic_label.lower()}."
+    if opportunity_type == "trial_catalog_gap":
+        return f"Update the trial catalog so {topic_label.lower()} evidence is reflected in explainable matching traces."
+    if opportunity_type == "case_brief":
+        return f"Make case briefs more useful for reviewers dealing with {topic_label.lower()} by attaching current cited context."
+    if opportunity_type == "community_project":
+        return f"Create a contributor-scoped open-source project that makes {topic_label.lower()} discoveries reusable by the community."
+    return f"Identify external or internal tooling that turns {topic_label.lower()} discovery into repeatable contributor workflows."
+
+
+def _opportunity_why_now(
+    *,
     opportunity_type: str,
     topic_label: str,
-    documents: list[ResearchDocumentRecord],
+    supporting_documents: list[ResearchDocumentRecord],
+    council: ResearchCouncilPayload,
 ) -> str:
-    citations = ", ".join(document.citation_key for document in documents[:2]) or "the current cited corpus"
+    citations = ", ".join(item.citation_key for item in supporting_documents[:2]) or "the current digest corpus"
+    if opportunity_type in {"rule_gap", "benchmark_gap"}:
+        return (
+            f"{topic_label} is active in the latest digest, and the council sees enough cited movement to justify a new "
+            f"artifact instead of waiting for another manual synthesis. {citations} anchor the first pass."
+        )
+    if opportunity_type in {"trial_catalog_gap", "case_brief"}:
+        return (
+            f"The current digest ties {topic_label.lower()} to follow-up and trial implications, while council confidence is "
+            f"{council.stage_3.overall_confidence}. {citations} should shape the next human-reviewed update."
+        )
     return (
-        f"Cited activity in {topic_label.lower()} suggests a {opportunity_type.replace('_', ' ')} opportunity. "
-        f"Start from {citations} and keep any action human-reviewed before it changes benchmarks, rules, or trial assets."
+        f"Recent cited activity suggests {topic_label.lower()} is ready for contributor-facing research tooling work. "
+        f"{citations} provide the first concrete evidence bundle."
+    )
+
+
+def _opportunity_discovery_question(
+    *,
+    opportunity_type: str,
+    topic_label: str,
+    open_questions: list[str],
+) -> str:
+    if open_questions:
+        return open_questions[0]
+    if opportunity_type == "benchmark_gap":
+        return f"Which reproducible benchmark cases would best capture emerging {topic_label.lower()} language?"
+    if opportunity_type == "trial_catalog_gap":
+        return f"Which trial or cohort distinctions in {topic_label.lower()} should become explicit matching traces?"
+    if opportunity_type == "rule_gap":
+        return f"Which explainable rule boundary in {topic_label.lower()} is currently under-specified?"
+    if opportunity_type == "case_brief":
+        return f"What cited context would make {topic_label.lower()} case briefs more actionable for reviewers?"
+    return f"What public artifact would make {topic_label.lower()} discoveries reusable by outside contributors?"
+
+
+def _opportunity_proposed_steps(*, opportunity_type: str, topic_label: str) -> list[str]:
+    if opportunity_type == "rule_gap":
+        return [
+            f"Compare existing rationale coverage against cited {topic_label.lower()} language and note misses.",
+            "Draft explainable rule additions with evidence spans and expected rationale codes.",
+            "Add targeted tests before any rule proposal is promoted.",
+        ]
+    if opportunity_type == "benchmark_gap":
+        return [
+            f"Draft synthetic or deidentified benchmark examples for {topic_label.lower()}.",
+            "Document expected reviewer focus, rationale codes, and confounder handling.",
+            "Link the spec to the cited digest evidence before promotion.",
+        ]
+    if opportunity_type == "trial_catalog_gap":
+        return [
+            f"Extract trial, cohort, and eligibility distinctions from cited {topic_label.lower()} sources.",
+            "Turn those distinctions into explainable catalog or trace updates.",
+            "Verify the proposal avoids enrollment or treatment guidance claims.",
+        ]
+    if opportunity_type == "case_brief":
+        return [
+            f"Map {topic_label.lower()} findings into case-brief language that stays separate from case scoring.",
+            "Highlight the cited follow-up or surveillance implications reviewers may want to inspect.",
+            "Validate the brief remains informational and human-reviewed.",
+        ]
+    if opportunity_type == "community_project":
+        return [
+            f"Define a contributor-scoped project brief centered on {topic_label.lower()}.",
+            "Break the work into reusable dataset, manifest, or evaluation pieces.",
+            "Promote only after the deliverable can be audited and cited publicly.",
+        ]
+    return [
+        f"List the tooling friction currently blocking reuse of {topic_label.lower()} discovery output.",
+        "Define the smallest contributor-ready integration or helper that would remove that friction.",
+        "Promote only once the proposal maps cleanly to a reproducible public artifact.",
+    ]
+
+
+def _opportunity_next_experiments(
+    *,
+    opportunity_type: str,
+    topic_label: str,
+    stage_3_experiments: list[str],
+) -> list[str]:
+    extras: list[str] = []
+    if opportunity_type == "benchmark_gap":
+        extras.append(f"Measure whether new {topic_label.lower()} fixtures change benchmark coverage or reviewer-yield simulation.")
+    elif opportunity_type == "rule_gap":
+        extras.append(f"Stress-test proposed {topic_label.lower()} rule changes against known confounders and negation cases.")
+    elif opportunity_type == "trial_catalog_gap":
+        extras.append(f"Check whether cited {topic_label.lower()} distinctions improve trial trace clarity without overmatching.")
+    elif opportunity_type == "case_brief":
+        extras.append(f"Compare generated {topic_label.lower()} briefs across cases with different rationale mixes.")
+    else:
+        extras.append(f"Test whether the proposed {topic_label.lower()} artifact is reusable by outside contributors without extra context.")
+    return _unique_preserve_order(extras + list(stage_3_experiments))[:4]
+
+
+def _opportunity_measurable_outcomes(*, opportunity_type: str, topic_label: str) -> list[str]:
+    if opportunity_type == "rule_gap":
+        return [
+            f"A cited rule proposal exists for {topic_label.lower()} with tests covering expected rationale behavior.",
+            "Any score or explanation impact is measurable in benchmark output before merge.",
+        ]
+    if opportunity_type == "benchmark_gap":
+        return [
+            f"At least one new benchmark spec exists for {topic_label.lower()} with documented expected rationale codes.",
+            "The proposal can be evaluated in a reproducible benchmark run.",
+        ]
+    if opportunity_type == "trial_catalog_gap":
+        return [
+            f"A cited trial-catalog proposal exists for {topic_label.lower()} with traceable eligibility distinctions.",
+            "The proposal stays informational and explainable in downstream match output.",
+        ]
+    if opportunity_type == "case_brief":
+        return [
+            f"A reviewer-facing brief template for {topic_label.lower()} is generated without mutating case scores.",
+            "The brief cites its supporting digest documents and open questions.",
+        ]
+    if opportunity_type == "community_project":
+        return [
+            f"A contributor-ready project brief exists for {topic_label.lower()} with a bounded write scope.",
+            "The project maps to a public artifact and acceptance criteria, not just a summary.",
+        ]
+    return [
+        f"A tooling brief exists for {topic_label.lower()} with a concrete integration boundary and cited need.",
+        "The proposal can be promoted into an issue or spec without relying on hidden context.",
+    ]
+
+
+def _build_opportunity_evidence(
+    *,
+    document: ResearchDocumentRecord,
+    source_map: dict[str, ResearchSourceRecord],
+    topic_label_map: dict[str, str],
+    opportunity_type: str,
+) -> ResearchOpportunityEvidence:
+    source = source_map.get(document.source_id)
+    return ResearchOpportunityEvidence(
+        document_id=document.document_id,
+        citation_key=document.citation_key,
+        title=document.title,
+        source_kind=source.source_kind if source else None,
+        topic_labels=[topic_label_map[item] for item in document.topic_ids or [] if item in topic_label_map],
+        why_it_matters=_opportunity_evidence_reason(opportunity_type=opportunity_type, document=document),
+    )
+
+
+def _opportunity_evidence_reason(*, opportunity_type: str, document: ResearchDocumentRecord) -> str:
+    evidence_tags = ", ".join((document.entity_tags or [])[:3])
+    if opportunity_type == "rule_gap":
+        return (
+            f"This document contributes follow-up or confounder language that may require clearer rule handling. "
+            f"Signals: {evidence_tags or 'topic-linked evidence'}."
+        )
+    if opportunity_type == "benchmark_gap":
+        return (
+            f"This document adds benchmarkable wording or workflow context that could become a reproducible fixture. "
+            f"Signals: {evidence_tags or 'topic-linked evidence'}."
+        )
+    if opportunity_type == "trial_catalog_gap":
+        return (
+            f"This document may sharpen explainable trial traces or cohort distinctions. "
+            f"Signals: {evidence_tags or 'topic-linked evidence'}."
+        )
+    if opportunity_type == "case_brief":
+        return (
+            f"This document provides cited context that could make reviewer-facing briefs more informative. "
+            f"Signals: {evidence_tags or 'topic-linked evidence'}."
+        )
+    if opportunity_type == "community_project":
+        return (
+            f"This document suggests a reusable open-source build or dataset need. "
+            f"Signals: {evidence_tags or 'topic-linked evidence'}."
+        )
+    return (
+        f"This document points to tooling or integration work that could make research output easier to reuse. "
+        f"Signals: {evidence_tags or 'topic-linked evidence'}."
     )
 
 
@@ -2590,11 +2987,38 @@ def _write_opportunity_promotion_artifact(
         f"- confidence: `{row.confidence_score:.2f}`",
         "",
         row.summary,
-        "",
-        "## Acceptance gates",
     ]
-    for gate in _acceptance_gates(row.opportunity_type):
+    action_payload = ResearchOpportunityActionPayload.model_validate(row.action_payload or {})
+    if action_payload.objective:
+        lines.extend(["", "## Objective", action_payload.objective])
+    if action_payload.why_now:
+        lines.extend(["", "## Why now", action_payload.why_now])
+    if action_payload.discovery_question:
+        lines.extend(["", "## Discovery question", action_payload.discovery_question])
+    if action_payload.proposed_steps:
+        lines.extend(["", "## Proposed steps"])
+        for step in action_payload.proposed_steps:
+            lines.append(f"- {step}")
+    lines.extend(["", "## Acceptance gates"])
+    for gate in action_payload.acceptance_gates or _acceptance_gates(row.opportunity_type):
         lines.append(f"- {gate}")
+    if action_payload.evidence_bundle:
+        lines.extend(["", "## Evidence bundle"])
+        for item in action_payload.evidence_bundle:
+            lines.append(f"- {item.citation_key}: {item.title}")
+            lines.append(f"  - why it matters: {item.why_it_matters}")
+    if action_payload.open_questions:
+        lines.extend(["", "## Open questions"])
+        for item in action_payload.open_questions:
+            lines.append(f"- {item}")
+    if action_payload.measurable_outcomes:
+        lines.extend(["", "## Measurable outcomes"])
+        for item in action_payload.measurable_outcomes:
+            lines.append(f"- {item}")
+    if action_payload.promotion_guardrails:
+        lines.extend(["", "## Promotion guardrails"])
+        for item in action_payload.promotion_guardrails:
+            lines.append(f"- {item}")
     lines.extend(
         [
             "",
@@ -2607,6 +3031,99 @@ def _write_opportunity_promotion_artifact(
     )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return str(path.relative_to(_repo_root()))
+
+
+def _write_opportunity_action_artifacts(
+    *,
+    row: ResearchOpportunityRecord,
+    topic_label_map: dict[str, str],
+) -> list[str]:
+    artifact_root = _artifact_root() / "opportunities"
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    response = _build_opportunity_response(row, topic_label_map)
+    json_path = artifact_root / f"{row.opportunity_id}.json"
+    markdown_path = artifact_root / f"{row.opportunity_id}.md"
+    json_path.write_text(response.model_dump_json(indent=2), encoding="utf-8")
+
+    action_payload = response.action_payload
+    lines = [
+        f"# {response.title}",
+        "",
+        f"- opportunity id: `{response.opportunity_id}`",
+        f"- type: `{response.opportunity_type}`",
+        f"- status: `{response.status}`",
+        f"- confidence: `{response.confidence_score:.2f}`",
+        f"- council confidence: `{action_payload.council_confidence}`",
+        "",
+        response.summary,
+    ]
+    if action_payload.objective:
+        lines.extend(["", "## Objective", action_payload.objective])
+    if action_payload.why_now:
+        lines.extend(["", "## Why now", action_payload.why_now])
+    if action_payload.discovery_question:
+        lines.extend(["", "## Discovery question", action_payload.discovery_question])
+    if action_payload.theme_snapshot:
+        lines.extend(["", "## Theme snapshot"])
+        for item in action_payload.theme_snapshot:
+            lines.append(f"- {item}")
+    if action_payload.evidence_bundle:
+        lines.extend(["", "## Evidence bundle"])
+        for item in action_payload.evidence_bundle:
+            lines.append(f"- {item.citation_key}: {item.title}")
+            if item.topic_labels:
+                lines.append(f"  - topics: {', '.join(item.topic_labels)}")
+            if item.source_kind:
+                lines.append(f"  - source kind: {item.source_kind}")
+            lines.append(f"  - why it matters: {item.why_it_matters}")
+    if action_payload.proposed_steps:
+        lines.extend(["", "## Proposed steps"])
+        for item in action_payload.proposed_steps:
+            lines.append(f"- {item}")
+    if action_payload.measurable_outcomes:
+        lines.extend(["", "## Measurable outcomes"])
+        for item in action_payload.measurable_outcomes:
+            lines.append(f"- {item}")
+    if action_payload.acceptance_gates:
+        lines.extend(["", "## Acceptance gates"])
+        for item in action_payload.acceptance_gates:
+            lines.append(f"- {item}")
+    if action_payload.open_questions:
+        lines.extend(["", "## Open questions"])
+        for item in action_payload.open_questions:
+            lines.append(f"- {item}")
+    if action_payload.evidence_gaps:
+        lines.extend(["", "## Evidence gaps"])
+        for item in action_payload.evidence_gaps:
+            lines.append(f"- {item}")
+    if action_payload.next_experiments:
+        lines.extend(["", "## Next experiments"])
+        for item in action_payload.next_experiments:
+            lines.append(f"- {item}")
+    if action_payload.promotion_guardrails:
+        lines.extend(["", "## Promotion guardrails"])
+        for item in action_payload.promotion_guardrails:
+            lines.append(f"- {item}")
+    if action_payload.artifact_spec.title:
+        lines.extend(
+            [
+                "",
+                "## Suggested downstream artifact",
+                f"- kind: `{action_payload.artifact_spec.artifact_kind}`",
+                f"- title: {action_payload.artifact_spec.title}",
+                f"- target hint: `{action_payload.artifact_spec.target_hint or 'n/a'}`",
+            ]
+        )
+        if action_payload.artifact_spec.suggested_path:
+            lines.append(f"- suggested path: `{action_payload.artifact_spec.suggested_path}`")
+        if action_payload.artifact_spec.summary:
+            lines.append(f"- summary: {action_payload.artifact_spec.summary}")
+
+    markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return [
+        str(json_path.relative_to(_repo_root())),
+        str(markdown_path.relative_to(_repo_root())),
+    ]
 
 
 def _build_opportunity_response(
@@ -2625,7 +3142,7 @@ def _build_opportunity_response(
         supporting_document_ids=row.supporting_document_ids or [],
         related_rationale_codes=row.related_rationale_codes or [],
         related_trial_ids=row.related_trial_ids or [],
-        action_payload=row.action_payload or {},
+        action_payload=ResearchOpportunityActionPayload.model_validate(row.action_payload or {}),
         promotion_target=row.promotion_target,
         promoted_at=row.promoted_at,
         created_at=row.created_at,

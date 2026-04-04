@@ -145,6 +145,11 @@ Required outputs:
 Acceptance gate:
 - promoted opportunities can be traced back to cited evidence and clear downstream actions
 
+Current progress:
+- opportunities now store typed action specs with objective, why-now rationale, discovery question, measurable outcomes, and artifact hints
+- digest runs now emit opportunity JSON and Markdown artifacts alongside digest artifacts
+- promotion artifacts now preserve cited evidence bundles, open questions, and measurable outcomes for downstream contributors
+
 ### Phase 5. Safe Scientific Experimentation
 
 Goal:

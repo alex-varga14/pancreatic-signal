@@ -105,6 +105,7 @@ The current workflow follows five explicit phases.
 ### 5. Act
 
 - generate structured opportunities from high-signal digest output
+- attach typed action specs with objectives, evidence bundles, measurable outcomes, and downstream artifact hints
 - support human-gated promotion into docs drafts, benchmark tasks, or GitHub-issue style artifacts
 
 ## Seeded Catalogs
@@ -145,6 +146,16 @@ Phase 3 is now underway with these capabilities:
 - stage 2 rankings now include explicit peer critiques, challenge targets, preferred actions, and confidence adjustments
 - stage 3 synthesis now records overall confidence, evidence gaps, open questions, next experiments, and promotion guardrails
 - persisted council payloads remain backward-compatible with older digest versions
+
+## Phase 4 Discovery-To-Action Status
+
+Phase 4 is now underway with these capabilities:
+
+- opportunities now persist typed action payloads instead of loose promotion hints
+- each opportunity carries a discovery objective, why-now rationale, discovery question, and measurable outcomes
+- each opportunity also carries a cited evidence bundle, open questions, evidence gaps, next experiments, and promotion guardrails
+- digest runs now write contributor-ready opportunity JSON and Markdown artifacts under `artifacts/research-intel/opportunities/`
+- promotion artifacts now preserve the same structured discovery-to-action context instead of collapsing into shallow summaries
 
 ## Opportunity Types
 
@@ -194,5 +205,6 @@ The implementation direction borrows selectively from several open-source resear
 
 - add live curated connectors on top of the seeded catalog
 - turn council deliberation into stronger multi-run comparison and calibration
+- deepen opportunity promotion into issue-ready and benchmark-ready contributor workflows
 - add sandboxed benchmark and rule experiment runners for promoted opportunities
 - document donation governance and paid-source procurement policy before any funding automation is considered

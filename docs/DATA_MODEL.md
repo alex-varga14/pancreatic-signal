@@ -325,6 +325,25 @@ Current fields:
 - `created_at`
 - `updated_at`
 
+`action_payload` is now a structured discovery-to-action bundle rather than a loose metadata dict. It includes:
+
+- `objective`
+- `why_now`
+- `discovery_question`
+- `artifact_spec`
+- `evidence_bundle`
+- `proposed_steps`
+- `acceptance_gates`
+- `open_questions`
+- `evidence_gaps`
+- `next_experiments`
+- `measurable_outcomes`
+- `promotion_guardrails`
+- `suggested_target`
+- `council_confidence`
+- `council_personas`
+- `theme_snapshot`
+
 ## API-facing derived surfaces
 
 ### `ImportMetadata`

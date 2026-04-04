@@ -17,6 +17,14 @@ ResearchOpportunityType = Literal[
 
 ResearchPromotionTarget = Literal["github_issue", "docs_draft", "benchmark_task"]
 ResearchIngestMode = Literal["auto", "seeded", "fixture", "live"]
+ResearchOpportunityArtifactKind = Literal[
+    "rule_spec",
+    "benchmark_spec",
+    "trial_catalog_spec",
+    "case_brief_spec",
+    "community_project_spec",
+    "external_tooling_spec",
+]
 
 
 class ResearchSource(BaseModel):
@@ -267,6 +275,47 @@ class ResearchDigestDetail(ResearchDigestListItem):
     council: ResearchCouncilPayload
 
 
+class ResearchOpportunityEvidence(BaseModel):
+    document_id: str
+    citation_key: str
+    title: str
+    source_kind: str | None = None
+    topic_labels: list[str] = Field(default_factory=list)
+    why_it_matters: str = ""
+
+
+class ResearchOpportunityArtifactSpec(BaseModel):
+    artifact_kind: ResearchOpportunityArtifactKind = "community_project_spec"
+    title: str = ""
+    summary: str = ""
+    suggested_path: str | None = None
+    target_hint: ResearchPromotionTarget | None = None
+
+
+class ResearchOpportunityActionPayload(BaseModel):
+    human_gate: bool = True
+    digest_id: str | None = None
+    objective: str = ""
+    why_now: str = ""
+    discovery_question: str = ""
+    artifact_spec: ResearchOpportunityArtifactSpec = Field(default_factory=ResearchOpportunityArtifactSpec)
+    evidence_bundle: list[ResearchOpportunityEvidence] = Field(default_factory=list)
+    proposed_steps: list[str] = Field(default_factory=list)
+    acceptance_gates: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    evidence_gaps: list[str] = Field(default_factory=list)
+    next_experiments: list[str] = Field(default_factory=list)
+    measurable_outcomes: list[str] = Field(default_factory=list)
+    promotion_guardrails: list[str] = Field(default_factory=list)
+    suggested_target: ResearchPromotionTarget = "docs_draft"
+    council_confidence: str = "medium"
+    council_personas: list[str] = Field(default_factory=list)
+    theme_snapshot: list[str] = Field(default_factory=list)
+    promoted_by_user_id: str | None = None
+    last_promotion_target: ResearchPromotionTarget | None = None
+    promotion_artifact_path: str | None = None
+
+
 class ResearchOpportunity(BaseModel):
     opportunity_id: str
     opportunity_type: ResearchOpportunityType
@@ -279,7 +328,7 @@ class ResearchOpportunity(BaseModel):
     supporting_document_ids: list[str] = Field(default_factory=list)
     related_rationale_codes: list[str] = Field(default_factory=list)
     related_trial_ids: list[str] = Field(default_factory=list)
-    action_payload: dict[str, object] = Field(default_factory=dict)
+    action_payload: ResearchOpportunityActionPayload = Field(default_factory=ResearchOpportunityActionPayload)
     promotion_target: str | None = None
     promoted_at: datetime | None = None
     created_at: datetime

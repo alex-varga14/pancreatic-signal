@@ -1,7 +1,9 @@
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.schemas.research_intel import ResearchCouncilPayload
+from app.schemas.research_intel import ResearchCouncilPayload, ResearchOpportunityActionPayload
 from app.store.memory_store import CASE_STORE
 
 
@@ -25,6 +27,10 @@ def _triage_case(client: TestClient, *, case_id: str, report_id: str) -> None:
         },
     )
     assert response.status_code == 200
+
+
+def _artifact_text(relative_path: str) -> str:
+    return (Path(__file__).resolve().parents[3] / relative_path).read_text(encoding="utf-8")
 
 
 def test_research_intel_ingest_digest_and_promotion_routes() -> None:
@@ -94,6 +100,7 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     digest_run = response.json()["run"]
     assert digest_run["run_type"] == "digest"
     assert digest_run["created"] >= 1
+    assert any(path.startswith("artifacts/research-intel/opportunities/") for path in digest_run["artifact_paths"])
 
     response = client.get("/api/v1/research-intel/digests")
     assert response.status_code == 200
@@ -125,6 +132,27 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     opportunities = response.json()
     assert opportunities
     opportunity_id = opportunities[0]["opportunity_id"]
+    first_opportunity = opportunities[0]
+    assert first_opportunity["action_payload"]["objective"]
+    assert first_opportunity["action_payload"]["why_now"]
+    assert first_opportunity["action_payload"]["discovery_question"]
+    assert first_opportunity["action_payload"]["artifact_spec"]["artifact_kind"]
+    assert first_opportunity["action_payload"]["artifact_spec"]["suggested_path"]
+    assert first_opportunity["action_payload"]["evidence_bundle"]
+    assert first_opportunity["action_payload"]["proposed_steps"]
+    assert first_opportunity["action_payload"]["measurable_outcomes"]
+    assert first_opportunity["action_payload"]["promotion_guardrails"]
+
+    opportunity_artifact_path = next(
+        path
+        for path in digest_run["artifact_paths"]
+        if path.startswith(f"artifacts/research-intel/opportunities/{opportunity_id}")
+        and path.endswith(".md")
+    )
+    opportunity_artifact_text = _artifact_text(opportunity_artifact_path)
+    assert "## Objective" in opportunity_artifact_text
+    assert "## Evidence bundle" in opportunity_artifact_text
+    assert "## Suggested downstream artifact" in opportunity_artifact_text
 
     promote_response = client.post(
         f"/api/v1/research-intel/opportunities/{opportunity_id}/promote",
@@ -134,6 +162,10 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert promote_response.status_code == 200
     assert promote_response.json()["status"] == "promoted"
     assert promote_response.json()["artifact_path"]
+    promotion_text = _artifact_text(promote_response.json()["artifact_path"])
+    assert "## Discovery question" in promotion_text
+    assert "## Evidence bundle" in promotion_text
+    assert "## Measurable outcomes" in promotion_text
 
 
 def test_research_intel_case_brief_maps_case_to_topics_and_documents() -> None:
@@ -245,3 +277,19 @@ def test_research_intel_legacy_council_payloads_remain_readable() -> None:
     assert payload.stage_1[0].confidence_label == "medium"
     assert payload.stage_2[0].confidence_adjustment == "hold"
     assert payload.stage_3.overall_confidence == "medium"
+
+
+def test_research_intel_legacy_opportunity_payloads_remain_readable() -> None:
+    payload = ResearchOpportunityActionPayload.model_validate(
+        {
+            "human_gate": True,
+            "digest_id": "rdigest-legacy",
+            "acceptance_gates": ["Keep the promotion human-gated."],
+            "suggested_target": "docs_draft",
+            "promoted_by": "legacy-user",
+        }
+    )
+
+    assert payload.objective == ""
+    assert payload.artifact_spec.artifact_kind == "community_project_spec"
+    assert payload.acceptance_gates == ["Keep the promotion human-gated."]
