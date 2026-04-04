@@ -210,10 +210,10 @@ The current release intentionally stops short of:
 The next requirements focus on late-Phase-6 hardening rather than new foundation work:
 
 1. expand the research-intel foundation into live curated connectors and stronger scheduling
-2. deepen graph-backed entity resolution across biomarkers, therapies, cohorts, trials, and datasets
-3. strengthen council comparison, confidence calibration, and explicit open-question tracking
-4. turn opportunities and experiments into sharper contributor workflows for benchmarks, rules, and tooling
-5. keep triage and interoperability surfaces aligned with the discovery-first product framing without weakening explainability
+2. strengthen council comparison, confidence calibration, and explicit open-question tracking
+3. turn opportunities and experiments into sharper contributor workflows for benchmarks, rules, and tooling
+4. keep triage and interoperability surfaces aligned with the discovery-first product framing without weakening explainability
+5. expand live curated connector quality and trust coverage where the current watchtower still leans on fixtures
 
 ## 12. Release-readiness criteria for the current phase
 

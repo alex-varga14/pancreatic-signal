@@ -64,10 +64,10 @@ This project is most helpful to the larger open-source community when it offers:
 The highest-value collaboration areas after the current pilot hardening work are:
 
 1. expand the research-intel foundation into live curated connectors and stronger discovery coverage
-2. deepen graph-backed entity resolution and cross-document topic tracking
-3. strengthen council comparison, confidence calibration, and question backlogs
-4. turn strong research-intel opportunities into well-scoped benchmark, rule, dataset, and tooling contribution paths
-5. deepen reviewer ergonomics and trial abstraction as explainable downstream surfaces of the discovery engine
+2. strengthen council comparison, confidence calibration, and question backlogs
+3. turn strong research-intel opportunities into well-scoped benchmark, rule, dataset, and tooling contribution paths
+4. deepen reviewer ergonomics and trial abstraction as explainable downstream surfaces of the discovery engine
+5. expand curated source quality and live discovery coverage where the watchtower still leans on fixtures
 
 ## Open-Source Guardrails
 

@@ -520,9 +520,13 @@ export type ResearchGraphEntity = {
   label: string;
   node_type: string;
   description?: string | null;
+  family_id?: string | null;
+  family_label?: string | null;
   tags: string[];
   topic_ids: string[];
   match_terms: string[];
+  match_strategy?: string | null;
+  related_match_count: number;
   related_node_ids: string[];
   confidence?: number | null;
 };
@@ -642,6 +646,8 @@ export type ResearchGraphNode = {
   label: string;
   node_type: string;
   description?: string | null;
+  family_id?: string | null;
+  family_label?: string | null;
   tags: string[];
   topic_ids: string[];
   aliases: string[];

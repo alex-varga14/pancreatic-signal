@@ -72,6 +72,10 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert any(item["novelty_score"] for item in documents)
     assert any(any(entity["node_id"] == "liquid_biopsy" for entity in item["graph_entities"]) for item in documents)
     assert any(any(entity["node_id"] == "neoadjuvant_therapy" for entity in item["graph_entities"]) for item in documents)
+    assert any(any(entity["node_id"] == "biomarker_stratification" for entity in item["graph_entities"]) for item in documents)
+    assert any(any(entity["node_id"] == "segmentation_labels" for entity in item["graph_entities"]) for item in documents)
+    assert any(any(entity["family_id"] == "molecular_detection" for entity in item["graph_entities"]) for item in documents)
+    assert any(any(entity["match_strategy"] for entity in item["graph_entities"]) for item in documents)
 
     response = client.get("/api/v1/research-intel/sources")
     assert response.status_code == 200
@@ -100,7 +104,9 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert "liquid_biopsy" in graph["active_node_ids"]
     liquid_biopsy = next(item for item in graph["nodes"] if item["node_id"] == "liquid_biopsy")
     assert liquid_biopsy["document_count"] >= 1
+    assert liquid_biopsy["family_id"] == "molecular_detection"
     assert "high_risk_screening" in liquid_biopsy["related_node_ids"]
+    assert any(item["node_id"] == "segmentation_labels" and item["document_count"] >= 1 for item in graph["nodes"])
 
     response = client.post(
         "/api/v1/research-intel/runs/digest",

@@ -424,6 +424,7 @@ Return normalized pancreatic oncology documents with citations, topic labels, ev
 
 Behavior:
 - Includes `novelty_score`, `ingest_mode`, graph entities, and provenance metadata describing connector, source URL, and fetch context.
+- Graph entities now include concept-family metadata, match strategy, and related-match counts to support richer cross-document reasoning.
 
 Query params:
 - `source_kind`
@@ -439,7 +440,7 @@ Return rolling topic watchlists with topic heat, document counts, and related ra
 Return the active pancreatic oncology knowledge graph.
 
 Behavior:
-- Includes typed nodes, graph edges, active node ids, and document-backed entity heat aggregated from normalized documents.
+- Includes typed nodes, graph edges, active node ids, concept-family metadata, and document-backed entity heat aggregated from normalized documents.
 
 ### `GET /research-intel/digests`
 Return cited digest summaries with publication status, disagreement score, and citation counts.

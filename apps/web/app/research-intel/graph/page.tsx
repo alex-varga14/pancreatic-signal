@@ -7,6 +7,8 @@ export default async function ResearchGraphPage() {
   const graph = await getResearchGraph();
   const activeNodes = (graph?.nodes || []).filter((node) => node.document_count > 0);
   const edgeMap = new Map((graph?.nodes || []).map((node) => [node.node_id, node.label]));
+  const activeFamilies = new Set(activeNodes.map((node) => node.family_id).filter(Boolean)).size;
+  const activeNodeTypes = new Set(activeNodes.map((node) => node.node_type)).size;
 
   return (
     <main style={{ padding: 32, maxWidth: 1160, margin: "0 auto" }}>
@@ -34,6 +36,7 @@ export default async function ResearchGraphPage() {
         <SummaryCard label="Graph nodes" value={String(graph?.nodes.length || 0)} note="Typed pancreatic oncology entities" />
         <SummaryCard label="Graph edges" value={String(graph?.edges.length || 0)} note="Cross-entity scientific relationships" />
         <SummaryCard label="Active nodes" value={String(activeNodes.length)} note="Entities grounded in current document evidence" />
+        <SummaryCard label="Active families" value={String(activeFamilies)} note={`${activeNodeTypes} active node types in current evidence`} />
       </div>
 
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 2fr) minmax(320px, 1fr)" }}>
@@ -58,6 +61,9 @@ export default async function ResearchGraphPage() {
                   <p style={{ margin: "0 0 8px", color: "#475569" }}>{node.description}</p>
                   <p style={{ margin: "0 0 8px", color: "#64748b", fontSize: 13 }}>
                     {node.node_type.replace(/_/g, " ")} • heat {node.heat.toFixed(2)} • topics {node.topic_ids.join(", ") || "none"}
+                  </p>
+                  <p style={{ margin: "0 0 8px", color: "#64748b", fontSize: 13 }}>
+                    Family: {node.family_label || node.family_id || "unassigned"}
                   </p>
                   <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
                     Related nodes:{" "}

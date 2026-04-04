@@ -109,9 +109,9 @@ Acceptance gate:
 - graph-backed tags are stable enough to support cross-document reasoning and clustering
 
 Current progress:
-- typed graph nodes and edges are now implemented
-- graph-backed entity resolution is part of ingest normalization
-- graph activity is exposed through a dedicated research-intel graph surface
+- typed graph nodes and edges are now implemented across disease, biomarker, therapy, cohort, modality, workflow, and research-artifact families
+- graph-backed entity resolution is part of ingest normalization and now uses concept-family plus related-node reinforcement
+- graph activity is exposed through a dedicated research-intel graph surface with richer active-family coverage
 
 ### Phase 3. Multi-Agent Research Council
 

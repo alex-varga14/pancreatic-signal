@@ -142,9 +142,13 @@ class ResearchGraphEntity(BaseModel):
     label: str
     node_type: str
     description: str | None = None
+    family_id: str | None = None
+    family_label: str | None = None
     tags: list[str] = Field(default_factory=list)
     topic_ids: list[str] = Field(default_factory=list)
     match_terms: list[str] = Field(default_factory=list)
+    match_strategy: str | None = None
+    related_match_count: int = 0
     related_node_ids: list[str] = Field(default_factory=list)
     confidence: float | None = None
 
@@ -213,6 +217,8 @@ class ResearchGraphNode(BaseModel):
     label: str
     node_type: str
     description: str | None = None
+    family_id: str | None = None
+    family_label: str | None = None
     tags: list[str] = Field(default_factory=list)
     topic_ids: list[str] = Field(default_factory=list)
     aliases: list[str] = Field(default_factory=list)

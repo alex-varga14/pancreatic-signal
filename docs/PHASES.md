@@ -98,15 +98,15 @@ Implemented outcomes:
 - case-level research briefs that inform review without changing scores
 - research-intel is now the lead product narrative across landing and onboarding surfaces
 - research-intel now also exposes watchtower scheduling, due-only ingest, and a dedicated schedule workspace
+- research-intel now also carries broader graph families and stronger relation-aware entity resolution across biomarkers, therapies, cohorts, modalities, and datasets
 
 Next slices:
 
 1. replace or augment fixture-heavy discovery coverage with more live curated connectors
-2. deepen graph-backed entity resolution into broader biomarker, therapy, cohort, and dataset coverage
-3. compare council runs across time so disagreement, calibration, and recurring open questions are easier to track
-4. deepen promoted opportunities into issue-ready, benchmark-ready, and dataset-ready contributor workflows
-5. expand experiment runs from proposal-readiness scoring into richer benchmark and rule stress tests
-6. document governance for paid-source access and donation-funded operations without introducing autonomous spending
+2. compare council runs across time so disagreement, calibration, and recurring open questions are easier to track
+3. deepen promoted opportunities into issue-ready, benchmark-ready, and dataset-ready contributor workflows
+4. expand experiment runs from proposal-readiness scoring into richer benchmark and rule stress tests
+5. document governance for paid-source access and donation-funded operations without introducing autonomous spending
 
 ## What is not a current phase target
 

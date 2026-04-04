@@ -1,6 +1,6 @@
 # Codex Handoff
 
-Updated: 2026-04-03
+Updated: 2026-04-04
 
 This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, Phase 6
 hosted smoke evidence capture is now complete, and the codebase now also carries the Phase 7 watchtower-scheduling work
@@ -19,7 +19,7 @@ oncology watchtower.
 - The discovery layer now also includes watchtower scheduling: broader curated literature and trial watches, due-only ingest support, schedule snapshots, consecutive-failure tracking, a `make research-intel-ingest-due` path, and a dedicated `/research-intel/schedule` workspace.
 - The first research-intel slice is intentionally seeded and manual-triggered rather than a live internet crawler. It establishes the shared data model, artifact flow, audit surfaces, and contributor UX while keeping source polling, paid access, and richer autonomy in later phases.
 - Phase 1 of the scientific-discovery pivot is now underway: discovery ingest supports fixture-backed connector runs, opt-in live connector scaffolding for Europe PMC and ClinicalTrials.gov, source-health tracking, and per-document provenance plus novelty metadata.
-- Phase 2 is now underway as well: the pancreatic oncology graph is richer, typed, and exposed through graph-backed entity resolution plus a dedicated `/research-intel/graph` surface.
+- Phase 2 is now underway as well: the pancreatic oncology graph is richer, typed, family-aware, and exposed through graph-backed entity resolution plus a dedicated `/research-intel/graph` surface.
 - Phase 3 is now underway as well: the research council persists independent opinions, peer critique, explicit confidence, open questions, evidence gaps, and next experiments.
 - Phase 4 is now underway too: opportunities are now typed discovery-to-action specs with evidence bundles, measurable outcomes, downstream artifact hints, and artifact-backed promotion flows.
 - Phase 5 is now underway too: benchmark and rule opportunities support safe experiment runs with keep-or-discard ratchet outcomes, experiment artifacts, and persisted last-result summaries on each opportunity.
@@ -46,7 +46,7 @@ Confirmed on 2026-04-03:
 
 - `make validate-strict` passes
 - Summary: `12 pass, 0 warn, 0 fail`
-- Research-intel validation now covers seeded catalogs plus a temp-database ingest and digest run, reporting `9` sources, `7` topics, `14` graph nodes, `7` seeded documents, and a passing artifact-backed digest pipeline
+- Research-intel validation now covers seeded catalogs plus a temp-database ingest and digest run, reporting `9` sources, `7` topics, `25` graph nodes, `7` seeded documents, and a passing artifact-backed digest pipeline
 - Discovery ingest now also validates `9` discovery fixtures and `5` live-ready sources through the same catalog check, runs the ingest pipeline in fixture mode for reproducible validation, and verifies that a schedule snapshot is available after ingest
 - Opportunity generation now also emits structured JSON and Markdown action specs under `artifacts/research-intel/opportunities/`
 - Research-intel validation now also runs one safe experiment and records a ratchet outcome in the strict pipeline summary

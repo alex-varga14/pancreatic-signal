@@ -166,15 +166,21 @@ def load_research_graph_indexes() -> dict[str, Any]:
 
     indexed_nodes: list[dict[str, Any]] = []
     for node_id, node in node_map.items():
+        label_terms = [str(node.get("label") or "").strip()] if str(node.get("label") or "").strip() else []
+        alias_terms = [str(item).strip() for item in node.get("aliases") or [] if str(item).strip()]
+        keyword_terms = [str(item).strip() for item in node.get("keywords") or [] if str(item).strip()]
         terms = [
-            str(node.get("label") or "").strip(),
-            *[str(item).strip() for item in node.get("aliases") or []],
-            *[str(item).strip() for item in node.get("keywords") or []],
+            *label_terms,
+            *alias_terms,
+            *keyword_terms,
         ]
         indexed_nodes.append(
             {
                 **node,
                 "node_id": node_id,
+                "label_terms": label_terms,
+                "alias_terms": alias_terms,
+                "keyword_terms": keyword_terms,
                 "match_terms": sorted(
                     {term for term in terms if term},
                     key=lambda item: (-len(item), item.lower()),
@@ -1005,6 +1011,8 @@ def get_research_graph_snapshot() -> ResearchGraphSnapshot:
             label=str(node.get("label") or node_id),
             node_type=str(node.get("node_type") or "entity"),
             description=str(node.get("description") or "") or None,
+            family_id=str(node.get("family_id") or "") or None,
+            family_label=str(node.get("family_label") or "") or None,
             tags=[str(item) for item in node.get("tags") or []],
             topic_ids=[str(item) for item in node.get("topic_ids") or []],
             aliases=[str(item) for item in node.get("aliases") or []],
@@ -1809,6 +1817,11 @@ def _classify_topics(
     trust_bonus = _TRUST_SCORES.get(str(source_descriptor.get("trust_level") or "medium"), 0.1)
     topic_scores: dict[str, float] = {}
     keyword_hits: dict[str, list[str]] = {}
+    family_counts = Counter(
+        str(entity.get("family_id") or "").strip()
+        for entity in graph_entities
+        if str(entity.get("family_id") or "").strip()
+    )
 
     for topic_id, descriptor in topic_descriptors.items():
         matches = sorted(
@@ -1830,12 +1843,19 @@ def _classify_topics(
             if topic_id not in topic_descriptors:
                 continue
             graph_match_terms = [str(item) for item in entity.get("match_terms") or []]
+            related_match_count = max(_coerce_int(entity.get("related_match_count")) or 0, 0)
+            family_support = 0
+            family_id = str(entity.get("family_id") or "").strip()
+            if family_id:
+                family_support = max(family_counts.get(family_id, 0) - 1, 0)
             boost = min(
                 0.96,
                 round(
                     (topic_scores.get(topic_id) or 0.0)
                     + 0.16
-                    + 0.08 * len(graph_match_terms)
+                    + 0.07 * len(graph_match_terms)
+                    + 0.04 * related_match_count
+                    + 0.03 * family_support
                     + 0.06 * float(entity.get("confidence") or 0.0)
                     + trust_bonus * 0.5,
                     4,
@@ -1851,29 +1871,84 @@ def _classify_topics(
 
 
 def _resolve_graph_entities(text: str) -> list[dict[str, Any]]:
-    text_l = text.lower()
     indexes = load_research_graph_indexes()
-    resolved: list[dict[str, Any]] = []
+    direct_resolved: list[dict[str, Any]] = []
 
     for node in indexes["nodes"]:
-        matched_terms = [
-            term
-            for term in node.get("match_terms") or []
-            if term and term.lower() in text_l
-        ]
+        matched_label_terms = _collect_graph_term_matches(text, node.get("label_terms") or [])
+        matched_alias_terms = _collect_graph_term_matches(text, node.get("alias_terms") or [])
+        matched_keyword_terms = _collect_graph_term_matches(text, node.get("keyword_terms") or [])
+        matched_terms = list(
+            dict.fromkeys([*matched_label_terms, *matched_alias_terms, *matched_keyword_terms])
+        )
         if not matched_terms:
             continue
-        confidence = round(min(0.98, 0.42 + 0.08 * len(matched_terms) + 0.04 * len(node.get("topic_ids") or [])), 2)
-        resolved.append(
+
+        confidence = round(
+            min(
+                0.98,
+                0.26
+                + 0.13 * len(matched_label_terms)
+                + 0.09 * len(matched_alias_terms)
+                + 0.05 * len(matched_keyword_terms)
+                + 0.04 * len(node.get("topic_ids") or []),
+            ),
+            2,
+        )
+        direct_resolved.append(
             {
                 "node_id": node["node_id"],
                 "label": node.get("label") or node["node_id"],
                 "node_type": node.get("node_type") or "entity",
                 "description": node.get("description"),
+                "family_id": node.get("family_id"),
+                "family_label": node.get("family_label"),
                 "tags": [str(item) for item in node.get("tags") or []],
                 "topic_ids": [str(item) for item in node.get("topic_ids") or []],
-                "match_terms": matched_terms[:3],
+                "match_terms": matched_terms[:4],
+                "match_strategy": "direct",
+                "related_match_count": 0,
                 "related_node_ids": [str(item) for item in node.get("related_node_ids") or []],
+                "confidence": confidence,
+            }
+        )
+
+    resolved_by_id = {
+        str(item.get("node_id") or "").strip(): item
+        for item in direct_resolved
+        if str(item.get("node_id") or "").strip()
+    }
+    family_counts = Counter(
+        str(item.get("family_id") or "").strip()
+        for item in direct_resolved
+        if str(item.get("family_id") or "").strip()
+    )
+
+    resolved: list[dict[str, Any]] = []
+    for item in direct_resolved:
+        related_match_count = sum(
+            1
+            for related_id in item.get("related_node_ids") or []
+            if str(related_id).strip() in resolved_by_id
+        )
+        family_support = 0
+        family_id = str(item.get("family_id") or "").strip()
+        if family_id:
+            family_support = max(family_counts.get(family_id, 0) - 1, 0)
+        confidence = min(
+            0.99,
+            round(
+                float(item.get("confidence") or 0.0)
+                + (0.04 * related_match_count)
+                + (0.03 * family_support),
+                2,
+            ),
+        )
+        resolved.append(
+            {
+                **item,
+                "match_strategy": "direct+related" if related_match_count or family_support else "direct",
+                "related_match_count": related_match_count,
                 "confidence": confidence,
             }
         )
@@ -1881,11 +1956,29 @@ def _resolve_graph_entities(text: str) -> list[dict[str, Any]]:
     resolved.sort(
         key=lambda item: (
             -(item.get("confidence") or 0.0),
+            -(item.get("related_match_count") or 0),
             -len(item.get("topic_ids") or []),
             str(item.get("label") or ""),
         )
     )
     return resolved
+
+
+@lru_cache(maxsize=512)
+def _graph_term_pattern(term: str) -> re.Pattern[str]:
+    escaped = re.escape(term.strip()).replace(r"\ ", r"\s+")
+    return re.compile(rf"(?<![A-Za-z0-9]){escaped}(?![A-Za-z0-9])", flags=re.IGNORECASE)
+
+
+def _collect_graph_term_matches(text: str, terms: list[str]) -> list[str]:
+    matched: list[str] = []
+    for term in terms:
+        cleaned = str(term or "").strip()
+        if not cleaned:
+            continue
+        if _graph_term_pattern(cleaned).search(text):
+            matched.append(cleaned)
+    return matched
 
 
 def _extract_entity_tags(graph_entities: list[dict[str, Any]]) -> list[str]:
@@ -1934,13 +2027,17 @@ def _extract_evidence_items(
         if not primary_term:
             continue
         sentence, start, end = _sentence_for_term(text, primary_term)
+        family_label = str(entity.get("family_label") or "").strip()
+        related_match_count = max(_coerce_int(entity.get("related_match_count")) or 0, 0)
         evidence.append(
             {
                 "evidence_text": sentence,
                 "char_start": start,
                 "char_end": end,
                 "claim_text": (
-                    f"{entity.get('label') or entity.get('node_id')} anchors graph-backed pancreatic oncology reasoning."
+                    f"{entity.get('label') or entity.get('node_id')} anchors graph-backed pancreatic oncology reasoning"
+                    + (f" in the {family_label} family" if family_label else "")
+                    + (f" with {related_match_count} related concept match(es)." if related_match_count else ".")
                 ),
                 "claim_type": f"graph_entity:{entity.get('node_type') or 'entity'}",
                 "entity_tags": [
@@ -1955,11 +2052,12 @@ def _extract_evidence_items(
 
 
 def _sentence_for_term(text: str, term: str) -> tuple[str, int, int]:
-    text_l = text.lower()
-    term_l = term.lower()
-    match_index = text_l.find(term_l)
-    if match_index < 0:
+    pattern = _graph_term_pattern(term)
+    match = pattern.search(text)
+    if match is None:
         return text[:220], 0, 0
+    match_index = match.start()
+    match_end_index = match.end()
 
     sentences = _SENTENCE_SPLIT_RE.split(text)
     cursor = 0
@@ -1968,11 +2066,12 @@ def _sentence_for_term(text: str, term: str) -> tuple[str, int, int]:
         end = cursor + len(sentence)
         if start <= match_index <= end:
             relative_start = max(0, match_index - start)
-            relative_end = relative_start + len(term)
+            relative_end = max(relative_start, match_end_index - start)
             return sentence.strip(), relative_start, relative_end
         cursor = end + 1
 
-    return text[max(0, match_index - 80) : match_index + 140], 0, len(term)
+    snippet = text[max(0, match_index - 80) : match_end_index + 140]
+    return snippet, 0, max(0, match_end_index - match_index)
 
 
 def _build_citation_key(

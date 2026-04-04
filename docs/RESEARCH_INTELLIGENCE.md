@@ -133,7 +133,7 @@ The first foundation slice ships with:
 
 - `9` source definitions
 - `7` topic watchlists
-- `14` lightweight graph nodes
+- `25` lightweight graph nodes
 - `7` seeded pancreatic oncology documents
 - `9` discovery fixture feeds for reproducible connector runs
 
@@ -161,9 +161,9 @@ Phase 7 is now underway with these capabilities:
 
 Phase 2 is now underway with these capabilities:
 
-- the pancreatic oncology graph now includes typed entities for disease, biomarkers, procedures, cohorts, workflow concepts, and research artifacts
-- graph-backed entity resolution runs during document normalization
-- graph entities now help reinforce topic assignment and evidence extraction
+- the pancreatic oncology graph now includes broader typed entities for biomarkers, therapies, cohorts, modalities, workflow rules, and research artifacts
+- graph-backed entity resolution now uses concept families and related-node reinforcement during document normalization
+- graph entities now help reinforce topic assignment and evidence extraction with richer cross-document conceptual grouping
 - a dedicated graph surface exposes active nodes, edge relationships, and document-backed entity heat
 
 ## Phase 3 Council Status
