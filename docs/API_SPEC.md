@@ -470,13 +470,13 @@ Query params:
 - `topic`
 
 ### `GET /research-intel/runs`
-Return recent ingest and digest audit summaries.
+Return recent ingest, digest, experiment, and watchtower audit summaries.
 
 Access:
 - Allowed roles: `analyst`, `navigator`, `admin`
 
 ### `GET /research-intel/runs/{run_id}`
-Return one ingest or digest run with per-item audit entries.
+Return one ingest, digest, experiment, or watchtower run with per-item audit entries.
 
 Access:
 - Allowed roles: `analyst`, `navigator`, `admin`
@@ -522,6 +522,30 @@ Behavior:
 - Builds council outputs, disagreement tracking, digest summaries, and research opportunities from the current document store.
 - Writes JSON and Markdown artifacts under `artifacts/research-intel/` when `write_artifacts=true`.
 - Opportunity artifacts are also written under `artifacts/research-intel/opportunities/` when enabled.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `POST /research-intel/runs/watchtower`
+Trigger one audited watchtower automation tick.
+
+Request:
+```json
+{
+  "only_due": true,
+  "write_artifacts": true,
+  "mode": "auto",
+  "publish_digest": true,
+  "digest_policy": "new_documents"
+}
+```
+
+Behavior:
+- Captures schedule state before and after the tick.
+- Runs due-only ingest unless no scoped sources are currently due.
+- Gates digest generation by policy: `new_documents`, `always`, or `never`.
+- Records child ingest and digest run summaries in watchtower run metadata.
+- Writes watchtower summary artifacts under `artifacts/research-intel/watchtower/` when `write_artifacts=true`.
 
 Access:
 - Allowed roles: `analyst`, `navigator`, `admin`

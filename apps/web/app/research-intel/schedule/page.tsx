@@ -1,7 +1,11 @@
 import Link from "next/link";
 
-import { getCurrentUser, getResearchSchedule } from "../../../lib/api";
-import { triggerDueResearchIngestAction, triggerResearchIngestAction } from "../actions";
+import { getCurrentUser, getResearchRuns, getResearchSchedule, type ResearchRunSummary } from "../../../lib/api";
+import {
+  triggerDueResearchIngestAction,
+  triggerResearchIngestAction,
+  triggerResearchWatchtowerAction,
+} from "../actions";
 
 
 function formatDateTime(value?: string | null): string {
@@ -16,8 +20,13 @@ function formatDateTime(value?: string | null): string {
 
 
 export default async function ResearchIntelSchedulePage() {
-  const [currentUser, schedule] = await Promise.all([getCurrentUser(), getResearchSchedule()]);
+  const [currentUser, schedule, runs] = await Promise.all([
+    getCurrentUser(),
+    getResearchSchedule(),
+    getResearchRuns(10),
+  ]);
   const canManage = currentUser?.capabilities.can_manage_research_intel ?? false;
+  const latestWatchtowerRun = runs.find((run) => run.run_type === "watchtower") || null;
 
   return (
     <main style={{ padding: 32, maxWidth: 1160, margin: "0 auto" }}>
@@ -36,6 +45,22 @@ export default async function ResearchIntelSchedulePage() {
         <div style={{ display: "flex", gap: 12, alignItems: "start", flexWrap: "wrap" }}>
           {canManage ? (
             <>
+              <form action={triggerResearchWatchtowerAction}>
+                <button
+                  type="submit"
+                  style={{
+                    border: 0,
+                    borderRadius: 10,
+                    padding: "10px 14px",
+                    background: "#0f766e",
+                    color: "white",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  Run watchtower tick
+                </button>
+              </form>
               <form action={triggerDueResearchIngestAction}>
                 <button
                   type="submit"
@@ -78,6 +103,8 @@ export default async function ResearchIntelSchedulePage() {
 
       {schedule ? (
         <>
+          {latestWatchtowerRun ? <LatestWatchtowerRunCard run={latestWatchtowerRun} /> : null}
+
           <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", marginBottom: 16 }}>
             <StatCard label="Due now" value={String(schedule.due_count)} note={`${schedule.overdue_count} overdue`} />
             <StatCard label="Scheduled" value={String(schedule.scheduled_count)} note="Waiting on their next interval" />
@@ -195,5 +222,112 @@ function SourceFact({ label, value }: { label: string; value: string }) {
       <p style={{ margin: 0, fontSize: 12, textTransform: "uppercase", color: "#64748b" }}>{label}</p>
       <p style={{ margin: "6px 0 0", color: "#0f172a", fontWeight: 700 }}>{value}</p>
     </div>
+  );
+}
+
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+
+function readBoolean(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+
+function readNumber(value: unknown): number | null {
+  return typeof value === "number" ? value : null;
+}
+
+
+function readString(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+
+function LatestWatchtowerRunCard({ run }: { run: ResearchRunSummary }) {
+  const metadata = asRecord(run.metadata);
+  const ingestDecision = asRecord(metadata?.ingest_decision);
+  const digestDecision = asRecord(metadata?.digest_decision);
+  const scheduleBefore = asRecord(metadata?.schedule_before);
+  const scheduleAfter = asRecord(metadata?.schedule_after);
+  const ingestRun = asRecord(metadata?.ingest_run);
+  const digestRun = asRecord(metadata?.digest_run);
+
+  return (
+    <section
+      style={{
+        marginBottom: 18,
+        background: "#ecfeff",
+        border: "1px solid #99f6e4",
+        borderRadius: 16,
+        padding: 20,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div>
+          <p style={{ margin: 0, fontSize: 12, textTransform: "uppercase", color: "#0f766e" }}>
+            Latest automation tick
+          </p>
+          <h2 style={{ margin: "6px 0 4px", fontSize: 24 }}>Watchtower run {run.run_id}</h2>
+          <p style={{ margin: 0, color: "#155e75", lineHeight: 1.65, maxWidth: 760 }}>
+            The recurring watchtower runner uses due-only ingest plus digest gating so the project can keep scanning
+            pancreatic oncology sources without publishing synthetic digest churn.
+          </p>
+        </div>
+        <div style={{ minWidth: 260 }}>
+          <p style={{ margin: 0, fontWeight: 700, color: "#0f172a" }}>{run.status.replace(/_/g, " ")}</p>
+          <p style={{ margin: "6px 0 0", color: "#0f172a" }}>
+            actor {run.actor_user_id} • completed {formatDateTime(run.completed_at)}
+          </p>
+          <p style={{ margin: "6px 0 0", color: "#155e75" }}>
+            processed {run.processed} • created {run.created} • updated {run.updated} • failed {run.failed}
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginTop: 14 }}>
+        <SourceFact
+          label="Ingest"
+          value={
+            `${readBoolean(ingestDecision?.triggered) ? "triggered" : "skipped"}`
+            + (readString(ingestDecision?.reason) ? ` • ${readString(ingestDecision?.reason)}` : "")
+          }
+        />
+        <SourceFact
+          label="Digest"
+          value={
+            `${readBoolean(digestDecision?.triggered) ? "triggered" : "skipped"}`
+            + (readString(digestDecision?.reason) ? ` • ${readString(digestDecision?.reason)}` : "")
+          }
+        />
+        <SourceFact
+          label="Due before"
+          value={
+            readNumber(scheduleBefore?.scoped_due_count) !== null
+              ? String(readNumber(scheduleBefore?.scoped_due_count))
+              : "—"
+          }
+        />
+        <SourceFact
+          label="Due after"
+          value={
+            readNumber(scheduleAfter?.scoped_due_count) !== null
+              ? String(readNumber(scheduleAfter?.scoped_due_count))
+              : "—"
+          }
+        />
+        <SourceFact
+          label="Ingest run"
+          value={readNumber(ingestRun?.run_id) !== null ? `#${readNumber(ingestRun?.run_id)}` : "—"}
+        />
+        <SourceFact
+          label="Digest run"
+          value={readNumber(digestRun?.run_id) !== null ? `#${readNumber(digestRun?.run_id)}` : "—"}
+        />
+      </div>
+    </section>
   );
 }

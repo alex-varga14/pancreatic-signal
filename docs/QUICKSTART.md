@@ -84,6 +84,7 @@ To inspect the watchtower schedule or run only due sources:
 ```bash
 make research-intel-schedule
 make research-intel-ingest-due
+make research-intel-watchtower
 ```
 
 Then explore:

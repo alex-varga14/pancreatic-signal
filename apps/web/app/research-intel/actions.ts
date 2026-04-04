@@ -7,7 +7,18 @@ import {
   runResearchDigest,
   runResearchIngest,
   runResearchOpportunityExperiment,
+  runResearchWatchtower,
 } from "../../lib/api";
+
+
+export async function triggerResearchWatchtowerAction(): Promise<void> {
+  await runResearchWatchtower({ write_artifacts: true, only_due: true, digest_policy: "new_documents" });
+  revalidatePath("/research-intel");
+  revalidatePath("/research-intel/documents");
+  revalidatePath("/research-intel/digests");
+  revalidatePath("/research-intel/opportunities");
+  revalidatePath("/research-intel/schedule");
+}
 
 
 export async function triggerResearchIngestAction(): Promise<void> {

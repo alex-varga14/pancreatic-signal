@@ -253,10 +253,10 @@ def check_research_intel_pipeline() -> CheckResult:
         db_path = Path(temp_dir) / "research-intel.db"
         env = {"DATABASE_URL": f"sqlite:///{db_path}"}
 
-        ingest = run_command(
+        watchtower = run_command(
             [
                 sys.executable,
-                "scripts/run_research_intel_ingest.py",
+                "scripts/run_research_intel_watchtower.py",
                 "--mode",
                 "fixture",
                 "--json",
@@ -264,20 +264,8 @@ def check_research_intel_pipeline() -> CheckResult:
             ],
             extra_env=env,
         )
-        if ingest.returncode != 0:
-            return CheckResult("research-intel-pipeline", FAIL, summarize_process(ingest))
-
-        digest = run_command(
-            [
-                sys.executable,
-                "scripts/run_research_intel_digest.py",
-                "--json",
-                "--no-artifacts",
-            ],
-            extra_env=env,
-        )
-        if digest.returncode != 0:
-            return CheckResult("research-intel-pipeline", FAIL, summarize_process(digest))
+        if watchtower.returncode != 0:
+            return CheckResult("research-intel-pipeline", FAIL, summarize_process(watchtower))
 
         schedule = run_command(
             [
@@ -302,17 +290,22 @@ def check_research_intel_pipeline() -> CheckResult:
         if experiment.returncode != 0:
             return CheckResult("research-intel-pipeline", FAIL, summarize_process(experiment))
 
-    ingest_payload = json.loads(ingest.stdout)
-    digest_payload = json.loads(digest.stdout)
+    watchtower_payload = json.loads(watchtower.stdout)
     schedule_payload = json.loads(schedule.stdout)
     experiment_payload = json.loads(experiment.stdout)
+    watchtower_metadata = watchtower_payload.get("metadata", {})
+    schedule_before = watchtower_metadata.get("schedule_before", {})
+    digest_decision = watchtower_metadata.get("digest_decision", {})
+    digest_run = watchtower_metadata.get("digest_run")
     return CheckResult(
         "research-intel-pipeline",
         PASS,
         (
-            f"Ingest processed {ingest_payload['processed']} discovery document(s); "
+            f"Watchtower processed {watchtower_payload['processed']} discovery document(s); "
+            f"pre-run schedule showed {schedule_before.get('scoped_due_count', schedule_before.get('due_count', 0))} due source(s); "
             f"schedule shows {schedule_payload['due_count']} due source(s) out of {schedule_payload['total_sources']}; "
-            f"digest created {digest_payload['created']} artifact-backed record(s); "
+            f"digest {'created ' + str(digest_run.get('created', 0)) + ' record(s)' if isinstance(digest_run, dict) else 'was skipped'} "
+            f"with decision {digest_decision.get('reason', 'unknown')}; "
             f"experiment ratchet outcome {experiment_payload['metadata'].get('ratchet_outcome', 'unknown')}."
         ),
     )

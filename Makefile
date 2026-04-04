@@ -35,6 +35,9 @@ research-intel-ingest-due:
 research-intel-schedule:
 	$(PYTHON) scripts/run_research_intel_schedule.py
 
+research-intel-watchtower:
+	$(PYTHON) scripts/run_research_intel_watchtower.py
+
 research-intel-discovery-fixture:
 	$(PYTHON) scripts/run_research_intel_ingest.py --mode fixture
 	$(PYTHON) scripts/run_research_intel_digest.py
@@ -42,6 +45,9 @@ research-intel-discovery-fixture:
 research-intel-discovery-live:
 	$(PYTHON) scripts/run_research_intel_ingest.py --mode live
 	$(PYTHON) scripts/run_research_intel_digest.py
+
+research-intel-watchtower-live:
+	$(PYTHON) scripts/run_research_intel_watchtower.py --mode live
 
 research-intel-digest:
 	$(PYTHON) scripts/run_research_intel_digest.py

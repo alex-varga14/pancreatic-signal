@@ -1240,6 +1240,28 @@ export async function runResearchDigest(payload?: {
   return body.run;
 }
 
+export async function runResearchWatchtower(payload?: {
+  source_ids?: string[];
+  include_disabled?: boolean;
+  only_due?: boolean;
+  write_artifacts?: boolean;
+  mode?: "auto" | "seeded" | "fixture" | "live";
+  max_documents_per_source?: number;
+  publish_digest?: boolean;
+  digest_policy?: "new_documents" | "always" | "never";
+}): Promise<ResearchRunDetail> {
+  const res = await apiFetch("/api/v1/research-intel/runs/watchtower", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(res, "Failed to trigger research watchtower.");
+  }
+  const body: { run: ResearchRunDetail } = await res.json();
+  return body.run;
+}
+
 export async function runResearchOpportunityExperiment(
   opportunityId: string,
   payload?: {

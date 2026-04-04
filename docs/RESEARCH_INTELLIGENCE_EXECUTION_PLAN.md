@@ -214,6 +214,8 @@ Current progress:
 - the API exposes a schedule snapshot with due counts, live-ready counts, and per-source next-run timing
 - due-only ingest is available through the API, CLI, Make targets, and `/research-intel/schedule`
 - strict validation now checks the schedule snapshot alongside ingest, digest, and experiment flows
+- the watchtower now also has a single audited automation tick entrypoint through API, CLI, Make, and a cache-backed hosted workflow
+- digest creation is policy-gated during watchtower ticks so recurring automation can skip synthetic digest churn when no new documents were added
 
 ### Governance And Source Policy
 
@@ -248,8 +250,7 @@ Before a phase is considered complete, confirm:
 
 The branch wrap-up slice is now in place. The highest-value next work after this checkpoint is:
 
-- expand live curated connector coverage beyond the current official literature and trial baseline
-- turn schedule-aware discovery into trusted recurring automation or hosted jobs
 - deepen graph breadth and cross-document entity resolution against a larger live corpus
 - extend council history from short digest windows into longer-horizon calibration and recurring-theme analysis
 - bring in larger collaborator-supplied benchmark or dataset drops that exercise the new contributor packets
+- continue expanding live curated connector quality and trust coverage beyond the current official literature and trial baseline

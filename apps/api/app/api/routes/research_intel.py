@@ -20,6 +20,7 @@ from app.schemas.research_intel import (
     ResearchRunTriggerResult,
     ResearchSource,
     ResearchTopic,
+    ResearchWatchtowerTriggerInput,
 )
 from app.services.research_intel import (
     build_research_case_brief,
@@ -37,6 +38,7 @@ from app.services.research_intel import (
     run_research_digest,
     run_research_ingest,
     run_research_opportunity_experiment,
+    run_research_watchtower,
 )
 from app.store.memory_store import CASE_STORE
 
@@ -153,6 +155,25 @@ def trigger_digest(
         actor_user_id=actor.user_id,
         publish=payload.publish,
         write_artifacts=payload.write_artifacts,
+    )
+    return ResearchRunTriggerResult(ok=True, run=run)
+
+
+@router.post("/runs/watchtower", response_model=ResearchRunTriggerResult)
+def trigger_watchtower(
+    payload: ResearchWatchtowerTriggerInput,
+    actor: AuthenticatedActor = Depends(require_roles("analyst", "navigator", "admin")),
+) -> ResearchRunTriggerResult:
+    run = run_research_watchtower(
+        actor_user_id=actor.user_id,
+        source_ids=payload.source_ids,
+        include_disabled=payload.include_disabled,
+        only_due=payload.only_due,
+        write_artifacts=payload.write_artifacts,
+        mode=payload.mode,
+        max_documents_per_source=payload.max_documents_per_source,
+        publish_digest=payload.publish_digest,
+        digest_policy=payload.digest_policy,
     )
     return ResearchRunTriggerResult(ok=True, run=run)
 

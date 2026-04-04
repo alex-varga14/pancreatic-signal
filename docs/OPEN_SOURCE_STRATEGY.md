@@ -63,11 +63,11 @@ This project is most helpful to the larger open-source community when it offers:
 
 The highest-value collaboration areas after the current pilot hardening work are:
 
-1. turn the schedule-aware research watchtower into trusted recurring automation or hosted jobs
-2. extend council history from short digest windows into longer-horizon calibration and recurring-theme analysis
-3. exercise the contributor-packet workflow against larger benchmark and dataset contributions from outside collaborators
-4. deepen reviewer ergonomics and trial abstraction as explainable downstream surfaces of the discovery engine
-5. keep governance and procurement notes current as source coverage expands beyond public-open feeds
+1. extend council history from short digest windows into longer-horizon calibration and recurring-theme analysis
+2. exercise the contributor-packet workflow against larger benchmark and dataset contributions from outside collaborators
+3. deepen reviewer ergonomics and trial abstraction as explainable downstream surfaces of the discovery engine
+4. keep governance and procurement notes current as source coverage expands beyond public-open feeds
+5. continue broadening trusted live connector coverage where the watchtower still leans on fixtures
 
 ## Open-Source Guardrails
 

@@ -384,6 +384,59 @@ def test_research_intel_schedule_and_due_only_ingest_are_operator_friendly() -> 
     assert refreshed_schedule["scheduled_count"] >= 1
 
 
+def test_research_intel_watchtower_tick_is_audited_and_digest_gated() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    denied = client.post(
+        "/api/v1/research-intel/runs/watchtower",
+        json={"mode": "fixture", "write_artifacts": False},
+        headers=_auth_headers("viewer-a", "viewer"),
+    )
+    assert denied.status_code == 403
+
+    response = client.post(
+        "/api/v1/research-intel/runs/watchtower",
+        json={"mode": "fixture", "write_artifacts": True},
+        headers=_auth_headers("research-admin"),
+    )
+    assert response.status_code == 200
+    payload = response.json()["run"]
+    assert payload["run_type"] == "watchtower"
+    assert payload["metadata"]["requested_mode"] == "fixture"
+    assert payload["metadata"]["ingest_decision"]["triggered"] is True
+    assert payload["metadata"]["digest_decision"]["triggered"] is True
+    assert payload["metadata"]["digest_decision"]["reason"] == "new_documents_detected"
+    assert payload["metadata"]["ingest_run"]["run_id"]
+    assert payload["metadata"]["digest_run"]["run_id"]
+    assert payload["metadata"]["schedule_before"]["scoped_due_count"] >= 1
+    assert any(path.startswith("artifacts/research-intel/watchtower/") for path in payload["artifact_paths"])
+
+    runs = client.get("/api/v1/research-intel/runs", headers=_auth_headers("research-admin")).json()
+    assert runs[0]["run_type"] == "watchtower"
+
+    follow_up = client.post(
+        "/api/v1/research-intel/runs/watchtower",
+        json={"mode": "fixture", "write_artifacts": False},
+        headers=_auth_headers("research-admin"),
+    )
+    assert follow_up.status_code == 200
+    follow_up_payload = follow_up.json()["run"]
+    assert follow_up_payload["metadata"]["ingest_decision"]["triggered"] is False
+    assert follow_up_payload["metadata"]["digest_decision"]["triggered"] is False
+    assert follow_up_payload["metadata"]["digest_decision"]["reason"] == "no_ingest_run"
+
+    forced_digest = client.post(
+        "/api/v1/research-intel/runs/watchtower",
+        json={"mode": "fixture", "write_artifacts": False, "digest_policy": "always"},
+        headers=_auth_headers("research-admin"),
+    )
+    assert forced_digest.status_code == 200
+    forced_payload = forced_digest.json()["run"]
+    assert forced_payload["metadata"]["digest_decision"]["triggered"] is True
+    assert forced_payload["metadata"]["digest_decision"]["reason"] == "policy_always"
+
+
 def test_research_intel_seeded_mode_is_still_available_for_bootstrap_runs() -> None:
     CASE_STORE.reset()
     client = TestClient(app)

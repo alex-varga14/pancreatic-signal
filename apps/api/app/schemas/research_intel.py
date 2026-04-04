@@ -17,6 +17,7 @@ ResearchOpportunityType = Literal[
 
 ResearchPromotionTarget = Literal["github_issue", "docs_draft", "benchmark_task"]
 ResearchIngestMode = Literal["auto", "seeded", "fixture", "live"]
+ResearchWatchtowerDigestPolicy = Literal["new_documents", "always", "never"]
 ResearchScheduleState = Literal["due", "scheduled", "unscheduled", "disabled"]
 ResearchExperimentOutcome = Literal["keep", "discard"]
 ResearchExperimentKind = Literal[
@@ -117,6 +118,17 @@ class ResearchRunTriggerInput(BaseModel):
 class ResearchDigestTriggerInput(BaseModel):
     publish: bool = True
     write_artifacts: bool = True
+
+
+class ResearchWatchtowerTriggerInput(BaseModel):
+    source_ids: list[str] | None = None
+    include_disabled: bool = False
+    only_due: bool = True
+    write_artifacts: bool = True
+    mode: ResearchIngestMode = "auto"
+    max_documents_per_source: int | None = Field(default=None, ge=1, le=50)
+    publish_digest: bool = True
+    digest_policy: ResearchWatchtowerDigestPolicy = "new_documents"
 
 
 class ResearchScheduleSnapshot(BaseModel):

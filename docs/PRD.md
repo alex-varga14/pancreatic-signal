@@ -209,11 +209,11 @@ The current release intentionally stops short of:
 
 The next requirements focus on turning the research watchtower into a steadier operating loop rather than adding another new foundation layer:
 
-1. turn schedule snapshots into trusted recurring automation or hosted jobs
-2. strengthen council comparison, confidence calibration, and explicit open-question tracking
-3. turn opportunities and experiments into sharper contributor workflows for benchmarks, rules, and tooling
-4. keep triage and interoperability surfaces aligned with the discovery-first product framing without weakening explainability
-5. expand connector quality and trust coverage where the current watchtower still leans on fixtures
+1. strengthen council comparison, confidence calibration, and explicit open-question tracking
+2. turn opportunities and experiments into sharper contributor workflows for benchmarks, rules, and tooling
+3. keep triage and interoperability surfaces aligned with the discovery-first product framing without weakening explainability
+4. expand connector quality and trust coverage where the current watchtower still leans on fixtures
+5. preserve hosted watchtower trust with clear artifact outputs, digest gating, and human review boundaries
 
 ## 12. Release-readiness criteria for the current phase
 

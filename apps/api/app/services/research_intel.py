@@ -60,6 +60,7 @@ from app.schemas.research_intel import (
     ResearchScheduleSnapshot,
     ResearchSource,
     ResearchTopic,
+    ResearchWatchtowerDigestPolicy,
 )
 from app.services.research_intel_connectors import collect_research_documents_for_source
 from app.services.trial_matching import match_case_to_trials
@@ -383,6 +384,312 @@ def list_research_schedule() -> ResearchScheduleSnapshot:
         live_ready_count=sum(1 for item in sorted_sources if item.live_ready),
         fixture_only_count=sum(1 for item in sorted_sources if not item.live_ready),
         sources=sorted_sources,
+    )
+
+
+def run_research_watchtower(
+    *,
+    actor_user_id: str,
+    source_ids: list[str] | None = None,
+    include_disabled: bool = False,
+    only_due: bool = True,
+    write_artifacts: bool = True,
+    mode: ResearchIngestMode = "auto",
+    max_documents_per_source: int | None = None,
+    publish_digest: bool = True,
+    digest_policy: ResearchWatchtowerDigestPolicy = "new_documents",
+) -> ResearchRunDetail:
+    ensure_research_intel_seeded()
+    started_at = _utcnow()
+    requested_source_scope = _select_source_ids(
+        source_ids=source_ids,
+        include_disabled=include_disabled,
+    )
+    requested_scope_set = set(requested_source_scope)
+    requested_mode = str(mode or "auto")
+
+    schedule_before = list_research_schedule()
+    due_source_ids_before = [
+        source.source_id
+        for source in schedule_before.sources
+        if source.schedule_state == "due"
+        and (not requested_scope_set or source.source_id in requested_scope_set)
+    ]
+
+    ingest_run: ResearchRunDetail | None = None
+    ingest_reason = "triggered"
+    if only_due and not due_source_ids_before:
+        ingest_reason = "no_due_sources_in_scope" if source_ids else "no_due_sources"
+    else:
+        ingest_run = run_research_ingest(
+            actor_user_id=actor_user_id,
+            source_ids=source_ids,
+            include_disabled=include_disabled,
+            only_due=only_due,
+            write_artifacts=write_artifacts,
+            mode=mode,
+            max_documents_per_source=max_documents_per_source,
+        )
+
+    digest_run: ResearchRunDetail | None = None
+    digest_reason = "policy_never"
+    if digest_policy == "always":
+        digest_reason = "policy_always"
+        digest_run = run_research_digest(
+            actor_user_id=actor_user_id,
+            publish=publish_digest,
+            write_artifacts=write_artifacts,
+        )
+    elif digest_policy == "never":
+        digest_reason = "policy_never"
+    elif ingest_run is not None and ingest_run.created > 0:
+        digest_reason = "new_documents_detected"
+        digest_run = run_research_digest(
+            actor_user_id=actor_user_id,
+            publish=publish_digest,
+            write_artifacts=write_artifacts,
+        )
+    elif ingest_run is None:
+        digest_reason = "no_ingest_run"
+    else:
+        digest_reason = "no_new_documents"
+
+    schedule_after = list_research_schedule()
+    due_source_ids_after = [
+        source.source_id
+        for source in schedule_after.sources
+        if source.schedule_state == "due"
+        and (not requested_scope_set or source.source_id in requested_scope_set)
+    ]
+
+    failure_counts: Counter[str] = Counter()
+    if ingest_run is not None:
+        failure_counts.update(ingest_run.failure_counts)
+    if digest_run is not None:
+        failure_counts.update(digest_run.failure_counts)
+
+    processed_count = ingest_run.processed if ingest_run is not None else 0
+    created_count = (ingest_run.created if ingest_run is not None else 0) + (
+        digest_run.created if digest_run is not None else 0
+    )
+    updated_count = (ingest_run.updated if ingest_run is not None else 0) + (
+        digest_run.updated if digest_run is not None else 0
+    )
+    failed_count = (ingest_run.failed if ingest_run is not None else 0) + (
+        digest_run.failed if digest_run is not None else 0
+    )
+    status = (
+        "completed_with_errors"
+        if failed_count > 0
+        or (ingest_run is not None and ingest_run.status == "completed_with_errors")
+        or (digest_run is not None and digest_run.status == "completed_with_errors")
+        else "completed"
+    )
+
+    def _schedule_overview(snapshot: ResearchScheduleSnapshot, scoped_due_source_ids: list[str]) -> dict[str, Any]:
+        return {
+            "generated_at": snapshot.generated_at.isoformat(),
+            "total_sources": snapshot.total_sources,
+            "due_count": snapshot.due_count,
+            "overdue_count": snapshot.overdue_count,
+            "scheduled_count": snapshot.scheduled_count,
+            "disabled_count": snapshot.disabled_count,
+            "live_ready_count": snapshot.live_ready_count,
+            "fixture_only_count": snapshot.fixture_only_count,
+            "scoped_due_count": len(scoped_due_source_ids),
+            "scoped_due_source_ids": scoped_due_source_ids,
+        }
+
+    def _child_run_summary(run: ResearchRunDetail | None) -> dict[str, Any] | None:
+        if run is None:
+            return None
+        return {
+            "run_id": run.run_id,
+            "run_type": run.run_type,
+            "status": run.status,
+            "source_scope": run.source_scope,
+            "processed": run.processed,
+            "created": run.created,
+            "updated": run.updated,
+            "failed": run.failed,
+            "failure_counts": run.failure_counts,
+            "artifact_paths": run.artifact_paths,
+            "metadata": run.metadata,
+            "started_at": run.started_at.isoformat(),
+            "completed_at": run.completed_at.isoformat(),
+        }
+
+    metadata_json = {
+        "requested_mode": requested_mode,
+        "requested_source_scope": requested_source_scope,
+        "include_disabled": include_disabled,
+        "only_due": only_due,
+        "max_documents_per_source": max_documents_per_source,
+        "publish_digest": publish_digest,
+        "digest_policy": digest_policy,
+        "schedule_before": _schedule_overview(schedule_before, due_source_ids_before),
+        "schedule_after": _schedule_overview(schedule_after, due_source_ids_after),
+        "ingest_decision": {
+            "triggered": ingest_run is not None,
+            "reason": ingest_reason,
+        },
+        "digest_decision": {
+            "triggered": digest_run is not None,
+            "reason": digest_reason,
+        },
+        "ingest_run": _child_run_summary(ingest_run),
+        "digest_run": _child_run_summary(digest_run),
+    }
+
+    source_scope = (
+        ingest_run.source_scope
+        if ingest_run is not None
+        else due_source_ids_before if only_due else requested_source_scope
+    )
+
+    completed_at = _utcnow()
+
+    with SessionLocal.begin() as session:
+        run = ResearchRunRecord(
+            run_type="watchtower",
+            status=status,
+            actor_user_id=actor_user_id,
+            source_scope=source_scope,
+            processed_count=processed_count,
+            created_count=created_count,
+            updated_count=updated_count,
+            failed_count=failed_count,
+            failure_counts=dict(failure_counts),
+            metadata_json=metadata_json,
+            started_at=started_at,
+            completed_at=completed_at,
+        )
+        session.add(run)
+        session.flush()
+
+        items = [
+            ResearchRunItemRecord(
+                run_id=run.id,
+                item_index=1,
+                stage="schedule_before",
+                status="completed",
+                source_identifier=f"due:{len(due_source_ids_before)}",
+            ),
+            ResearchRunItemRecord(
+                run_id=run.id,
+                item_index=2,
+                stage="ingest",
+                status=ingest_run.status if ingest_run is not None else "skipped",
+                source_identifier=str(ingest_run.run_id) if ingest_run is not None else None,
+                document_id=str(ingest_run.run_id) if ingest_run is not None else None,
+                error_detail=None if ingest_run is not None else ingest_reason,
+            ),
+            ResearchRunItemRecord(
+                run_id=run.id,
+                item_index=3,
+                stage="digest",
+                status=digest_run.status if digest_run is not None else "skipped",
+                source_identifier=str(digest_run.run_id) if digest_run is not None else None,
+                document_id=str(digest_run.run_id) if digest_run is not None else None,
+                error_detail=None if digest_run is not None else digest_reason,
+            ),
+            ResearchRunItemRecord(
+                run_id=run.id,
+                item_index=4,
+                stage="schedule_after",
+                status="completed",
+                source_identifier=f"due:{len(due_source_ids_after)}",
+            ),
+        ]
+        for item in items:
+            session.add(item)
+
+        artifact_paths: list[str] = []
+        if write_artifacts:
+            artifact_paths.extend(
+                _write_run_artifacts(
+                    artifact_root=_artifact_root() / "watchtower",
+                    basename=f"watchtower-run-{run.id}",
+                    payload={
+                        "run_id": run.id,
+                        "run_type": "watchtower",
+                        "status": status,
+                        "actor_user_id": actor_user_id,
+                        "source_scope": source_scope,
+                        "processed": processed_count,
+                        "created": created_count,
+                        "updated": updated_count,
+                        "failed": failed_count,
+                        "failure_counts": dict(failure_counts),
+                        "metadata": metadata_json,
+                        "started_at": started_at.isoformat(),
+                        "completed_at": completed_at.isoformat(),
+                    },
+                    markdown_lines=[
+                        f"# Research Intelligence watchtower run {run.id}",
+                        "",
+                        f"- actor: `{actor_user_id}`",
+                        f"- mode: `{requested_mode}`",
+                        f"- due-only: `{only_due}`",
+                        f"- digest policy: `{digest_policy}`",
+                        f"- publish digest: `{publish_digest}`",
+                        f"- scoped due before run: `{len(due_source_ids_before)}`",
+                        f"- scoped due after run: `{len(due_source_ids_after)}`",
+                        f"- processed documents: `{processed_count}`",
+                        f"- created records: `{created_count}`",
+                        f"- updated records: `{updated_count}`",
+                        f"- failed stages: `{failed_count}`",
+                        "",
+                        "## Ingest decision",
+                        f"- triggered: `{ingest_run is not None}`",
+                        f"- reason: `{ingest_reason}`",
+                        (
+                            f"- child run: ingest `{ingest_run.run_id}` processed `{ingest_run.processed}` created `{ingest_run.created}` updated `{ingest_run.updated}`"
+                            if ingest_run is not None
+                            else "- child run: skipped"
+                        ),
+                        "",
+                        "## Digest decision",
+                        f"- triggered: `{digest_run is not None}`",
+                        f"- reason: `{digest_reason}`",
+                        (
+                            f"- child run: digest `{digest_run.run_id}` created `{digest_run.created}` updated `{digest_run.updated}`"
+                            if digest_run is not None
+                            else "- child run: skipped"
+                        ),
+                        "",
+                        "## Schedule",
+                        f"- due before: {', '.join(due_source_ids_before) or 'none'}",
+                        f"- due after: {', '.join(due_source_ids_after) or 'none'}",
+                    ],
+                )
+            )
+            if ingest_run is not None:
+                artifact_paths.extend(ingest_run.artifact_paths)
+            if digest_run is not None:
+                artifact_paths.extend(digest_run.artifact_paths)
+
+        run.artifact_paths = list(dict.fromkeys(artifact_paths))
+        run.completed_at = completed_at
+
+        run_id = run.id
+
+    return get_research_run(run_id) or ResearchRunDetail(
+        run_id=run_id,
+        run_type="watchtower",
+        status=status,
+        actor_user_id=actor_user_id,
+        source_scope=source_scope,
+        processed=processed_count,
+        created=created_count,
+        updated=updated_count,
+        failed=failed_count,
+        failure_counts=dict(failure_counts),
+        artifact_paths=list(dict.fromkeys(artifact_paths)),
+        metadata=metadata_json,
+        started_at=started_at,
+        completed_at=completed_at,
+        items=[],
     )
 
 

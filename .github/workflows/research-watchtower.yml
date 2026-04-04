@@ -1,0 +1,140 @@
+name: Research Watchtower
+
+run-name: >-
+  Research Watchtower (${{ github.event_name == 'workflow_dispatch' && inputs.mode || github.event_name }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Discovery collection mode
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - fixture
+          - live
+          - seeded
+      source_scope:
+        description: Run only due sources or all configured sources
+        required: true
+        default: due-only
+        type: choice
+        options:
+          - due-only
+          - all
+      digest_policy:
+        description: Decide when a digest should be produced
+        required: true
+        default: new_documents
+        type: choice
+        options:
+          - new_documents
+          - always
+          - never
+      publish_digest:
+        description: Publish the digest when one is generated
+        required: true
+        default: true
+        type: boolean
+  schedule:
+    - cron: "20 */6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-watchtower-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  research-watchtower:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: sqlite:///${{ github.workspace }}/pancreatic_signal.db
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: apps/api/pyproject.toml
+
+      - name: Restore watchtower state cache
+        id: restore_watchtower_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: pancreatic_signal.db
+          key: research-watchtower-db-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            research-watchtower-db-${{ github.ref_name }}-
+
+      - name: Install API dependencies
+        run: make api-install
+
+      - name: Run research watchtower
+        shell: bash
+        run: |
+          args=(scripts/run_research_intel_watchtower.py --json --actor-user-id github-actions-watchtower)
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            args+=(--mode "${{ inputs.mode }}")
+            args+=(--digest-policy "${{ inputs.digest_policy }}")
+            if [[ "${{ inputs.source_scope }}" == "all" ]]; then
+              args+=(--all-sources)
+            fi
+            if [[ "${{ inputs.publish_digest }}" != "true" ]]; then
+              args+=(--draft)
+            fi
+          else
+            args+=(--mode auto --digest-policy new_documents)
+          fi
+          python "${args[@]}" | tee watchtower-run.json
+
+      - name: Upload watchtower summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-watchtower-summary
+          path: |
+            watchtower-run.json
+            artifacts/research-intel/watchtower
+          if-no-files-found: ignore
+
+      - name: Upload watchtower generated artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-watchtower-artifacts
+          path: |
+            artifacts/research-intel/runs
+            artifacts/research-intel/digests
+            artifacts/research-intel/opportunities
+            artifacts/research-intel/packets
+          if-no-files-found: ignore
+
+      - name: Write watchtower summary
+        if: always()
+        shell: bash
+        run: |
+          latest_summary="$(find artifacts/research-intel/watchtower -maxdepth 1 -name '*.md' -print | sort | tail -n 1 || true)"
+          if [[ -n "${latest_summary}" && -f "${latest_summary}" ]]; then
+            cat "${latest_summary}" >> "$GITHUB_STEP_SUMMARY"
+          elif [[ -f watchtower-run.json ]]; then
+            {
+              echo "## Research Watchtower"
+              echo "- JSON summary uploaded as artifact"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Save watchtower state cache
+        if: always() && hashFiles('pancreatic_signal.db') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: pancreatic_signal.db
+          key: research-watchtower-db-${{ github.ref_name }}-${{ github.run_id }}

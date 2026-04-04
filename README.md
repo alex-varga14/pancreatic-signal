@@ -135,6 +135,7 @@ To inspect the watchtower schedule or run only due sources:
 ```bash
 make research-intel-schedule
 make research-intel-ingest-due
+make research-intel-watchtower
 ```
 
 For the discovery-ingest path specifically:
@@ -189,7 +190,7 @@ make validate-strict
 ```
 
 `make validate` is tolerant of missing local prerequisites and reports readiness gaps as warnings. `make validate-strict` upgrades those same gaps to failures, validates the published external benchmark registry, and is the preferred pre-handoff or pre-release check.
-GitHub Actions now runs the same `make validate-strict` gate on pull requests, on `main`, and via manual workflow dispatch. A separate hosted smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) reuses the base proxy and header pilot smokes plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule. The broader shared-visibility, audit-denial, and non-site structured failure matrix in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) remains a manual validation path.
+GitHub Actions now runs the same `make validate-strict` gate on pull requests, on `main`, and via manual workflow dispatch. A separate hosted smoke workflow in [`.github/workflows/pilot-smoke.yml`](.github/workflows/pilot-smoke.yml) reuses the base proxy and header pilot smokes plus the report-path and structured adapter site-rejection variants on manual dispatch and a weekly schedule. The repo now also carries a cache-backed hosted discovery workflow in [`.github/workflows/research-watchtower.yml`](.github/workflows/research-watchtower.yml), which runs the audited watchtower tick on a six-hour cadence and on manual dispatch. The broader shared-visibility, audit-denial, and non-site structured failure matrix in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) remains a manual validation path.
 For the release-facing evidence path that ties validation, hosted smoke artifacts, and docs updates together, use [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md).
 For a concise outside-collaborator path, see [docs/QUICKSTART.md](docs/QUICKSTART.md).
 For the new oncology watchtower and case-brief workflow, see [docs/RESEARCH_INTELLIGENCE.md](docs/RESEARCH_INTELLIGENCE.md).
@@ -201,6 +202,12 @@ To seed the local pancreatic oncology watchtower and build the first digest:
 
 ```bash
 make research-intel-refresh
+```
+
+To run the full audited watchtower loop with due-only ingest plus digest gating:
+
+```bash
+make research-intel-watchtower
 ```
 
 Then open:

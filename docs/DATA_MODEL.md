@@ -173,7 +173,7 @@ Notes:
 
 ### `ResearchRunRecord`
 
-Summarizes one research-intel ingest or digest run.
+Summarizes one research-intel ingest, digest, experiment, or watchtower run.
 
 Current fields:
 
@@ -195,6 +195,7 @@ Current fields:
 Notes:
 
 - Ingest run metadata now records whether the run was `only_due`, which sources were requested, and which were skipped because they were not yet due.
+- Watchtower run metadata now also captures schedule state before and after the automation tick plus child ingest and digest summaries.
 
 ### `ResearchRunItemRecord`
 

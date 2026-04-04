@@ -61,6 +61,7 @@ To inspect the watchtower schedule or run only due sources:
 ```bash
 make research-intel-schedule
 make research-intel-ingest-due
+make research-intel-watchtower
 ```
 
 For the reproducible discovery-ingest path:
@@ -159,6 +160,16 @@ Phase 7 is now underway with these capabilities:
 - due-only ingest is available through the API, CLI, and Make targets for automation-friendly watchtower ticks
 - source health now tracks consecutive failures so scheduling can surface backoff-aware cadence
 - a dedicated `/research-intel/schedule` workspace exposes due sources, live-ready coverage, and next-run timing for operators
+
+## Watchtower Automation Status
+
+The next watchtower phase is now underway with these capabilities:
+
+- a single audited watchtower tick can now be triggered through `/api/v1/research-intel/runs/watchtower`, `make research-intel-watchtower`, or `scripts/run_research_intel_watchtower.py`
+- watchtower ticks capture schedule state before and after the run, making due-only automation readable without opening the database
+- digest generation is now policy-gated so recurring automation can skip digest churn when no new documents were added
+- the schedule workspace now surfaces the latest watchtower automation tick for operators
+- GitHub Actions now includes a cache-backed hosted watchtower workflow through `.github/workflows/research-watchtower.yml`
 
 ## Phase 2 Knowledge Graph Status
 
@@ -267,7 +278,6 @@ The implementation direction borrows selectively from several open-source resear
 
 ## Next Slices
 
-- turn schedule snapshots into recurring automation hooks or hosted jobs once the connector set is trusted
 - deepen graph coverage and cross-document entity resolution against a wider live corpus
 - extend council comparison from short windows into longer-horizon calibration and recurring-theme analysis
 - expand contributor packets against larger collaborator benchmark drops and public dataset bundles
