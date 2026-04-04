@@ -97,6 +97,7 @@ Implemented outcomes:
 - manual ingest and digest scripts plus validation coverage
 - case-level research briefs that inform review without changing scores
 - research-intel is now the lead product narrative across landing and onboarding surfaces
+- research-intel now also exposes watchtower scheduling, due-only ingest, and a dedicated schedule workspace
 
 Next slices:
 

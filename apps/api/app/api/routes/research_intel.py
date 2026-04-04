@@ -15,6 +15,7 @@ from app.schemas.research_intel import (
     ResearchPromotionResult,
     ResearchRunDetail,
     ResearchRunSummary,
+    ResearchScheduleSnapshot,
     ResearchRunTriggerInput,
     ResearchRunTriggerResult,
     ResearchSource,
@@ -29,6 +30,7 @@ from app.services.research_intel import (
     list_research_documents,
     list_research_opportunities,
     list_research_runs,
+    list_research_schedule,
     list_research_sources,
     list_research_topics,
     promote_research_opportunity,
@@ -44,6 +46,11 @@ router = APIRouter()
 @router.get("/sources", response_model=list[ResearchSource])
 def get_sources() -> list[ResearchSource]:
     return list_research_sources()
+
+
+@router.get("/schedule", response_model=ResearchScheduleSnapshot)
+def get_schedule() -> ResearchScheduleSnapshot:
+    return list_research_schedule()
 
 
 @router.get("/documents", response_model=list[ResearchDocument])
@@ -129,6 +136,7 @@ def trigger_ingest(
         actor_user_id=actor.user_id,
         source_ids=payload.source_ids,
         include_disabled=payload.include_disabled,
+        only_due=payload.only_due,
         write_artifacts=payload.write_artifacts,
         mode=payload.mode,
         max_documents_per_source=payload.max_documents_per_source,

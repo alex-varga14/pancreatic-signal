@@ -29,6 +29,12 @@ bootstrap:
 research-intel-ingest:
 	$(PYTHON) scripts/run_research_intel_ingest.py
 
+research-intel-ingest-due:
+	$(PYTHON) scripts/run_research_intel_ingest.py --only-due
+
+research-intel-schedule:
+	$(PYTHON) scripts/run_research_intel_schedule.py
+
 research-intel-discovery-fixture:
 	$(PYTHON) scripts/run_research_intel_ingest.py --mode fixture
 	$(PYTHON) scripts/run_research_intel_digest.py

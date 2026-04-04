@@ -51,6 +51,7 @@ from app.schemas.research_intel import (
     ResearchRunDetail,
     ResearchRunItem,
     ResearchRunSummary,
+    ResearchScheduleSnapshot,
     ResearchSource,
     ResearchTopic,
 )
@@ -229,8 +230,11 @@ def validate_research_intel_catalogs() -> dict[str, int]:
             )
 
     fixture_count = 0
+    live_ready_count = 0
     for descriptor in sources:
         polling_config = descriptor.get("polling_config") or {}
+        if _is_live_ready(polling_config):
+            live_ready_count += 1
         fixture_path = str(polling_config.get("fixture_path") or "").strip()
         if not fixture_path:
             continue
@@ -247,6 +251,7 @@ def validate_research_intel_catalogs() -> dict[str, int]:
         "graph_nodes": len(graph_nodes),
         "documents": len(documents),
         "fixtures": fixture_count,
+        "live_ready_sources": live_ready_count,
     }
 
 
@@ -333,41 +338,36 @@ def _merge_catalog_polling_config(
 
 def list_research_sources() -> list[ResearchSource]:
     ensure_research_intel_seeded()
+    now = _utcnow()
     with SessionLocal() as session:
         rows = session.execute(
             select(ResearchSourceRecord).order_by(ResearchSourceRecord.label.asc())
         ).scalars().all()
-        return [
-            ResearchSource(
-                source_id=row.source_id,
-                label=row.label,
-                source_kind=row.source_kind,
-                trust_level=row.trust_level,
-                access_class=row.access_class,
-                base_url=row.base_url,
-                description=row.description,
-                polling_config=row.polling_config or {},
-                enabled=row.enabled,
-                connector_id=str((row.polling_config or {}).get("connector_id") or "") or None,
-                default_mode=((row.polling_config or {}).get("default_mode") or "fixture"),
-                live_ready=_is_live_ready(row.polling_config or {}),
-                schedule_summary=_schedule_summary(row.polling_config or {}),
-                health_status=_source_health(row.polling_config or {}).get("status") or "idle",
-                last_run_at=_parse_datetime(_source_health(row.polling_config or {}).get("last_run_at")),
-                last_success_at=_parse_datetime(
-                    _source_health(row.polling_config or {}).get("last_success_at")
-                ),
-                last_error_at=_parse_datetime(_source_health(row.polling_config or {}).get("last_error_at")),
-                last_error_detail=str(
-                    _source_health(row.polling_config or {}).get("last_error_detail") or ""
-                )
-                or None,
-                last_document_count=_coerce_int(
-                    _source_health(row.polling_config or {}).get("last_document_count")
-                ),
-            )
-            for row in rows
-        ]
+        return [_build_research_source(row, now=now) for row in rows]
+
+
+def list_research_schedule() -> ResearchScheduleSnapshot:
+    sources = list_research_sources()
+    sorted_sources = sorted(
+        sources,
+        key=lambda item: (
+            0 if item.schedule_state == "due" else 1 if item.schedule_state == "scheduled" else 2 if item.schedule_state == "unscheduled" else 3,
+            0 if item.priority == "high" else 1 if item.priority == "medium" else 2,
+            item.next_run_at or datetime.max.replace(tzinfo=timezone.utc),
+            item.label.lower(),
+        ),
+    )
+    return ResearchScheduleSnapshot(
+        generated_at=_utcnow(),
+        total_sources=len(sorted_sources),
+        due_count=sum(1 for item in sorted_sources if item.schedule_state == "due"),
+        overdue_count=sum(1 for item in sorted_sources if (item.overdue_by_hours or 0) > 0),
+        scheduled_count=sum(1 for item in sorted_sources if item.schedule_state == "scheduled"),
+        disabled_count=sum(1 for item in sorted_sources if item.schedule_state == "disabled"),
+        live_ready_count=sum(1 for item in sorted_sources if item.live_ready),
+        fixture_only_count=sum(1 for item in sorted_sources if not item.live_ready),
+        sources=sorted_sources,
+    )
 
 
 def list_research_runs(*, limit: int = 20) -> list[ResearchRunSummary]:
@@ -398,13 +398,14 @@ def run_research_ingest(
     actor_user_id: str,
     source_ids: list[str] | None = None,
     include_disabled: bool = False,
+    only_due: bool = False,
     write_artifacts: bool = True,
     mode: ResearchIngestMode = "auto",
     max_documents_per_source: int | None = None,
 ) -> ResearchRunDetail:
     ensure_research_intel_seeded()
     started_at = _utcnow()
-    selected_sources = _select_source_ids(source_ids=source_ids, include_disabled=include_disabled)
+    initial_selected_sources = _select_source_ids(source_ids=source_ids, include_disabled=include_disabled)
     source_map = _source_catalog_map()
     topic_descriptors = _topic_catalog_map()
     requested_mode = str(mode or "auto")
@@ -413,9 +414,16 @@ def run_research_ingest(
         source_records = {
             row.source_id: row
             for row in session.execute(
-                select(ResearchSourceRecord).where(ResearchSourceRecord.source_id.in_(selected_sources))
+                select(ResearchSourceRecord).where(ResearchSourceRecord.source_id.in_(initial_selected_sources))
             ).scalars().all()
         }
+        due_source_ids, skipped_source_ids = _partition_due_sources(
+            source_records=source_records,
+            requested_source_ids=initial_selected_sources,
+            only_due=only_due,
+            now=started_at,
+        )
+        selected_sources = due_source_ids
         run = ResearchRunRecord(
             run_type="ingest",
             status="completed",
@@ -426,6 +434,9 @@ def run_research_ingest(
             metadata_json={
                 "requested_mode": requested_mode,
                 "max_documents_per_source": max_documents_per_source,
+                "only_due": only_due,
+                "requested_source_scope": initial_selected_sources,
+                "skipped_source_ids": skipped_source_ids,
             },
         )
         session.add(run)
@@ -655,11 +666,14 @@ def run_research_ingest(
                         "run_id": run.id,
                         "run_type": "ingest",
                         "source_scope": selected_sources,
+                        "requested_source_scope": initial_selected_sources,
                         "requested_mode": requested_mode,
+                        "only_due": only_due,
                         "processed": processed_documents,
                         "created": created,
                         "updated": updated,
                         "failure_counts": dict(failure_counts),
+                        "skipped_source_ids": skipped_source_ids,
                         "sources": source_summaries,
                     },
                     markdown_lines=[
@@ -667,11 +681,17 @@ def run_research_ingest(
                         "",
                         f"- actor: `{actor_user_id}`",
                         f"- requested mode: `{requested_mode}`",
+                        f"- due-only selection: `{only_due}`",
                         f"- processed: `{processed_documents}`",
                         f"- created: `{created}`",
                         f"- updated: `{updated}`",
                         f"- failed sources: `{sum(failure_counts.values())}`",
                         f"- sources: {', '.join(selected_sources) or 'none'}",
+                        (
+                            f"- skipped sources: {', '.join(skipped_source_ids)}"
+                            if skipped_source_ids
+                            else "- skipped sources: none"
+                        ),
                         "",
                         "## Source status",
                         *[
@@ -702,6 +722,9 @@ def run_research_ingest(
         run.metadata_json = {
             "requested_mode": requested_mode,
             "max_documents_per_source": max_documents_per_source,
+            "only_due": only_due,
+            "requested_source_scope": initial_selected_sources,
+            "skipped_source_ids": skipped_source_ids,
             "source_summaries": source_summaries,
             "processed_documents": processed_documents,
         }
@@ -720,7 +743,13 @@ def run_research_ingest(
         failed=sum(failure_counts.values()),
         failure_counts=dict(failure_counts),
         artifact_paths=[],
-        metadata={"requested_mode": requested_mode, "source_summaries": source_summaries},
+        metadata={
+            "requested_mode": requested_mode,
+            "only_due": only_due,
+            "requested_source_scope": initial_selected_sources,
+            "skipped_source_ids": skipped_source_ids,
+            "source_summaries": source_summaries,
+        },
         started_at=started_at,
         completed_at=_utcnow(),
         items=[],
@@ -1431,6 +1460,107 @@ def _source_health(polling_config: dict[str, Any]) -> dict[str, Any]:
     return dict(polling_config.get("health") or {})
 
 
+def _compute_source_schedule(
+    *,
+    enabled: bool,
+    polling_config: dict[str, Any],
+    now: datetime,
+) -> dict[str, Any]:
+    interval_hours = _coerce_int(polling_config.get("interval_hours"))
+    health = _source_health(polling_config)
+    last_run_at = _parse_datetime(health.get("last_run_at"))
+    consecutive_failures = max(_coerce_int(health.get("consecutive_failures")) or 0, 0)
+
+    if not enabled:
+        return {
+            "priority": str(polling_config.get("priority") or "").strip() or None,
+            "interval_hours": interval_hours,
+            "effective_interval_hours": interval_hours,
+            "schedule_state": "disabled",
+            "next_run_at": None,
+            "overdue_by_hours": None,
+            "consecutive_failures": consecutive_failures,
+        }
+
+    if interval_hours is None:
+        return {
+            "priority": str(polling_config.get("priority") or "").strip() or None,
+            "interval_hours": None,
+            "effective_interval_hours": None,
+            "schedule_state": "unscheduled",
+            "next_run_at": None,
+            "overdue_by_hours": None,
+            "consecutive_failures": consecutive_failures,
+        }
+
+    backoff_multiplier = 1
+    if str(health.get("status") or "").strip() == "error" and consecutive_failures > 0:
+        backoff_multiplier = min(consecutive_failures + 1, 4)
+    effective_interval_hours = interval_hours * backoff_multiplier
+
+    if last_run_at is None:
+        return {
+            "priority": str(polling_config.get("priority") or "").strip() or None,
+            "interval_hours": interval_hours,
+            "effective_interval_hours": effective_interval_hours,
+            "schedule_state": "due",
+            "next_run_at": None,
+            "overdue_by_hours": None,
+            "consecutive_failures": consecutive_failures,
+        }
+
+    next_run_at = last_run_at + timedelta(hours=effective_interval_hours)
+    overdue_by_hours = None
+    schedule_state = "scheduled"
+    if now >= next_run_at:
+        schedule_state = "due"
+        overdue_by_hours = round((now - next_run_at).total_seconds() / 3600, 2)
+
+    return {
+        "priority": str(polling_config.get("priority") or "").strip() or None,
+        "interval_hours": interval_hours,
+        "effective_interval_hours": effective_interval_hours,
+        "schedule_state": schedule_state,
+        "next_run_at": next_run_at,
+        "overdue_by_hours": overdue_by_hours,
+        "consecutive_failures": consecutive_failures,
+    }
+
+
+def _build_research_source(row: ResearchSourceRecord, *, now: datetime) -> ResearchSource:
+    polling_config = row.polling_config or {}
+    health = _source_health(polling_config)
+    schedule = _compute_source_schedule(enabled=row.enabled, polling_config=polling_config, now=now)
+    return ResearchSource(
+        source_id=row.source_id,
+        label=row.label,
+        source_kind=row.source_kind,
+        trust_level=row.trust_level,
+        access_class=row.access_class,
+        base_url=row.base_url,
+        description=row.description,
+        polling_config=polling_config,
+        enabled=row.enabled,
+        connector_id=str(polling_config.get("connector_id") or "") or None,
+        default_mode=(polling_config.get("default_mode") or "fixture"),
+        live_ready=_is_live_ready(polling_config),
+        priority=schedule["priority"],
+        schedule_summary=_schedule_summary(polling_config),
+        schedule_state=schedule["schedule_state"],
+        interval_hours=schedule["interval_hours"],
+        effective_interval_hours=schedule["effective_interval_hours"],
+        next_run_at=schedule["next_run_at"],
+        overdue_by_hours=schedule["overdue_by_hours"],
+        consecutive_failures=schedule["consecutive_failures"],
+        health_status=health.get("status") or "idle",
+        last_run_at=_parse_datetime(health.get("last_run_at")),
+        last_success_at=_parse_datetime(health.get("last_success_at")),
+        last_error_at=_parse_datetime(health.get("last_error_at")),
+        last_error_detail=str(health.get("last_error_detail") or "") or None,
+        last_document_count=_coerce_int(health.get("last_document_count")),
+    )
+
+
 def _is_live_ready(polling_config: dict[str, Any]) -> bool:
     if not polling_config:
         return False
@@ -1478,6 +1608,31 @@ def _select_source_ids(*, source_ids: list[str] | None, include_disabled: bool) 
     return selected
 
 
+def _partition_due_sources(
+    *,
+    source_records: dict[str, ResearchSourceRecord],
+    requested_source_ids: list[str],
+    only_due: bool,
+    now: datetime,
+) -> tuple[list[str], list[str]]:
+    if not only_due:
+        return requested_source_ids, []
+
+    selected: list[str] = []
+    skipped: list[str] = []
+    for source_id in requested_source_ids:
+        record = source_records.get(source_id)
+        if record is None:
+            skipped.append(source_id)
+            continue
+        schedule = _compute_source_schedule(enabled=record.enabled, polling_config=record.polling_config or {}, now=now)
+        if schedule["schedule_state"] == "due":
+            selected.append(source_id)
+        else:
+            skipped.append(source_id)
+    return selected, skipped
+
+
 def _update_source_health(
     record: ResearchSourceRecord,
     *,
@@ -1491,6 +1646,7 @@ def _update_source_health(
 ) -> None:
     polling_config = dict(record.polling_config or {})
     health = dict(polling_config.get("health") or {})
+    prior_failures = max(_coerce_int(health.get("consecutive_failures")) or 0, 0)
     health["status"] = status
     health["last_run_at"] = last_run_at.isoformat()
     if last_success_at is not None:
@@ -1507,6 +1663,10 @@ def _update_source_health(
         health["last_document_count"] = last_document_count
     if last_mode:
         health["last_mode"] = last_mode
+    if status == "healthy":
+        health["consecutive_failures"] = 0
+    elif status == "error":
+        health["consecutive_failures"] = prior_failures + 1
     polling_config["health"] = health
     record.polling_config = polling_config
 

@@ -444,13 +444,32 @@ export type ResearchSource = {
   connector_id?: string | null;
   default_mode?: "auto" | "seeded" | "fixture" | "live" | null;
   live_ready: boolean;
+  priority?: string | null;
   schedule_summary?: string | null;
+  schedule_state: "due" | "scheduled" | "unscheduled" | "disabled";
+  interval_hours?: number | null;
+  effective_interval_hours?: number | null;
+  next_run_at?: string | null;
+  overdue_by_hours?: number | null;
+  consecutive_failures: number;
   health_status: string;
   last_run_at?: string | null;
   last_success_at?: string | null;
   last_error_at?: string | null;
   last_error_detail?: string | null;
   last_document_count?: number | null;
+};
+
+export type ResearchScheduleSnapshot = {
+  generated_at: string;
+  total_sources: number;
+  due_count: number;
+  overdue_count: number;
+  scheduled_count: number;
+  disabled_count: number;
+  live_ready_count: number;
+  fixture_only_count: number;
+  sources: ResearchSource[];
 };
 
 export type ResearchRunItem = {
@@ -1048,6 +1067,12 @@ export async function getResearchSources(): Promise<ResearchSource[]> {
   return res.json();
 }
 
+export async function getResearchSchedule(): Promise<ResearchScheduleSnapshot | null> {
+  const res = await apiFetch("/api/v1/research-intel/schedule");
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export async function getResearchRuns(limit = 12): Promise<ResearchRunSummary[]> {
   const res = await apiFetch(`/api/v1/research-intel/runs?limit=${limit}`);
   if (!res.ok) return [];
@@ -1109,6 +1134,7 @@ export async function getResearchOpportunities(params?: {
 export async function runResearchIngest(payload?: {
   source_ids?: string[];
   include_disabled?: boolean;
+  only_due?: boolean;
   write_artifacts?: boolean;
   mode?: "auto" | "seeded" | "fixture" | "live";
   max_documents_per_source?: number;

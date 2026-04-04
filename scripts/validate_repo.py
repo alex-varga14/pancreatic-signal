@@ -243,7 +243,7 @@ def check_research_intel_catalogs() -> CheckResult:
         (
             f"Validated {payload['sources']} source(s), {payload['topics']} topic(s), "
             f"{payload['graph_nodes']} graph node(s), {payload['documents']} seed document(s), "
-            f"and {payload['fixtures']} discovery fixture(s)."
+            f"{payload['fixtures']} discovery fixture(s), and {payload['live_ready_sources']} live-ready source(s)."
         ),
     )
 
@@ -279,6 +279,17 @@ def check_research_intel_pipeline() -> CheckResult:
         if digest.returncode != 0:
             return CheckResult("research-intel-pipeline", FAIL, summarize_process(digest))
 
+        schedule = run_command(
+            [
+                sys.executable,
+                "scripts/run_research_intel_schedule.py",
+                "--json",
+            ],
+            extra_env=env,
+        )
+        if schedule.returncode != 0:
+            return CheckResult("research-intel-pipeline", FAIL, summarize_process(schedule))
+
         experiment = run_command(
             [
                 sys.executable,
@@ -293,12 +304,14 @@ def check_research_intel_pipeline() -> CheckResult:
 
     ingest_payload = json.loads(ingest.stdout)
     digest_payload = json.loads(digest.stdout)
+    schedule_payload = json.loads(schedule.stdout)
     experiment_payload = json.loads(experiment.stdout)
     return CheckResult(
         "research-intel-pipeline",
         PASS,
         (
             f"Ingest processed {ingest_payload['processed']} discovery document(s); "
+            f"schedule shows {schedule_payload['due_count']} due source(s) out of {schedule_payload['total_sources']}; "
             f"digest created {digest_payload['created']} artifact-backed record(s); "
             f"experiment ratchet outcome {experiment_payload['metadata'].get('ratchet_outcome', 'unknown')}."
         ),

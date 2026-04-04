@@ -79,9 +79,17 @@ For the reproducible discovery-ingest path:
 make research-intel-discovery-fixture
 ```
 
+To inspect the watchtower schedule or run only due sources:
+
+```bash
+make research-intel-schedule
+make research-intel-ingest-due
+```
+
 Then explore:
 
 - `/research-intel` for the primary discovery dashboard, ingest health, topic heat, and recent digest activity
+- `/research-intel/schedule` for due-source planning, live-ready coverage, and watchtower cadence
 - `/research-intel/documents` for the normalized document explorer
 - `/research-intel/graph` for the active pancreatic oncology knowledge graph
 - `/research-intel/digests` for the cited council summaries

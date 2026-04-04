@@ -410,7 +410,14 @@ General behavior:
 Return the configured pancreatic oncology source catalog.
 
 Behavior:
-- Includes connector mode, source health, last-success timing, and schedule summary fields derived from the source registry state.
+- Includes connector mode, source health, last-success timing, schedule summary, schedule state, next-run timing, and consecutive failure counts derived from the source registry state.
+
+### `GET /research-intel/schedule`
+Return the current research-intel watchtower schedule snapshot.
+
+Behavior:
+- Includes due, overdue, scheduled, disabled, live-ready, and fixture-only counts.
+- Returns per-source schedule state, next-run timing, effective interval, and failure-aware cadence details.
 
 ### `GET /research-intel/documents`
 Return normalized pancreatic oncology documents with citations, topic labels, evidence spans, and relevance scores.
@@ -476,6 +483,7 @@ Request:
 {
   "source_ids": ["pubmed", "clinicaltrials"],
   "include_disabled": false,
+  "only_due": false,
   "write_artifacts": true,
   "mode": "fixture",
   "max_documents_per_source": 5
@@ -486,6 +494,7 @@ Behavior:
 - Normalizes documents into the shared database.
 - Deduplicates by source identifiers such as DOI, PMID, NCT id, and canonical URL hashes where available.
 - Records source-level fetch health, effective connector mode, novelty metadata, and provenance.
+- When `only_due=true`, limits the run to sources whose current watchtower state is `due` and records skipped sources in run metadata.
 - Refreshes topic heat, evidence records, and run-audit items.
 - Writes JSON and Markdown artifacts under `artifacts/research-intel/` when `write_artifacts=true`.
 

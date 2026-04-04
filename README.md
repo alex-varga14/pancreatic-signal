@@ -10,6 +10,7 @@ Pancreatic Signal is no longer a scaffold. As of 2026-04-03, this repository inc
 
 - a sibling `/research-intel` workspace for pancreatic oncology monitoring, topic watchlists, cited digests, and opportunity planning
 - seeded research-intel source catalogs, topic ontology, lightweight knowledge graph, action-spec opportunity engine, case briefs, and run-audit records
+- a schedule-aware watchtower layer with due-source planning, curated connector expansion, and a `/research-intel/schedule` workspace
 - a sandboxed research-intel experiment runner for benchmark and rule proposals with ratchet-style keep or discard outcomes
 - deterministic, evidence-backed report triage with rationale codes and auditability
 - a reviewer worklist with case detail, review actions, and research-safe views
@@ -124,6 +125,13 @@ This validates the repo, writes research-intel artifacts to `artifacts/research-
 digest artifacts, and populates the `/research-intel` workspace for local exploration.
 If you want to package a comparable external benchmark, start with [docs/LABELING_GUIDE.md](docs/LABELING_GUIDE.md) and [docs/BENCHMARK_SUBMISSIONS.md](docs/BENCHMARK_SUBMISSIONS.md).
 
+To inspect the watchtower schedule or run only due sources:
+
+```bash
+make research-intel-schedule
+make research-intel-ingest-due
+```
+
 For the discovery-ingest path specifically:
 
 ```bash
@@ -193,6 +201,7 @@ make research-intel-refresh
 Then open:
 
 - `/research-intel` for the primary discovery dashboard
+- `/research-intel/schedule` for due-source planning and watchtower cadence
 - `/research-intel/documents` for the document explorer
 - `/research-intel/graph` for the pancreatic oncology knowledge graph
 - `/research-intel/digests` for cited council summaries

@@ -1,6 +1,6 @@
 # Research Intelligence Execution Plan
 
-This document is the operating contract for the next six research-intel phases. It is meant to keep implementation, runs, artifacts, and accumulated context aligned as the project shifts toward auto research and scientific discovery.
+This document is the operating contract for the research-intel execution track. It is meant to keep implementation, runs, artifacts, and accumulated context aligned as the project shifts toward auto research and scientific discovery.
 
 ## How To Use This Plan
 
@@ -38,6 +38,8 @@ Required for ingest runs:
 
 - requested mode and effective mode
 - source scope
+- whether the run was due-only or full-scope
+- which sources were skipped because they were not due
 - per-source health outcome
 - connector used
 - document counts
@@ -187,6 +189,26 @@ Current progress:
 - the repository now frames triage, benchmark proof, imports, and case briefs as downstream surfaces of the discovery engine
 - contributor workflow now starts from cited evidence, graph activity, council output, opportunities, and safe experiments
 
+### Phase 7. Watchtower Scheduling And Curated Connector Expansion
+
+Goal:
+- make the discovery system behave more like a standing watchtower than a manual demo refresh loop
+
+Required outputs:
+- expanded curated source coverage on official literature and trial connectors
+- visible due-source planning and next-run timing
+- due-only ingest entrypoints for automation-friendly watchtower ticks
+- scheduler-aware source health, including consecutive failure tracking
+
+Acceptance gate:
+- operators can tell what is due, what is waiting, and what a scheduled run would ingest next without reading internal state directly
+
+Current progress:
+- the source catalog now includes a broader curated set of Europe PMC and ClinicalTrials.gov watches
+- the API exposes a schedule snapshot with due counts, live-ready counts, and per-source next-run timing
+- due-only ingest is available through the API, CLI, Make targets, and `/research-intel/schedule`
+- strict validation now checks the schedule snapshot alongside ingest, digest, and experiment flows
+
 ## Phase Review Checklist
 
 Before a phase is considered complete, confirm:
@@ -200,9 +222,9 @@ Before a phase is considered complete, confirm:
 
 ## Immediate Next Slice
 
-Phase 6 is now in place. The highest-value next slice after the repositioning work is to deepen the live scientific-discovery loop:
+Phase 7 is now in place. The highest-value next slice after the watchtower scheduling work is to deepen the live scientific-discovery loop:
 
-- expand live curated connector coverage beyond the current fixture-heavy baseline
+- expand live curated connector coverage beyond the current official literature and trial baseline
 - improve graph breadth and cross-document entity resolution
 - compare council runs across time so recurring disagreements and open questions stay visible
 - sharpen contributor-ready opportunity and experiment flows around concrete research questions

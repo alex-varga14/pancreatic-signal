@@ -41,6 +41,66 @@
       "enabled": true
     },
     {
+      "source_id": "pubmed_early_detection",
+      "label": "PubMed early detection and surveillance watch",
+      "source_kind": "literature",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://pubmed.ncbi.nlm.nih.gov/",
+      "description": "High-risk screening, precursor-lesion surveillance, and early detection papers curated for pancreatic oncology discovery.",
+      "polling_config": {
+        "interval_hours": 8,
+        "priority": "high",
+        "connector_id": "europe_pmc_search",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/pubmed_early_detection.json",
+        "max_documents_per_run": 5,
+        "query": "\"pancreatic cancer\" AND ((early detection) OR screening OR surveillance OR IPMN) sort_date:y"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "pubmed_ai_imaging",
+      "label": "PubMed pancreas imaging and radiomics watch",
+      "source_kind": "literature",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://pubmed.ncbi.nlm.nih.gov/",
+      "description": "Pancreatic CT, MRI, radiomics, and imaging-AI papers curated for discovery, benchmark growth, and tooling review.",
+      "polling_config": {
+        "interval_hours": 12,
+        "priority": "medium",
+        "connector_id": "europe_pmc_search",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/pubmed_ai_imaging.json",
+        "max_documents_per_run": 5,
+        "query": "\"pancreatic cancer\" AND ((radiomics) OR (imaging AI) OR MRI OR CT) sort_date:y"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "clinicaltrials_screening",
+      "label": "ClinicalTrials.gov pancreatic screening studies",
+      "source_kind": "trial_registry",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://clinicaltrials.gov/",
+      "description": "Pancreatic screening, surveillance, and biomarker-driven study updates for early-detection and case-brief work.",
+      "polling_config": {
+        "interval_hours": 12,
+        "priority": "high",
+        "connector_id": "clinicaltrials_v2",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/clinicaltrials_screening.json",
+        "max_documents_per_run": 5,
+        "query": "pancreatic cancer screening biomarker surveillance"
+      },
+      "enabled": true
+    },
+    {
       "source_id": "nci",
       "label": "NCI pancreatic guidance and news",
       "source_kind": "guideline",

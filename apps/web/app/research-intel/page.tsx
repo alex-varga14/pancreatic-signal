@@ -7,10 +7,15 @@ import {
   getResearchGraph,
   getResearchOpportunities,
   getResearchRuns,
+  getResearchSchedule,
   getResearchSources,
   getResearchTopics,
 } from "../../lib/api";
-import { triggerResearchDigestAction, triggerResearchIngestAction } from "./actions";
+import {
+  triggerDueResearchIngestAction,
+  triggerResearchDigestAction,
+  triggerResearchIngestAction,
+} from "./actions";
 
 
 function formatDateTime(value?: string | null): string {
@@ -30,7 +35,7 @@ function formatLabel(value: string): string {
 
 
 export default async function ResearchIntelPage() {
-  const [currentUser, sources, topics, digests, opportunities, runs, documents, graph] = await Promise.all([
+  const [currentUser, sources, topics, digests, opportunities, runs, documents, graph, schedule] = await Promise.all([
     getCurrentUser(),
     getResearchSources(),
     getResearchTopics(),
@@ -39,6 +44,7 @@ export default async function ResearchIntelPage() {
     getResearchRuns(6),
     getResearchDocuments({ limit: 5 }),
     getResearchGraph(),
+    getResearchSchedule(),
   ]);
 
   const canManage = currentUser?.capabilities.can_manage_research_intel ?? false;
@@ -51,6 +57,7 @@ export default async function ResearchIntelPage() {
   const hottestTopics = topics.slice(0, 4);
   const topOpportunities = opportunities.slice(0, 4);
   const graphHighlights = (graph?.nodes || []).filter((node) => node.document_count > 0).slice(0, 4);
+  const dueSources = (schedule?.sources || []).filter((source) => source.schedule_state === "due").slice(0, 4);
 
   return (
     <main style={{ padding: 32, maxWidth: 1160, margin: "0 auto" }}>
@@ -70,6 +77,22 @@ export default async function ResearchIntelPage() {
         <div style={{ display: "flex", gap: 12, alignItems: "start", flexWrap: "wrap" }}>
           {canManage ? (
             <>
+              <form action={triggerDueResearchIngestAction}>
+                <button
+                  type="submit"
+                  style={{
+                    border: 0,
+                    borderRadius: 10,
+                    padding: "10px 14px",
+                    background: "#134e4a",
+                    color: "white",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  Run due sources
+                </button>
+              </form>
               <form action={triggerResearchIngestAction}>
                 <button
                   type="submit"
@@ -107,6 +130,9 @@ export default async function ResearchIntelPage() {
           <Link href="/cases" style={{ color: "#2563eb" }}>
             Open triage surface
           </Link>
+          <Link href="/research-intel/schedule" style={{ color: "#2563eb" }}>
+            Open schedule
+          </Link>
           <Link href="/" style={{ color: "#2563eb" }}>
             Back
           </Link>
@@ -118,6 +144,11 @@ export default async function ResearchIntelPage() {
           label="Tracked discovery sources"
           value={String(sources.length)}
           note="Fixture-backed discovery feeds with live-ready connector scaffolding"
+        />
+        <StatCard
+          label="Due now"
+          value={String(schedule?.due_count ?? 0)}
+          note={`${schedule?.overdue_count ?? 0} overdue • ${schedule?.live_ready_count ?? 0} live-ready sources`}
         />
         <StatCard label="Topic watchlists" value={String(topics.length)} note="Rolling pancreatic oncology clusters" />
         <StatCard label="Graph entities" value={String(graph?.nodes.length || 0)} note="Disease, biomarker, trial, workflow, and dataset nodes" />
@@ -145,6 +176,11 @@ export default async function ResearchIntelPage() {
                 ? `Processed ${latestRun.processed} items across ${latestRun.source_scope.length} source bucket(s)${latestRunMode ? ` using ${latestRunMode} mode` : ""}.`
                 : "Trigger the discovery ingest to load the pancreatic oncology watch catalog, then build a digest to surface opportunities."}
             </p>
+            {schedule ? (
+              <p style={{ margin: "10px 0 0", color: "#0f172a", fontWeight: 600 }}>
+                {schedule.due_count} source{schedule.due_count === 1 ? "" : "s"} due now, {schedule.scheduled_count} already on deck.
+              </p>
+            ) : null}
           </div>
           {publishedDigest ? (
             <div style={{ minWidth: 280, background: "white", borderRadius: 12, padding: 16, border: "1px solid #dbeafe" }}>
@@ -162,6 +198,42 @@ export default async function ResearchIntelPage() {
       </div>
 
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", marginBottom: 16 }}>
+        <section style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 14, padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 12 }}>
+            <div>
+              <p style={{ margin: 0, fontSize: 12, textTransform: "uppercase", color: "#64748b" }}>Watchtower schedule</p>
+              <h2 style={{ margin: "6px 0 0", fontSize: 22 }}>What the system should scan next</h2>
+            </div>
+            <Link href="/research-intel/schedule" style={{ color: "#2563eb" }}>
+              Full schedule
+            </Link>
+          </div>
+
+          {dueSources.length === 0 ? (
+            <p style={{ marginBottom: 0, color: "#64748b" }}>
+              No sources are due right now. The current source set is either already refreshed or waiting on its next interval.
+            </p>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              {dueSources.map((source) => (
+                <div key={source.source_id} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, background: "#f8fafc" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
+                    <strong>{source.label}</strong>
+                    <span style={{ color: "#0f766e", fontSize: 12, fontWeight: 700 }}>
+                      {source.priority || "normal"} priority
+                    </span>
+                  </div>
+                  <p style={{ margin: "0 0 8px", color: "#475569" }}>{source.description}</p>
+                  <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
+                    {source.connector_id || "unassigned"} • {source.live_ready ? "live-ready" : "fixture-backed"} •{" "}
+                    {source.overdue_by_hours ? `${source.overdue_by_hours.toFixed(1)}h overdue` : "first scheduled run"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         <section style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 14, padding: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 12 }}>
             <div>

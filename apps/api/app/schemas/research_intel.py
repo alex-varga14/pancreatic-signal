@@ -17,6 +17,7 @@ ResearchOpportunityType = Literal[
 
 ResearchPromotionTarget = Literal["github_issue", "docs_draft", "benchmark_task"]
 ResearchIngestMode = Literal["auto", "seeded", "fixture", "live"]
+ResearchScheduleState = Literal["due", "scheduled", "unscheduled", "disabled"]
 ResearchExperimentOutcome = Literal["keep", "discard"]
 ResearchExperimentKind = Literal["benchmark_readiness", "rule_explainability"]
 ResearchOpportunityArtifactKind = Literal[
@@ -42,7 +43,14 @@ class ResearchSource(BaseModel):
     connector_id: str | None = None
     default_mode: ResearchIngestMode | None = None
     live_ready: bool = False
+    priority: str | None = None
     schedule_summary: str | None = None
+    schedule_state: ResearchScheduleState = "unscheduled"
+    interval_hours: int | None = None
+    effective_interval_hours: int | None = None
+    next_run_at: datetime | None = None
+    overdue_by_hours: float | None = None
+    consecutive_failures: int = 0
     health_status: str = "idle"
     last_run_at: datetime | None = None
     last_success_at: datetime | None = None
@@ -86,6 +94,7 @@ class ResearchRunDetail(ResearchRunSummary):
 class ResearchRunTriggerInput(BaseModel):
     source_ids: list[str] | None = None
     include_disabled: bool = False
+    only_due: bool = False
     write_artifacts: bool = True
     mode: ResearchIngestMode = "auto"
     max_documents_per_source: int | None = Field(default=None, ge=1, le=50)
@@ -94,6 +103,18 @@ class ResearchRunTriggerInput(BaseModel):
 class ResearchDigestTriggerInput(BaseModel):
     publish: bool = True
     write_artifacts: bool = True
+
+
+class ResearchScheduleSnapshot(BaseModel):
+    generated_at: datetime
+    total_sources: int
+    due_count: int
+    overdue_count: int
+    scheduled_count: int
+    disabled_count: int
+    live_ready_count: int
+    fixture_only_count: int
+    sources: list[ResearchSource] = Field(default_factory=list)
 
 
 class ResearchRunTriggerResult(BaseModel):

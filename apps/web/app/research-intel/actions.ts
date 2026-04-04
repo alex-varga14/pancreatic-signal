@@ -16,6 +16,17 @@ export async function triggerResearchIngestAction(): Promise<void> {
   revalidatePath("/research-intel/documents");
   revalidatePath("/research-intel/digests");
   revalidatePath("/research-intel/opportunities");
+  revalidatePath("/research-intel/schedule");
+}
+
+
+export async function triggerDueResearchIngestAction(): Promise<void> {
+  await runResearchIngest({ write_artifacts: true, only_due: true });
+  revalidatePath("/research-intel");
+  revalidatePath("/research-intel/documents");
+  revalidatePath("/research-intel/digests");
+  revalidatePath("/research-intel/opportunities");
+  revalidatePath("/research-intel/schedule");
 }
 
 
@@ -24,6 +35,7 @@ export async function triggerResearchDigestAction(): Promise<void> {
   revalidatePath("/research-intel");
   revalidatePath("/research-intel/digests");
   revalidatePath("/research-intel/opportunities");
+  revalidatePath("/research-intel/schedule");
 }
 
 
@@ -44,6 +56,7 @@ export async function promoteResearchOpportunityAction(formData: FormData): Prom
   );
   revalidatePath("/research-intel");
   revalidatePath("/research-intel/opportunities");
+  revalidatePath("/research-intel/schedule");
 }
 
 
@@ -56,4 +69,5 @@ export async function runResearchOpportunityExperimentAction(formData: FormData)
   await runResearchOpportunityExperiment(opportunityId, { write_artifacts: true });
   revalidatePath("/research-intel");
   revalidatePath("/research-intel/opportunities");
+  revalidatePath("/research-intel/schedule");
 }

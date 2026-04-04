@@ -1,0 +1,20 @@
+{
+  "fetched_at": "2026-04-03T09:06:00Z",
+  "query": "\"pancreatic cancer\" AND ((early detection) OR screening OR surveillance OR IPMN) sort_date:y",
+  "source_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=%22pancreatic%20cancer%22%20AND%20((early%20detection)%20OR%20screening%20OR%20surveillance%20OR%20IPMN)%20sort_date:y&format=json&pageSize=5",
+  "documents": [
+    {
+      "source_id": "pubmed_early_detection",
+      "source_identifier": "pmid-41000011",
+      "document_type": "paper",
+      "title": "High-risk pancreas surveillance cohort links cyst evolution and blood biomarkers in early detection workflows",
+      "abstract_text": "A high-risk pancreas surveillance cohort combined side-branch IPMN follow-up, cyst evolution tracking, and blood biomarker review to enrich early detection signals. The authors emphasize evidence-backed escalation rules and transparent surveillance intervals.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41000011/",
+      "pmid": "41000011",
+      "doi": "10.1001/pancreas.2026.011",
+      "authors": ["M. Alvarez", "D. Park"],
+      "organizations": ["Pancreas Early Detection Consortium"],
+      "published_at": "2026-03-30T09:15:00Z"
+    }
+  ]
+}

@@ -168,7 +168,8 @@ Current fields:
 
 Notes:
 
-- `polling_config` now carries both catalog configuration and runtime discovery state, including connector id, default mode, fixture or live settings, and source-health metadata.
+- `polling_config` now carries both catalog configuration and runtime discovery state, including connector id, default mode, fixture or live settings, interval and priority metadata, and source-health metadata.
+- Runtime health now also tracks consecutive failure counts so schedule views can expose backoff-aware cadence without a separate scheduler table.
 
 ### `ResearchRunRecord`
 
@@ -190,6 +191,10 @@ Current fields:
 - `metadata_json`
 - `started_at`
 - `completed_at`
+
+Notes:
+
+- Ingest run metadata now records whether the run was `only_due`, which sources were requested, and which were skipped because they were not yet due.
 
 ### `ResearchRunItemRecord`
 
@@ -426,7 +431,7 @@ The current docs and UI should assume at least these workflow concepts are activ
 - import-run statuses `completed` and `failed`
 - import item statuses `imported` and `failed`
 - import failure buckets `parse_error`, `validation_error`, `unsupported_payload`, and `site_scope_rejection`
-- research-intel run types `ingest` and `digest`
+- research-intel run types `ingest`, `digest`, and `experiment`
 - research-intel opportunity types `rule_gap`, `benchmark_gap`, `trial_catalog_gap`, `case_brief`, `community_project`, and `external_tooling`
 - research-intel opportunity statuses `proposed` and `promoted`
 

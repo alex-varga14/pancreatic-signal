@@ -3,11 +3,12 @@
 Updated: 2026-04-03
 
 This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, Phase 6
-hosted smoke evidence capture is now complete, and the codebase now also carries the research-first repositioning work that
-makes Research Intelligence the lead product narrative. The best next work should now move from the expanded proof set and
-seeded research-intel foundation toward broader de-identified or externally supplied benchmark inputs, live curated
-research connectors, and deeper contributor workflows built on top of the existing pilot packaging, proof surfaces, public
-benchmark pack, external evaluation bundle writer, and cited pancreatic oncology watchtower.
+hosted smoke evidence capture is now complete, and the codebase now also carries the Phase 7 watchtower-scheduling work
+that turns Research Intelligence into a more operator-ready standing discovery system. The best next work should now move
+from the expanded proof set and schedule-aware research-intel foundation toward broader de-identified or externally
+supplied benchmark inputs, richer live curated research connectors, and deeper contributor workflows built on top of the
+existing pilot packaging, proof surfaces, public benchmark pack, external evaluation bundle writer, and cited pancreatic
+oncology watchtower.
 
 ## Current State
 
@@ -15,6 +16,7 @@ benchmark pack, external evaluation bundle writer, and cited pancreatic oncology
 - Reviewer workflow is implemented end to end with worklist filters, case detail, review actions, feedback capture, hybrid prioritization, and trial matching.
 - A second primary pillar, Research Intelligence, is now implemented with a sibling `/research-intel` workspace, a `/api/v1/research-intel/*` namespace, seeded pancreatic oncology source and topic catalogs, a lightweight domain graph, persisted run audits, normalized research documents, cited evidence spans, topic watchlists, council digests, opportunity proposals, and case-level research briefs.
 - Landing, about, quickstart, README, and handoff surfaces now frame Research Intelligence as the primary entry point, with triage, imports, benchmark proof, and case briefs positioned as explainable downstream applications of the discovery engine.
+- The discovery layer now also includes watchtower scheduling: broader curated literature and trial watches, due-only ingest support, schedule snapshots, consecutive-failure tracking, a `make research-intel-ingest-due` path, and a dedicated `/research-intel/schedule` workspace.
 - The first research-intel slice is intentionally seeded and manual-triggered rather than a live internet crawler. It establishes the shared data model, artifact flow, audit surfaces, and contributor UX while keeping source polling, paid access, and richer autonomy in later phases.
 - Phase 1 of the scientific-discovery pivot is now underway: discovery ingest supports fixture-backed connector runs, opt-in live connector scaffolding for Europe PMC and ClinicalTrials.gov, source-health tracking, and per-document provenance plus novelty metadata.
 - Phase 2 is now underway as well: the pancreatic oncology graph is richer, typed, and exposed through graph-backed entity resolution plus a dedicated `/research-intel/graph` surface.
@@ -44,12 +46,12 @@ Confirmed on 2026-04-03:
 
 - `make validate-strict` passes
 - Summary: `12 pass, 0 warn, 0 fail`
-- Research-intel validation now covers seeded catalogs plus a temp-database ingest and digest run, reporting `6` sources, `7` topics, `14` graph nodes, `7` seeded documents, and a passing artifact-backed digest pipeline
-- Discovery ingest now also validates `6` discovery fixtures through the same catalog check and runs the ingest pipeline in fixture mode for reproducible validation
+- Research-intel validation now covers seeded catalogs plus a temp-database ingest and digest run, reporting `9` sources, `7` topics, `14` graph nodes, `7` seeded documents, and a passing artifact-backed digest pipeline
+- Discovery ingest now also validates `9` discovery fixtures and `5` live-ready sources through the same catalog check, runs the ingest pipeline in fixture mode for reproducible validation, and verifies that a schedule snapshot is available after ingest
 - Opportunity generation now also emits structured JSON and Markdown action specs under `artifacts/research-intel/opportunities/`
 - Research-intel validation now also runs one safe experiment and records a ratchet outcome in the strict pipeline summary
-- `pytest` now passes with `150 passed`
-- `cd apps/api && .venv/bin/python -m pytest tests/test_auth.py tests/test_research_intel.py -q` passed with `17 passed`
+- `pytest` now passes with `151 passed`
+- `cd apps/api && .venv/bin/python -m pytest tests/test_auth.py tests/test_research_intel.py -q` passed with `21 passed`
 - `npm run lint` and `npm run build` in `apps/web` both pass with the new `/research-intel` routes included in the build
 
 Previously confirmed during the broader post-Phase-6 slice:
@@ -276,8 +278,8 @@ Additional note from this slice:
 
 - Shared persisted records now exist for research sources, runs, run items, documents, evidence, topics, digests, and opportunities
 - Seed catalogs now live under `data/research/` for sources, topics, a lightweight pancreatic oncology graph, and seeded documents
-- Manual ingest and digest scripts now exist through `make research-intel-ingest`, `make research-intel-digest`, and `make research-intel-refresh`
-- The Next.js app now exposes `/research-intel`, `/research-intel/documents`, `/research-intel/digests`, and `/research-intel/opportunities`
+- Manual ingest, due-only ingest, schedule, and digest scripts now exist through `make research-intel-ingest`, `make research-intel-ingest-due`, `make research-intel-schedule`, `make research-intel-digest`, and `make research-intel-refresh`
+- The Next.js app now exposes `/research-intel`, `/research-intel/schedule`, `/research-intel/documents`, `/research-intel/digests`, and `/research-intel/opportunities`
 - Case detail now links to a generated research brief that maps rationale or trial context to current research-intel topics and cited documents
 - Promotion stays human-gated, triage scores remain untouched, and payment or crypto execution is still intentionally out of scope
 

@@ -40,6 +40,7 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     response = client.get("/api/v1/research-intel/sources")
     assert response.status_code == 200
     assert any(item["source_id"] == "pubmed" for item in response.json())
+    assert any(item["source_id"] == "pubmed_early_detection" for item in response.json())
 
     response = client.post(
         "/api/v1/research-intel/runs/ingest",
@@ -80,6 +81,16 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert pubmed["last_success_at"]
     assert pubmed["connector_id"] == "europe_pmc_search"
     assert pubmed["default_mode"] == "fixture"
+    assert pubmed["schedule_state"] == "scheduled"
+    assert pubmed["next_run_at"]
+    assert pubmed["interval_hours"] == 12
+
+    response = client.get("/api/v1/research-intel/schedule")
+    assert response.status_code == 200
+    schedule = response.json()
+    assert schedule["due_count"] == 0
+    assert schedule["scheduled_count"] >= 1
+    assert schedule["live_ready_count"] >= 5
 
     response = client.get("/api/v1/research-intel/graph")
     assert response.status_code == 200
@@ -270,6 +281,44 @@ def test_research_intel_documents_support_filters_and_viewer_cannot_trigger_runs
     payload = response.json()
     assert payload
     assert all("oss_opportunities" in item["topic_ids"] for item in payload)
+
+
+def test_research_intel_schedule_and_due_only_ingest_are_operator_friendly() -> None:
+    CASE_STORE.reset()
+    client = TestClient(app)
+
+    response = client.get("/api/v1/research-intel/schedule")
+    assert response.status_code == 200
+    schedule = response.json()
+    assert schedule["total_sources"] >= 9
+    assert schedule["due_count"] >= 1
+    assert schedule["live_ready_count"] >= 5
+    assert any(item["schedule_state"] == "due" for item in schedule["sources"])
+
+    response = client.post(
+        "/api/v1/research-intel/runs/ingest",
+        json={"mode": "fixture", "write_artifacts": False, "only_due": True},
+        headers=_auth_headers("research-admin"),
+    )
+    assert response.status_code == 200
+    payload = response.json()["run"]
+    assert payload["metadata"]["only_due"] is True
+    assert payload["processed"] >= 9
+    assert payload["metadata"]["skipped_source_ids"] == []
+
+    follow_up = client.post(
+        "/api/v1/research-intel/runs/ingest",
+        json={"mode": "fixture", "write_artifacts": False, "only_due": True},
+        headers=_auth_headers("research-admin"),
+    )
+    assert follow_up.status_code == 200
+    follow_up_payload = follow_up.json()["run"]
+    assert follow_up_payload["processed"] == 0
+    assert len(follow_up_payload["metadata"]["skipped_source_ids"]) >= schedule["total_sources"]
+
+    refreshed_schedule = client.get("/api/v1/research-intel/schedule").json()
+    assert refreshed_schedule["due_count"] == 0
+    assert refreshed_schedule["scheduled_count"] >= 1
 
 
 def test_research_intel_seeded_mode_is_still_available_for_bootstrap_runs() -> None:

@@ -31,6 +31,7 @@ The current implementation includes:
 - case-level research briefs linked from the existing case detail page
 - discovery-ingest source health, document provenance, and novelty scoring
 - fixture-backed connector feeds for reproducible validation plus opt-in live connector scaffolding
+- a schedule-aware watchtower layer with due-source planning, due-only ingest, and a dedicated `/research-intel/schedule` view
 - graph-backed entity resolution plus a `/research-intel/graph` workspace for active node and edge inspection
 - research-first landing, onboarding, and handoff documentation so contributors meet the system through discovery work first
 
@@ -55,6 +56,13 @@ make research-intel-ingest
 make research-intel-digest
 ```
 
+To inspect the watchtower schedule or run only due sources:
+
+```bash
+make research-intel-schedule
+make research-intel-ingest-due
+```
+
 For the reproducible discovery-ingest path:
 
 ```bash
@@ -70,6 +78,7 @@ make research-intel-discovery-live
 Then explore:
 
 - `/research-intel` for dashboard and run health
+- `/research-intel/schedule` for due-source planning, live-ready connector coverage, and watchtower cadence
 - `/research-intel/documents` for normalized documents, citations, and topic tags
 - `/research-intel/graph` for graph entities, edges, and active node heat
 - `/research-intel/digests` for council-backed digest output
@@ -122,11 +131,11 @@ The current workflow follows five explicit phases.
 
 The first foundation slice ships with:
 
-- `6` source definitions
+- `9` source definitions
 - `7` topic watchlists
-- `7` lightweight graph nodes
+- `14` lightweight graph nodes
 - `7` seeded pancreatic oncology documents
-- `6` discovery fixture feeds for reproducible connector runs
+- `9` discovery fixture feeds for reproducible connector runs
 
 Those assets establish the domain model and the reproducible discovery-ingest path before broader live source polling is turned on.
 
@@ -137,7 +146,16 @@ Phase 1 is now in progress with these capabilities:
 - fixture-backed connector ingestion is available through `auto` and `fixture` modes
 - source health is persisted in the source registry state
 - document provenance and novelty are stored and exposed through the API
-- opt-in live connector code paths exist for Europe PMC and ClinicalTrials.gov, while the remaining sources stay fixture-backed until their live contracts are hardened
+- opt-in live connector code paths now cover a broader curated set of Europe PMC and ClinicalTrials.gov watches, while the remaining sources stay fixture-backed until their live contracts are hardened
+
+## Phase 7 Watchtower Scheduling Status
+
+Phase 7 is now underway with these capabilities:
+
+- the source registry now computes due, scheduled, unscheduled, and disabled states for each watch source
+- due-only ingest is available through the API, CLI, and Make targets for automation-friendly watchtower ticks
+- source health now tracks consecutive failures so scheduling can surface backoff-aware cadence
+- a dedicated `/research-intel/schedule` workspace exposes due sources, live-ready coverage, and next-run timing for operators
 
 ## Phase 2 Knowledge Graph Status
 
@@ -234,6 +252,7 @@ The implementation direction borrows selectively from several open-source resear
 ## Next Slices
 
 - add broader live curated connectors on top of the seeded catalog
+- turn schedule snapshots into recurring automation hooks or hosted jobs once the connector set is trusted
 - turn council deliberation into stronger multi-run comparison and calibration
 - deepen graph coverage and cross-document entity resolution
 - deepen opportunity promotion into issue-ready, benchmark-ready, and dataset-ready contributor workflows

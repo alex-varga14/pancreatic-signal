@@ -18,7 +18,7 @@ Pancreatic Signal is a modular monorepo with two primary product pillars: explai
 4. Hybrid analysis optionally augments the deterministic result with calibrated scoring, confidence, sentence candidates, and review-priority hints.
 5. The API creates or updates case, report, and finding records.
 6. Structured adapter imports also persist an import-run summary plus per-item audit results.
-7. In parallel, research-intel ingests a pancreatic oncology watch catalog through seeded, fixture-backed, or opt-in live connector modes, records source health plus provenance, resolves graph-backed pancreatic oncology entities, classifies documents into topic watchlists, extracts cited evidence, and stores council-ready artifacts.
+7. In parallel, research-intel ingests a pancreatic oncology watch catalog through seeded, fixture-backed, or opt-in live connector modes, computes a watchtower schedule over those sources, records source health plus provenance, resolves graph-backed pancreatic oncology entities, classifies documents into topic watchlists, extracts cited evidence, and stores council-ready artifacts.
 8. Digest generation turns those research documents into persisted council summaries, disagreement metrics, and human-gated opportunities.
 9. The web app reads persisted case detail, review history, feedback, hybrid guidance, import metadata, trial matches, and case-linked research briefs for human review.
 10. Evaluation and benchmark helpers consume the same stored or generated outputs for reproducible proof artifacts, while research-intel opportunities can propose future benchmark, rule, or trial-catalog work.
@@ -37,7 +37,7 @@ Pancreatic Signal is a modular monorepo with two primary product pillars: explai
       +-----+------+
       |            +------------------------+
       v                                     v
-[Hybrid analysis]                 [Research-intel ingest + topic clustering]
+[Hybrid analysis]                 [Research-intel schedule + ingest + topic clustering]
       |                                     |
       v                                     v
 [Trial abstraction helpers]     [Council digest + opportunity generation]
@@ -111,6 +111,7 @@ Trial matching operates on persisted case/report evidence and derived abstractio
 Research-intel is intentionally a sibling domain, not an extension of the case-level deidentification views. Its first implementation is deterministic and artifact-driven:
 
 - a curated source registry plus seeded pancreatic oncology watch catalog
+- schedule-aware source planning with due-only ingestion, next-run timing, and failure-aware cadence
 - topic classification against a lightweight pancreatic ontology and graph
 - cited evidence extraction for every stored research document
 - three-stage council generation with persisted stage outputs and disagreement score
