@@ -97,7 +97,7 @@ Next slices:
 1. replace or augment seeded documents with live curated connectors
 2. deepen ontology tagging into a richer graph-backed entity layer with stable cross-document resolution
 3. deepen promoted opportunities into issue-ready, benchmark-ready, and docs-ready contributor workflows
-4. add sandboxed experiment runners that can evaluate promoted research-intel proposals safely
+4. deepen experiment runs from proposal-readiness scoring into richer benchmark and rule stress tests
 5. document governance for paid-source access and donation-funded operations without introducing autonomous spending
 
 ## What is not a current phase target

@@ -30,6 +30,7 @@ from app.schemas.research_intel import (
     ResearchOpportunityActionPayload,
     ResearchOpportunityArtifactSpec,
     ResearchOpportunityEvidence,
+    ResearchOpportunityExperimentResult,
     ResearchCouncilPayload,
     ResearchCouncilPeerCritique,
     ResearchCouncilStage1Opinion,
@@ -91,6 +92,7 @@ _OPPORTUNITY_PERSONA_PRIORITY = {
     "community_project": ["open_source_builder", "literature_scout"],
     "external_tooling": ["open_source_builder"],
 }
+_EXPERIMENT_SUPPORTED_OPPORTUNITY_TYPES = {"benchmark_gap", "rule_gap"}
 
 
 def _utcnow() -> datetime:
@@ -1126,6 +1128,134 @@ def promote_research_opportunity(
         topic_rows = session.execute(select(ResearchTopicRecord)).scalars().all()
         topic_label_map = {topic.topic_id: topic.label for topic in topic_rows}
         return _build_opportunity_response(row, topic_label_map), artifact_path
+
+
+def run_research_opportunity_experiment(
+    *,
+    opportunity_id: str,
+    actor_user_id: str,
+    write_artifacts: bool = True,
+) -> ResearchRunDetail | None:
+    ensure_research_intel_seeded()
+    started_at = _utcnow()
+
+    with SessionLocal.begin() as session:
+        row = session.get(ResearchOpportunityRecord, opportunity_id)
+        if row is None:
+            return None
+        if row.opportunity_type not in _EXPERIMENT_SUPPORTED_OPPORTUNITY_TYPES:
+            raise ValueError("Experiments currently support only benchmark and rule opportunities.")
+
+        action_payload = ResearchOpportunityActionPayload.model_validate(row.action_payload or {})
+        topic_rows = session.execute(select(ResearchTopicRecord)).scalars().all()
+        topic_label_map = {topic.topic_id: topic.label for topic in topic_rows}
+
+        run = ResearchRunRecord(
+            run_type="experiment",
+            status="completed",
+            actor_user_id=actor_user_id,
+            source_scope=row.topic_ids or [],
+            started_at=started_at,
+            completed_at=started_at,
+            metadata_json={
+                "opportunity_id": opportunity_id,
+                "opportunity_type": row.opportunity_type,
+                "write_artifacts": write_artifacts,
+            },
+        )
+        session.add(run)
+        session.flush()
+
+        run_items = [
+            ResearchRunItemRecord(
+                run_id=run.id,
+                item_index=1,
+                stage="validate_opportunity",
+                status="completed",
+                source_identifier=opportunity_id,
+                document_id=action_payload.digest_id,
+            )
+        ]
+        for item in run_items:
+            session.add(item)
+
+        experiment = _evaluate_opportunity_experiment(
+            row=row,
+            action_payload=action_payload,
+            run_id=run.id,
+        )
+        run_items.extend(
+            [
+                ResearchRunItemRecord(
+                    run_id=run.id,
+                    item_index=2,
+                    stage="score_baseline",
+                    status="completed",
+                    source_identifier=opportunity_id,
+                    document_id=action_payload.digest_id,
+                ),
+                ResearchRunItemRecord(
+                    run_id=run.id,
+                    item_index=3,
+                    stage="score_candidate",
+                    status="completed",
+                    source_identifier=opportunity_id,
+                    document_id=action_payload.digest_id,
+                ),
+                ResearchRunItemRecord(
+                    run_id=run.id,
+                    item_index=4,
+                    stage="ratchet",
+                    status="completed",
+                    source_identifier=opportunity_id,
+                    document_id=action_payload.digest_id,
+                ),
+            ]
+        )
+        for item in run_items[1:]:
+            session.add(item)
+
+        artifact_paths: list[str] = []
+        if write_artifacts:
+            session.flush()
+            artifact_paths = _write_opportunity_experiment_artifacts(
+                row=row,
+                action_payload=action_payload,
+                experiment=experiment,
+                topic_label_map=topic_label_map,
+            )
+
+        completed_at = _utcnow()
+        experiment.artifact_paths = artifact_paths
+        experiment.completed_at = completed_at
+
+        action_payload.last_experiment = experiment
+        row.action_payload = action_payload.model_dump(mode="json")
+
+        run.processed_count = 1
+        run.created_count = 1
+        run.updated_count = 1
+        run.failed_count = 0
+        run.failure_counts = {}
+        run.artifact_paths = artifact_paths
+        run.completed_at = completed_at
+        run.metadata_json = {
+            "opportunity_id": opportunity_id,
+            "opportunity_type": row.opportunity_type,
+            "ratchet_outcome": experiment.ratchet_outcome,
+            "experiment_kind": experiment.experiment_kind,
+            "metric_name": experiment.metric_name,
+            "baseline_value": experiment.baseline_value,
+            "candidate_value": experiment.candidate_value,
+            "delta": experiment.delta,
+            "threshold": experiment.threshold,
+            "min_delta": experiment.min_delta,
+            "write_artifacts": write_artifacts,
+        }
+
+        run_id = run.id
+
+    return get_research_run(run_id) or _build_run_detail(run, run_items)
 
 
 def build_research_case_brief(case_id: str) -> ResearchCaseBrief | None:
@@ -2922,6 +3052,187 @@ def _opportunity_evidence_reason(*, opportunity_type: str, document: ResearchDoc
     )
 
 
+def _evaluate_opportunity_experiment(
+    *,
+    row: ResearchOpportunityRecord,
+    action_payload: ResearchOpportunityActionPayload,
+    run_id: int,
+) -> ResearchOpportunityExperimentResult:
+    experiment_kind = _experiment_kind_for_opportunity(row.opportunity_type)
+    evidence_count = len(action_payload.evidence_bundle)
+    measurable_count = len(action_payload.measurable_outcomes)
+    step_count = len(action_payload.proposed_steps)
+    gate_count = len(action_payload.acceptance_gates)
+    open_question_count = len(action_payload.open_questions)
+    theme_count = len(action_payload.theme_snapshot)
+    rationale_count = len(row.related_rationale_codes or [])
+    council_bonus = _council_confidence_bonus(action_payload.council_confidence)
+
+    if experiment_kind == "benchmark_readiness":
+        metric_name = "benchmark_readiness_score"
+        threshold = 0.74
+        min_delta = 0.05
+        evidence_coverage_score = round(
+            min(
+                1.0,
+                0.30
+                + 0.16 * min(3, evidence_count)
+                + 0.05 * min(3, theme_count)
+                + 0.04 * min(2, measurable_count)
+                - 0.04 * max(0, open_question_count - 2),
+            ),
+            4,
+        )
+        heuristic_baseline = round(
+            min(
+                0.88,
+                0.42
+                + 0.06 * min(3, evidence_count)
+                + 0.05 * min(2, theme_count),
+            ),
+            4,
+        )
+        candidate_value = round(
+            min(
+                0.99,
+                0.48
+                + 0.08 * min(3, evidence_count)
+                + 0.05 * min(3, measurable_count)
+                + 0.04 * min(3, step_count)
+                + 0.03 * min(3, gate_count)
+                + (0.07 if action_payload.artifact_spec.artifact_kind == "benchmark_spec" else 0.0)
+                + council_bonus
+                + 0.05 * evidence_coverage_score
+                - 0.03 * max(0, open_question_count - 2),
+            ),
+            4,
+        )
+    else:
+        metric_name = "rule_explainability_score"
+        threshold = 0.76
+        min_delta = 0.04
+        evidence_coverage_score = round(
+            min(
+                1.0,
+                0.28
+                + 0.14 * min(3, evidence_count)
+                + 0.08 * min(3, rationale_count)
+                + 0.04 * min(3, gate_count)
+                - 0.04 * max(0, open_question_count - 1),
+            ),
+            4,
+        )
+        heuristic_baseline = round(
+            min(
+                0.86,
+                0.40
+                + 0.05 * min(3, evidence_count)
+                + 0.07 * min(3, rationale_count),
+            ),
+            4,
+        )
+        candidate_value = round(
+            min(
+                0.99,
+                0.46
+                + 0.07 * min(3, evidence_count)
+                + 0.07 * min(3, rationale_count)
+                + 0.05 * min(3, measurable_count)
+                + 0.04 * min(3, gate_count)
+                + 0.04 * min(3, step_count)
+                + (0.07 if action_payload.artifact_spec.artifact_kind == "rule_spec" else 0.0)
+                + council_bonus
+                + 0.04 * evidence_coverage_score
+                - 0.03 * max(0, open_question_count - 1),
+            ),
+            4,
+        )
+
+    previous = action_payload.last_experiment
+    baseline_value = (
+        previous.candidate_value
+        if previous is not None
+        and previous.supported
+        and previous.experiment_kind == experiment_kind
+        and previous.candidate_value is not None
+        else heuristic_baseline
+    )
+    delta = round(candidate_value - (baseline_value or 0.0), 4)
+    ratchet_outcome = (
+        "keep"
+        if candidate_value >= threshold and delta >= min_delta and evidence_coverage_score >= 0.60
+        else "discard"
+    )
+    notes = _experiment_notes(
+        ratchet_outcome=ratchet_outcome,
+        experiment_kind=experiment_kind,
+        baseline_value=baseline_value,
+        candidate_value=candidate_value,
+        evidence_coverage_score=evidence_coverage_score,
+        threshold=threshold,
+        min_delta=min_delta,
+        action_payload=action_payload,
+    )
+    return ResearchOpportunityExperimentResult(
+        supported=True,
+        experiment_kind=experiment_kind,
+        ratchet_outcome=ratchet_outcome,
+        metric_name=metric_name,
+        baseline_value=baseline_value,
+        candidate_value=candidate_value,
+        delta=delta,
+        threshold=threshold,
+        min_delta=min_delta,
+        evidence_coverage_score=evidence_coverage_score,
+        notes=notes,
+        run_id=run_id,
+    )
+
+
+def _experiment_kind_for_opportunity(opportunity_type: str) -> str:
+    if opportunity_type == "benchmark_gap":
+        return "benchmark_readiness"
+    return "rule_explainability"
+
+
+def _council_confidence_bonus(confidence: str) -> float:
+    if confidence == "high":
+        return 0.08
+    if confidence == "medium":
+        return 0.04
+    return 0.0
+
+
+def _experiment_notes(
+    *,
+    ratchet_outcome: str,
+    experiment_kind: str,
+    baseline_value: float,
+    candidate_value: float,
+    evidence_coverage_score: float,
+    threshold: float,
+    min_delta: float,
+    action_payload: ResearchOpportunityActionPayload,
+) -> list[str]:
+    notes = [
+        (
+            f"{experiment_kind.replace('_', ' ')} candidate scored {candidate_value:.2f} against "
+            f"threshold {threshold:.2f} with evidence coverage {evidence_coverage_score:.2f}."
+        )
+    ]
+    if baseline_value:
+        notes.append(f"Baseline reference was {baseline_value:.2f}; ratchet delta target is {min_delta:.2f}.")
+    if ratchet_outcome == "keep":
+        notes.append("Proposal cleared the ratchet and is safe to keep as a contributor-ready experimental candidate.")
+    else:
+        notes.append("Proposal did not clear the ratchet yet; keep it human-gated until evidence or measurable outcomes improve.")
+    if action_payload.open_questions:
+        notes.append(f"Outstanding open questions: {len(action_payload.open_questions)}.")
+    if action_payload.evidence_gaps:
+        notes.append(f"Outstanding evidence gaps: {len(action_payload.evidence_gaps)}.")
+    return notes
+
+
 def _acceptance_gates(opportunity_type: str) -> list[str]:
     if opportunity_type == "rule_gap":
         return [
@@ -3119,6 +3430,84 @@ def _write_opportunity_action_artifacts(
         if action_payload.artifact_spec.summary:
             lines.append(f"- summary: {action_payload.artifact_spec.summary}")
 
+    markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return [
+        str(json_path.relative_to(_repo_root())),
+        str(markdown_path.relative_to(_repo_root())),
+    ]
+
+
+def _write_opportunity_experiment_artifacts(
+    *,
+    row: ResearchOpportunityRecord,
+    action_payload: ResearchOpportunityActionPayload,
+    experiment: ResearchOpportunityExperimentResult,
+    topic_label_map: dict[str, str],
+) -> list[str]:
+    artifact_root = _artifact_root() / "experiments"
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    basename = f"{row.opportunity_id}-run-{experiment.run_id}"
+    json_path = artifact_root / f"{basename}.json"
+    markdown_path = artifact_root / f"{basename}.md"
+    payload = {
+        "opportunity_id": row.opportunity_id,
+        "opportunity_type": row.opportunity_type,
+        "topic_labels": [topic_label_map[item] for item in row.topic_ids or [] if item in topic_label_map],
+        "summary": row.summary,
+        "experiment": experiment.model_dump(mode="json"),
+        "artifact_spec": action_payload.artifact_spec.model_dump(mode="json"),
+        "objective": action_payload.objective,
+        "why_now": action_payload.why_now,
+        "discovery_question": action_payload.discovery_question,
+        "open_questions": list(action_payload.open_questions),
+        "evidence_gaps": list(action_payload.evidence_gaps),
+        "measurable_outcomes": list(action_payload.measurable_outcomes),
+        "acceptance_gates": list(action_payload.acceptance_gates),
+    }
+    json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    lines = [
+        f"# Experiment for {row.title}",
+        "",
+        f"- opportunity id: `{row.opportunity_id}`",
+        f"- type: `{row.opportunity_type}`",
+        f"- experiment kind: `{experiment.experiment_kind}`",
+        f"- ratchet outcome: `{experiment.ratchet_outcome}`",
+        f"- metric: `{experiment.metric_name}`",
+        "",
+        "## Scores",
+        f"- baseline: {experiment.baseline_value:.2f}" if experiment.baseline_value is not None else "- baseline: n/a",
+        f"- candidate: {experiment.candidate_value:.2f}" if experiment.candidate_value is not None else "- candidate: n/a",
+        f"- delta: {experiment.delta:.2f}" if experiment.delta is not None else "- delta: n/a",
+        f"- threshold: {experiment.threshold:.2f}" if experiment.threshold is not None else "- threshold: n/a",
+        f"- min delta: {experiment.min_delta:.2f}" if experiment.min_delta is not None else "- min delta: n/a",
+        (
+            f"- evidence coverage: {experiment.evidence_coverage_score:.2f}"
+            if experiment.evidence_coverage_score is not None
+            else "- evidence coverage: n/a"
+        ),
+    ]
+    if action_payload.objective:
+        lines.extend(["", "## Objective", action_payload.objective])
+    if action_payload.discovery_question:
+        lines.extend(["", "## Discovery question", action_payload.discovery_question])
+    if experiment.notes:
+        lines.extend(["", "## Notes"])
+        for item in experiment.notes:
+            lines.append(f"- {item}")
+    if action_payload.measurable_outcomes:
+        lines.extend(["", "## Measurable outcomes"])
+        for item in action_payload.measurable_outcomes:
+            lines.append(f"- {item}")
+    if action_payload.acceptance_gates:
+        lines.extend(["", "## Acceptance gates"])
+        for item in action_payload.acceptance_gates:
+            lines.append(f"- {item}")
+    if action_payload.evidence_bundle:
+        lines.extend(["", "## Evidence bundle"])
+        for item in action_payload.evidence_bundle:
+            lines.append(f"- {item.citation_key}: {item.title}")
+            lines.append(f"  - why it matters: {item.why_it_matters}")
     markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return [
         str(json_path.relative_to(_repo_root())),

@@ -71,6 +71,12 @@ Then explore:
 - `/research-intel/digests` for council-backed digest output
 - `/research-intel/opportunities` for human-gated contribution proposals
 
+To run a safe experiment against the highest-confidence supported benchmark or rule opportunity:
+
+```bash
+python scripts/run_research_intel_experiment.py --json
+```
+
 ## Pipeline
 
 The current workflow follows five explicit phases.
@@ -157,6 +163,16 @@ Phase 4 is now underway with these capabilities:
 - digest runs now write contributor-ready opportunity JSON and Markdown artifacts under `artifacts/research-intel/opportunities/`
 - promotion artifacts now preserve the same structured discovery-to-action context instead of collapsing into shallow summaries
 
+## Phase 5 Safe Experimentation Status
+
+Phase 5 is now underway with these capabilities:
+
+- benchmark-gap and rule-gap opportunities can be evaluated through a dedicated experiment runner
+- experiments are deterministic proposal checks, not code edits or score mutations
+- each experiment records baseline, candidate score, delta, threshold, evidence coverage, and a keep-or-discard ratchet outcome
+- experiment artifacts are written under `artifacts/research-intel/experiments/`
+- the latest experiment result is persisted back onto the opportunity payload for future comparison
+
 ## Opportunity Types
 
 The current opportunity taxonomy is fixed and explicit:
@@ -198,6 +214,7 @@ The implementation direction borrows selectively from several open-source resear
 - research-use software only
 - cited outputs over uncited synthesis
 - human-gated promotion over autonomous action
+- experiment runs evaluate proposals only and do not edit code, merge changes, or alter triage scores automatically
 - no autonomous payment, subscription procurement, or crypto treasury execution in the current product
 - no automatic mutation of triage scores or reviewer state
 
@@ -206,5 +223,5 @@ The implementation direction borrows selectively from several open-source resear
 - add live curated connectors on top of the seeded catalog
 - turn council deliberation into stronger multi-run comparison and calibration
 - deepen opportunity promotion into issue-ready and benchmark-ready contributor workflows
-- add sandboxed benchmark and rule experiment runners for promoted opportunities
+- expand experiment coverage beyond proposal-readiness scoring into richer benchmark and rule stress tests
 - document donation governance and paid-source procurement policy before any funding automation is considered

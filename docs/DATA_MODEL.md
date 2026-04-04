@@ -343,6 +343,23 @@ Current fields:
 - `council_confidence`
 - `council_personas`
 - `theme_snapshot`
+- `last_experiment`
+
+`last_experiment` stores the latest safe experiment result for supported benchmark or rule opportunities, including:
+
+- `experiment_kind`
+- `ratchet_outcome`
+- `metric_name`
+- `baseline_value`
+- `candidate_value`
+- `delta`
+- `threshold`
+- `min_delta`
+- `evidence_coverage_score`
+- `notes`
+- `artifact_paths`
+- `run_id`
+- `completed_at`
 
 ## API-facing derived surfaces
 

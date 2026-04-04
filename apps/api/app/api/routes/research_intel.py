@@ -8,6 +8,7 @@ from app.schemas.research_intel import (
     ResearchDigestListItem,
     ResearchDigestTriggerInput,
     ResearchDocument,
+    ResearchExperimentInput,
     ResearchGraphSnapshot,
     ResearchOpportunity,
     ResearchPromotionInput,
@@ -33,6 +34,7 @@ from app.services.research_intel import (
     promote_research_opportunity,
     run_research_digest,
     run_research_ingest,
+    run_research_opportunity_experiment,
 )
 from app.store.memory_store import CASE_STORE
 
@@ -167,6 +169,25 @@ def promote_opportunity(
         promotion_target=payload.target,
         artifact_path=artifact_path,
     )
+
+
+@router.post("/opportunities/{opportunity_id}/experiment", response_model=ResearchRunTriggerResult)
+def run_opportunity_experiment(
+    opportunity_id: str,
+    payload: ResearchExperimentInput,
+    actor: AuthenticatedActor = Depends(require_roles("analyst", "navigator", "admin")),
+) -> ResearchRunTriggerResult:
+    try:
+        run = run_research_opportunity_experiment(
+            opportunity_id=opportunity_id,
+            actor_user_id=actor.user_id,
+            write_artifacts=payload.write_artifacts,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if run is None:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+    return ResearchRunTriggerResult(ok=True, run=run)
 
 
 @router.get("/cases/{case_id}/brief", response_model=ResearchCaseBrief)

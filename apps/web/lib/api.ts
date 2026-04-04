@@ -678,6 +678,23 @@ export type ResearchOpportunityArtifactSpec = {
   target_hint?: "github_issue" | "docs_draft" | "benchmark_task" | null;
 };
 
+export type ResearchOpportunityExperimentResult = {
+  supported: boolean;
+  experiment_kind?: "benchmark_readiness" | "rule_explainability" | null;
+  ratchet_outcome: "keep" | "discard";
+  metric_name: string;
+  baseline_value?: number | null;
+  candidate_value?: number | null;
+  delta?: number | null;
+  threshold?: number | null;
+  min_delta?: number | null;
+  evidence_coverage_score?: number | null;
+  notes: string[];
+  artifact_paths: string[];
+  run_id?: number | null;
+  completed_at?: string | null;
+};
+
 export type ResearchOpportunityActionPayload = {
   human_gate: boolean;
   digest_id?: string | null;
@@ -700,6 +717,7 @@ export type ResearchOpportunityActionPayload = {
   promoted_by_user_id?: string | null;
   last_promotion_target?: "github_issue" | "docs_draft" | "benchmark_task" | null;
   promotion_artifact_path?: string | null;
+  last_experiment?: ResearchOpportunityExperimentResult | null;
 };
 
 export type ResearchOpportunity = {
@@ -1118,6 +1136,24 @@ export async function runResearchDigest(payload?: {
   });
   if (!res.ok) {
     throw await buildApiRequestError(res, "Failed to trigger research digest.");
+  }
+  const body: { run: ResearchRunDetail } = await res.json();
+  return body.run;
+}
+
+export async function runResearchOpportunityExperiment(
+  opportunityId: string,
+  payload?: {
+    write_artifacts?: boolean;
+  },
+): Promise<ResearchRunDetail> {
+  const res = await apiFetch(`/api/v1/research-intel/opportunities/${opportunityId}/experiment`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(res, `Failed to run experiment for opportunity ${opportunityId}.`);
   }
   const body: { run: ResearchRunDetail } = await res.json();
   return body.run;

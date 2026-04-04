@@ -17,6 +17,8 @@ ResearchOpportunityType = Literal[
 
 ResearchPromotionTarget = Literal["github_issue", "docs_draft", "benchmark_task"]
 ResearchIngestMode = Literal["auto", "seeded", "fixture", "live"]
+ResearchExperimentOutcome = Literal["keep", "discard"]
+ResearchExperimentKind = Literal["benchmark_readiness", "rule_explainability"]
 ResearchOpportunityArtifactKind = Literal[
     "rule_spec",
     "benchmark_spec",
@@ -97,6 +99,10 @@ class ResearchDigestTriggerInput(BaseModel):
 class ResearchRunTriggerResult(BaseModel):
     ok: bool
     run: ResearchRunDetail
+
+
+class ResearchExperimentInput(BaseModel):
+    write_artifacts: bool = True
 
 
 class ResearchEvidence(BaseModel):
@@ -292,6 +298,23 @@ class ResearchOpportunityArtifactSpec(BaseModel):
     target_hint: ResearchPromotionTarget | None = None
 
 
+class ResearchOpportunityExperimentResult(BaseModel):
+    supported: bool = False
+    experiment_kind: ResearchExperimentKind | None = None
+    ratchet_outcome: ResearchExperimentOutcome = "discard"
+    metric_name: str = ""
+    baseline_value: float | None = None
+    candidate_value: float | None = None
+    delta: float | None = None
+    threshold: float | None = None
+    min_delta: float | None = None
+    evidence_coverage_score: float | None = None
+    notes: list[str] = Field(default_factory=list)
+    artifact_paths: list[str] = Field(default_factory=list)
+    run_id: int | None = None
+    completed_at: datetime | None = None
+
+
 class ResearchOpportunityActionPayload(BaseModel):
     human_gate: bool = True
     digest_id: str | None = None
@@ -314,6 +337,7 @@ class ResearchOpportunityActionPayload(BaseModel):
     promoted_by_user_id: str | None = None
     last_promotion_target: ResearchPromotionTarget | None = None
     promotion_artifact_path: str | None = None
+    last_experiment: ResearchOpportunityExperimentResult | None = None
 
 
 class ResearchOpportunity(BaseModel):

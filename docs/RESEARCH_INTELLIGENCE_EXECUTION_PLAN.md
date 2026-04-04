@@ -163,6 +163,12 @@ Required outputs:
 Acceptance gate:
 - no proposal is accepted without an explicit metric or ratchet outcome
 
+Current progress:
+- benchmark-gap and rule-gap opportunities now support manual experiment runs through the research-intel API and CLI
+- each run records baseline, candidate score, delta, threshold, evidence coverage, and keep-or-discard ratchet outcome
+- experiment artifacts now live under `artifacts/research-intel/experiments/`
+- experiment runs stay proposal-only and do not mutate code, merge changes, or alter triage scores
+
 ### Phase 6. Research-First Repositioning
 
 Goal:

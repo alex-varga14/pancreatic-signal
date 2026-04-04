@@ -131,8 +131,8 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert response.status_code == 200
     opportunities = response.json()
     assert opportunities
-    opportunity_id = opportunities[0]["opportunity_id"]
     first_opportunity = opportunities[0]
+    opportunity_id = first_opportunity["opportunity_id"]
     assert first_opportunity["action_payload"]["objective"]
     assert first_opportunity["action_payload"]["why_now"]
     assert first_opportunity["action_payload"]["discovery_question"]
@@ -154,6 +154,36 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert "## Evidence bundle" in opportunity_artifact_text
     assert "## Suggested downstream artifact" in opportunity_artifact_text
 
+    supported_opportunity = next(
+        item for item in opportunities if item["opportunity_type"] in {"benchmark_gap", "rule_gap"}
+    )
+    experiment_response = client.post(
+        f"/api/v1/research-intel/opportunities/{supported_opportunity['opportunity_id']}/experiment",
+        json={"write_artifacts": True},
+        headers=_auth_headers("research-admin"),
+    )
+    assert experiment_response.status_code == 200
+    experiment_run = experiment_response.json()["run"]
+    assert experiment_run["run_type"] == "experiment"
+    assert experiment_run["metadata"]["ratchet_outcome"] in {"keep", "discard"}
+    assert experiment_run["metadata"]["metric_name"]
+    assert any(path.startswith("artifacts/research-intel/experiments/") for path in experiment_run["artifact_paths"])
+
+    experiment_artifact_path = next(
+        path for path in experiment_run["artifact_paths"] if path.endswith(".md")
+    )
+    experiment_artifact_text = _artifact_text(experiment_artifact_path)
+    assert "## Scores" in experiment_artifact_text
+    assert "## Acceptance gates" in experiment_artifact_text
+
+    opportunities_after_experiment = client.get("/api/v1/research-intel/opportunities").json()
+    experimented = next(
+        item for item in opportunities_after_experiment if item["opportunity_id"] == supported_opportunity["opportunity_id"]
+    )
+    assert experimented["action_payload"]["last_experiment"]["metric_name"]
+    assert experimented["action_payload"]["last_experiment"]["ratchet_outcome"] in {"keep", "discard"}
+    assert experimented["action_payload"]["last_experiment"]["artifact_paths"]
+
     promote_response = client.post(
         f"/api/v1/research-intel/opportunities/{opportunity_id}/promote",
         json={"target": "docs_draft"},
@@ -166,6 +196,18 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert "## Discovery question" in promotion_text
     assert "## Evidence bundle" in promotion_text
     assert "## Measurable outcomes" in promotion_text
+
+    unsupported_opportunity = next(
+        item
+        for item in opportunities_after_experiment
+        if item["opportunity_type"] not in {"benchmark_gap", "rule_gap"}
+    )
+    unsupported_response = client.post(
+        f"/api/v1/research-intel/opportunities/{unsupported_opportunity['opportunity_id']}/experiment",
+        json={"write_artifacts": False},
+        headers=_auth_headers("research-admin"),
+    )
+    assert unsupported_response.status_code == 400
 
 
 def test_research_intel_case_brief_maps_case_to_topics_and_documents() -> None:

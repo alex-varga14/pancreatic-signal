@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 
-import { promoteResearchOpportunity, runResearchDigest, runResearchIngest } from "../../lib/api";
+import {
+  promoteResearchOpportunity,
+  runResearchDigest,
+  runResearchIngest,
+  runResearchOpportunityExperiment,
+} from "../../lib/api";
 
 
 export async function triggerResearchIngestAction(): Promise<void> {
@@ -37,6 +42,18 @@ export async function promoteResearchOpportunityAction(formData: FormData): Prom
     opportunityId,
     target as "github_issue" | "docs_draft" | "benchmark_task",
   );
+  revalidatePath("/research-intel");
+  revalidatePath("/research-intel/opportunities");
+}
+
+
+export async function runResearchOpportunityExperimentAction(formData: FormData): Promise<void> {
+  const opportunityId = String(formData.get("opportunity_id") || "").trim();
+  if (!opportunityId) {
+    throw new Error("Opportunity id is required.");
+  }
+
+  await runResearchOpportunityExperiment(opportunityId, { write_artifacts: true });
   revalidatePath("/research-intel");
   revalidatePath("/research-intel/opportunities");
 }

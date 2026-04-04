@@ -279,14 +279,28 @@ def check_research_intel_pipeline() -> CheckResult:
         if digest.returncode != 0:
             return CheckResult("research-intel-pipeline", FAIL, summarize_process(digest))
 
+        experiment = run_command(
+            [
+                sys.executable,
+                "scripts/run_research_intel_experiment.py",
+                "--json",
+                "--no-artifacts",
+            ],
+            extra_env=env,
+        )
+        if experiment.returncode != 0:
+            return CheckResult("research-intel-pipeline", FAIL, summarize_process(experiment))
+
     ingest_payload = json.loads(ingest.stdout)
     digest_payload = json.loads(digest.stdout)
+    experiment_payload = json.loads(experiment.stdout)
     return CheckResult(
         "research-intel-pipeline",
         PASS,
         (
             f"Ingest processed {ingest_payload['processed']} discovery document(s); "
-            f"digest created {digest_payload['created']} artifact-backed record(s)."
+            f"digest created {digest_payload['created']} artifact-backed record(s); "
+            f"experiment ratchet outcome {experiment_payload['metadata'].get('ratchet_outcome', 'unknown')}."
         ),
     )
 

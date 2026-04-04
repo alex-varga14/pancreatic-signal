@@ -116,6 +116,7 @@ Research-intel is intentionally a sibling domain, not an extension of the case-l
 - three-stage council generation with persisted stage outputs and disagreement score
 - opportunity generation for benchmark gaps, rule gaps, trial-catalog gaps, case briefs, community projects, and external tooling
 - typed discovery-to-action specs that connect each opportunity to evidence bundles, open questions, measurable outcomes, and downstream artifact hints
+- proposal-only experiment runs for benchmark and rule opportunities, with ratchet outcomes and artifact-backed audit trails
 
 These outputs are allowed to inform case briefs, benchmark planning, and contributor priorities, but not to mutate the triage engine automatically.
 

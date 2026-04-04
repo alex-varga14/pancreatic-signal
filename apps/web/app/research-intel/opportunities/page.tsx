@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 
 import { getCurrentUser, getResearchOpportunities, getResearchTopics } from "../../../lib/api";
-import { promoteResearchOpportunityAction } from "../actions";
+import { promoteResearchOpportunityAction, runResearchOpportunityExperimentAction } from "../actions";
 
 
 const cardStyle: CSSProperties = {
@@ -33,6 +33,11 @@ function readSearchParam(value: string | string[] | undefined): string {
 
 function formatLabel(value: string): string {
   return value.replace(/_/g, " ");
+}
+
+
+function formatScore(value?: number | null): string {
+  return value === undefined || value === null ? "n/a" : value.toFixed(2);
 }
 
 
@@ -94,6 +99,7 @@ export default async function ResearchOpportunitiesPage({
   ]);
 
   const canPromote = currentUser?.capabilities.can_promote_research_intel ?? false;
+  const canExperiment = currentUser?.capabilities.can_manage_research_intel ?? false;
 
   return (
     <main style={{ padding: 32, maxWidth: 1120, margin: "0 auto" }}>
@@ -187,6 +193,12 @@ export default async function ResearchOpportunitiesPage({
         ) : (
           opportunities.map((opportunity) => (
             <article key={opportunity.opportunity_id} style={cardStyle}>
+              {(() => {
+                const canRunExperiment =
+                  canExperiment &&
+                  ["benchmark_gap", "rule_gap"].includes(opportunity.opportunity_type);
+                return (
+                  <>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 10 }}>
                 <div>
                   <p style={{ margin: 0, fontSize: 12, textTransform: "uppercase", color: "#64748b" }}>
@@ -271,6 +283,33 @@ export default async function ResearchOpportunitiesPage({
                 {opportunity.related_trial_ids.join(", ") || "none"}
               </p>
 
+              {opportunity.action_payload.last_experiment ? (
+                <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                  <p style={{ margin: 0, fontWeight: 700 }}>Latest experiment</p>
+                  <p style={{ margin: "8px 0 0", color: "#334155" }}>
+                    <strong>{formatLabel(opportunity.action_payload.last_experiment.ratchet_outcome)}</strong> via{" "}
+                    {formatLabel(opportunity.action_payload.last_experiment.experiment_kind || "proposal_validation")}
+                  </p>
+                  <p style={{ margin: "8px 0 0", color: "#475569" }}>
+                    {opportunity.action_payload.last_experiment.metric_name}: baseline{" "}
+                    {formatScore(opportunity.action_payload.last_experiment.baseline_value)} • candidate{" "}
+                    {formatScore(opportunity.action_payload.last_experiment.candidate_value)} • delta{" "}
+                    {formatScore(opportunity.action_payload.last_experiment.delta)}
+                  </p>
+                  <p style={{ margin: "8px 0 0", color: "#475569" }}>
+                    threshold {formatScore(opportunity.action_payload.last_experiment.threshold)} • min delta{" "}
+                    {formatScore(opportunity.action_payload.last_experiment.min_delta)} • evidence coverage{" "}
+                    {formatScore(opportunity.action_payload.last_experiment.evidence_coverage_score)}
+                  </p>
+                  <SectionList title="Experiment notes" items={opportunity.action_payload.last_experiment.notes} />
+                  {opportunity.action_payload.last_experiment.artifact_paths.length > 0 ? (
+                    <p style={{ margin: "10px 0 0", color: "#475569" }}>
+                      Experiment artifacts: {opportunity.action_payload.last_experiment.artifact_paths.join(", ")}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
               {canPromote && opportunity.status !== "promoted" ? (
                 <form action={promoteResearchOpportunityAction} style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 14 }}>
                   <input type="hidden" name="opportunity_id" value={opportunity.opportunity_id} />
@@ -310,6 +349,28 @@ export default async function ResearchOpportunitiesPage({
                   ) : null}
                 </div>
               ) : null}
+              {canRunExperiment ? (
+                <form action={runResearchOpportunityExperimentAction} style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 14 }}>
+                  <input type="hidden" name="opportunity_id" value={opportunity.opportunity_id} />
+                  <button
+                    type="submit"
+                    style={{
+                      border: "1px solid #cbd5e1",
+                      borderRadius: 8,
+                      padding: "10px 14px",
+                      background: "white",
+                      color: "#0f172a",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Run experiment
+                  </button>
+                </form>
+              ) : null}
+                  </>
+                );
+              })()}
             </article>
           ))
         )}

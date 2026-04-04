@@ -449,6 +449,7 @@ Return human-gated research opportunities generated from the digest flow.
 
 Behavior:
 - Each opportunity includes a typed action payload with objective, why-now rationale, discovery question, evidence bundle, proposed steps, measurable outcomes, and promotion guardrails.
+- When available, the action payload also includes the latest experiment result with ratchet outcome, score deltas, and artifact paths.
 
 Query params:
 - `opportunity_type`
@@ -524,6 +525,25 @@ Behavior:
 - Marks the opportunity as promoted.
 - Persists the promotion target and timestamp.
 - Writes a promotion artifact for downstream contributor workflows, including the structured action payload and cited evidence bundle.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `POST /research-intel/opportunities/{opportunity_id}/experiment`
+Run a safe experiment for a supported opportunity.
+
+Request:
+```json
+{
+  "write_artifacts": true
+}
+```
+
+Behavior:
+- Supports benchmark-gap and rule-gap opportunities only.
+- Evaluates proposal readiness through deterministic scoring rather than code mutation.
+- Records baseline, candidate score, delta, threshold, evidence coverage, and keep-or-discard ratchet outcome.
+- Writes experiment artifacts under `artifacts/research-intel/experiments/` when enabled.
 
 Access:
 - Allowed roles: `analyst`, `navigator`, `admin`

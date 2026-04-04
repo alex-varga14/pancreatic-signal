@@ -16,6 +16,7 @@ Pancreatic Signal is no longer a scaffold. As of 2026-04-03, this repository inc
 - a dedicated `/imports` web workspace for uploads and audit inspection
 - a sibling `/research-intel` workspace for pancreatic oncology monitoring, topic watchlists, cited digests, and opportunity planning
 - seeded research-intel source catalogs, topic ontology, lightweight knowledge graph, action-spec opportunity engine, case briefs, and run-audit records
+- a sandboxed research-intel experiment runner for benchmark and rule proposals with ratchet-style keep or discard outcomes
 - pilot-ready Docker overlays for trusted-proxy auth and header-auth demos
 - live smoke coverage across success, failure, and cross-actor visibility paths
 
@@ -94,6 +95,7 @@ Current product focus:
 - reviewer and navigator workflow support
 - cited research digests, topic watchlists, and open-source opportunity surfacing
 - structured discovery-to-action specs for benchmarks, rules, trial upkeep, and contributor tooling
+- safe experiment runs that score proposal readiness without mutating code or case scores automatically
 - retrospective, pilot, and simulation workflows first
 - interoperability paths that do not compromise explainability
 
