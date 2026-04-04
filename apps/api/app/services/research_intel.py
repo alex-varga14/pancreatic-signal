@@ -36,6 +36,10 @@ from app.schemas.research_intel import (
     ResearchDigestListItem,
     ResearchDocument,
     ResearchEvidence,
+    ResearchGraphEdge,
+    ResearchGraphEntity,
+    ResearchGraphNode,
+    ResearchGraphSnapshot,
     ResearchIngestMode,
     ResearchOpportunity,
     ResearchPromotionTarget,
@@ -126,6 +130,52 @@ def load_seed_research_documents() -> list[dict[str, Any]]:
     return list(payload.get("documents", []))
 
 
+@lru_cache(maxsize=1)
+def load_research_graph_indexes() -> dict[str, Any]:
+    graph = load_research_graph()
+    nodes = list(graph.get("nodes") or [])
+    edges = list(graph.get("edges") or [])
+
+    node_map = {
+        str(node.get("node_id") or "").strip(): node
+        for node in nodes
+        if str(node.get("node_id") or "").strip()
+    }
+    neighbors: dict[str, list[str]] = defaultdict(list)
+    for edge in edges:
+        source = str(edge.get("source") or "").strip()
+        target = str(edge.get("target") or "").strip()
+        if source in node_map and target in node_map:
+            neighbors[source].append(target)
+            neighbors[target].append(source)
+
+    indexed_nodes: list[dict[str, Any]] = []
+    for node_id, node in node_map.items():
+        terms = [
+            str(node.get("label") or "").strip(),
+            *[str(item).strip() for item in node.get("aliases") or []],
+            *[str(item).strip() for item in node.get("keywords") or []],
+        ]
+        indexed_nodes.append(
+            {
+                **node,
+                "node_id": node_id,
+                "match_terms": sorted(
+                    {term for term in terms if term},
+                    key=lambda item: (-len(item), item.lower()),
+                ),
+                "related_node_ids": sorted(set(neighbors.get(node_id, []))),
+            }
+        )
+
+    return {
+        "nodes": indexed_nodes,
+        "node_map": node_map,
+        "neighbor_map": {key: sorted(set(value)) for key, value in neighbors.items()},
+        "edges": edges,
+    }
+
+
 def validate_research_intel_catalogs() -> dict[str, int]:
     sources = load_research_source_catalog()
     topics = load_research_topic_catalog()
@@ -149,6 +199,20 @@ def validate_research_intel_catalogs() -> dict[str, int]:
     graph_nodes = graph.get("nodes", [])
     if not isinstance(graph_nodes, list):
         raise ValueError("Research graph must contain a list of nodes.")
+    graph_node_ids = {
+        str(node.get("node_id") or "").strip()
+        for node in graph_nodes
+        if str(node.get("node_id") or "").strip()
+    }
+    if len(graph_node_ids) != len(graph_nodes):
+        raise ValueError("Research graph contains duplicate or missing node_id values.")
+    for edge in graph.get("edges", []):
+        source = str(edge.get("source") or "").strip()
+        target = str(edge.get("target") or "").strip()
+        if source not in graph_node_ids or target not in graph_node_ids:
+            raise ValueError(
+                f"Research graph edge references unknown nodes: {source!r} -> {target!r}."
+            )
 
     fixture_count = 0
     for descriptor in sources:
@@ -848,6 +912,80 @@ def list_research_topics() -> list[ResearchTopic]:
         ]
 
 
+def get_research_graph_snapshot() -> ResearchGraphSnapshot:
+    ensure_research_intel_seeded()
+    indexes = load_research_graph_indexes()
+    node_map = {
+        str(node.get("node_id") or "").strip(): node
+        for node in indexes["nodes"]
+        if str(node.get("node_id") or "").strip()
+    }
+
+    with SessionLocal() as session:
+        documents = session.execute(select(ResearchDocumentRecord)).scalars().all()
+
+    node_stats: dict[str, dict[str, Any]] = {
+        node_id: {
+            "document_count": 0,
+            "heat": 0.0,
+            "recent_document_ids": [],
+        }
+        for node_id in node_map
+    }
+
+    for document in documents:
+        graph_entities = list((document.raw_metadata or {}).get("graph_entities") or [])
+        seen_node_ids: set[str] = set()
+        novelty = _coerce_float((document.raw_metadata or {}).get("novelty_score")) or 0.0
+        for entity in graph_entities:
+            node_id = str(entity.get("node_id") or "").strip()
+            if not node_id or node_id not in node_stats or node_id in seen_node_ids:
+                continue
+            seen_node_ids.add(node_id)
+            node_stats[node_id]["document_count"] += 1
+            node_stats[node_id]["heat"] += round(
+                (float(entity.get("confidence") or 0.0) * 0.65) + (novelty * 0.35),
+                4,
+            )
+            node_stats[node_id]["recent_document_ids"].append(document.document_id)
+
+    nodes = [
+        ResearchGraphNode(
+            node_id=node_id,
+            label=str(node.get("label") or node_id),
+            node_type=str(node.get("node_type") or "entity"),
+            description=str(node.get("description") or "") or None,
+            tags=[str(item) for item in node.get("tags") or []],
+            topic_ids=[str(item) for item in node.get("topic_ids") or []],
+            aliases=[str(item) for item in node.get("aliases") or []],
+            keywords=[str(item) for item in node.get("keywords") or []],
+            related_node_ids=[str(item) for item in indexes["neighbor_map"].get(node_id, [])],
+            document_count=node_stats[node_id]["document_count"],
+            heat=round(node_stats[node_id]["heat"], 4),
+            recent_document_ids=node_stats[node_id]["recent_document_ids"][:5],
+        )
+        for node_id, node in node_map.items()
+    ]
+    nodes.sort(key=lambda item: (-item.document_count, -item.heat, item.label))
+
+    edges = [
+        ResearchGraphEdge(
+            source=str(edge.get("source") or ""),
+            target=str(edge.get("target") or ""),
+            relation=str(edge.get("relation") or ""),
+            weight=_coerce_float(edge.get("weight")),
+        )
+        for edge in indexes["edges"]
+    ]
+
+    return ResearchGraphSnapshot(
+        generated_at=_utcnow(),
+        active_node_ids=[node.node_id for node in nodes if node.document_count > 0],
+        nodes=nodes,
+        edges=edges,
+    )
+
+
 def list_research_digests() -> list[ResearchDigestListItem]:
     ensure_research_intel_seeded()
     with SessionLocal() as session:
@@ -1239,13 +1377,15 @@ def _normalize_seed_document(
     title = str(document.get("title") or "").strip()
     abstract_text = str(document.get("abstract_text") or "").strip()
     body_text = "\n".join(part for part in [title, abstract_text] if part)
+    graph_entities = _resolve_graph_entities(body_text)
     topic_scores, keyword_hits = _classify_topics(
         text=body_text,
         source_descriptor=source_descriptor,
         topic_descriptors=topic_descriptors,
+        graph_entities=graph_entities,
     )
     topic_ids = list(topic_scores.keys())
-    entity_tags = _extract_entity_tags(body_text)
+    entity_tags = _extract_entity_tags(graph_entities)
     citation_key = _build_citation_key(document, published_at=published_at, source_label=source_descriptor["label"])
     dedupe_key = _build_dedupe_key(document)
     document_id = "rdoc-" + hashlib.sha256(dedupe_key.encode("utf-8")).hexdigest()[:12]
@@ -1255,6 +1395,7 @@ def _normalize_seed_document(
         citation_key=citation_key,
         keyword_hits=keyword_hits,
         topic_descriptors=topic_descriptors,
+        graph_entities=graph_entities,
     )
 
     return {
@@ -1292,6 +1433,7 @@ def _normalize_seed_document(
                 "organizations",
             }
         },
+        "graph_entities": graph_entities,
         "evidence": evidence,
     }
 
@@ -1311,6 +1453,7 @@ def _apply_document_provenance(
     raw_metadata["novelty_score"] = novelty_score
     raw_metadata["ingest_mode"] = batch.get("mode") or requested_mode
     raw_metadata["requested_ingest_mode"] = requested_mode
+    raw_metadata["graph_entities"] = list(normalized.get("graph_entities") or [])
     raw_metadata["provenance"] = {
         "connector_id": batch.get("connector_id"),
         "source_url": batch.get("source_url"),
@@ -1354,6 +1497,7 @@ def _classify_topics(
     text: str,
     source_descriptor: dict[str, Any],
     topic_descriptors: dict[str, dict[str, Any]],
+    graph_entities: list[dict[str, Any]],
 ) -> tuple[dict[str, float], dict[str, list[str]]]:
     text_l = text.lower()
     trust_bonus = _TRUST_SCORES.get(str(source_descriptor.get("trust_level") or "medium"), 0.1)
@@ -1369,23 +1513,81 @@ def _classify_topics(
             }
         )
         if not matches:
-            continue
-        score = min(1.0, round(0.22 * len(matches) + trust_bonus, 4))
-        topic_scores[topic_id] = score
-        keyword_hits[topic_id] = matches
+            matches = []
+        if matches:
+            score = min(1.0, round(0.22 * len(matches) + trust_bonus, 4))
+            topic_scores[topic_id] = score
+            keyword_hits[topic_id] = matches
+
+    for entity in graph_entities:
+        for topic_id in entity.get("topic_ids") or []:
+            if topic_id not in topic_descriptors:
+                continue
+            graph_match_terms = [str(item) for item in entity.get("match_terms") or []]
+            boost = min(
+                0.96,
+                round(
+                    (topic_scores.get(topic_id) or 0.0)
+                    + 0.16
+                    + 0.08 * len(graph_match_terms)
+                    + 0.06 * float(entity.get("confidence") or 0.0)
+                    + trust_bonus * 0.5,
+                    4,
+                ),
+            )
+            topic_scores[topic_id] = boost
+            keyword_hits.setdefault(topic_id, [])
+            for term in graph_match_terms[:2]:
+                if term not in keyword_hits[topic_id]:
+                    keyword_hits[topic_id].append(term)
 
     return topic_scores, keyword_hits
 
 
-def _extract_entity_tags(text: str) -> list[str]:
+def _resolve_graph_entities(text: str) -> list[dict[str, Any]]:
     text_l = text.lower()
+    indexes = load_research_graph_indexes()
+    resolved: list[dict[str, Any]] = []
+
+    for node in indexes["nodes"]:
+        matched_terms = [
+            term
+            for term in node.get("match_terms") or []
+            if term and term.lower() in text_l
+        ]
+        if not matched_terms:
+            continue
+        confidence = round(min(0.98, 0.42 + 0.08 * len(matched_terms) + 0.04 * len(node.get("topic_ids") or [])), 2)
+        resolved.append(
+            {
+                "node_id": node["node_id"],
+                "label": node.get("label") or node["node_id"],
+                "node_type": node.get("node_type") or "entity",
+                "description": node.get("description"),
+                "tags": [str(item) for item in node.get("tags") or []],
+                "topic_ids": [str(item) for item in node.get("topic_ids") or []],
+                "match_terms": matched_terms[:3],
+                "related_node_ids": [str(item) for item in node.get("related_node_ids") or []],
+                "confidence": confidence,
+            }
+        )
+
+    resolved.sort(
+        key=lambda item: (
+            -(item.get("confidence") or 0.0),
+            -len(item.get("topic_ids") or []),
+            str(item.get("label") or ""),
+        )
+    )
+    return resolved
+
+
+def _extract_entity_tags(graph_entities: list[dict[str, Any]]) -> list[str]:
     tags: list[str] = []
-    graph = load_research_graph()
-    for node in graph.get("nodes", []):
-        node_tags = [str(item) for item in node.get("tags") or []]
-        aliases = [str(node.get("label") or "")] + [str(item) for item in node.get("aliases") or []]
-        if any(alias.lower() in text_l for alias in aliases if alias):
-            tags.extend(node_tags or [str(node.get("node_id") or "").strip()])
+    for entity in graph_entities:
+        node_id = str(entity.get("node_id") or "").strip()
+        tags.append(node_id)
+        tags.extend([str(item) for item in entity.get("tags") or []])
 
     unique = [tag for tag in dict.fromkeys(tag for tag in tags if tag)]
     return unique
@@ -1397,6 +1599,7 @@ def _extract_evidence_items(
     citation_key: str,
     keyword_hits: dict[str, list[str]],
     topic_descriptors: dict[str, dict[str, Any]],
+    graph_entities: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     evidence: list[dict[str, Any]] = []
     for topic_id, hits in keyword_hits.items():
@@ -1418,6 +1621,30 @@ def _extract_evidence_items(
                     "confidence": round(min(0.98, 0.55 + 0.08 * len(hits)), 2),
                 }
             )
+    for entity in graph_entities:
+        if not entity.get("match_terms"):
+            continue
+        primary_term = str((entity.get("match_terms") or [""])[0]).strip()
+        if not primary_term:
+            continue
+        sentence, start, end = _sentence_for_term(text, primary_term)
+        evidence.append(
+            {
+                "evidence_text": sentence,
+                "char_start": start,
+                "char_end": end,
+                "claim_text": (
+                    f"{entity.get('label') or entity.get('node_id')} anchors graph-backed pancreatic oncology reasoning."
+                ),
+                "claim_type": f"graph_entity:{entity.get('node_type') or 'entity'}",
+                "entity_tags": [
+                    str(entity.get("node_id") or ""),
+                    *[str(item) for item in entity.get("tags") or []],
+                ],
+                "citation_label": citation_key,
+                "confidence": float(entity.get("confidence") or 0.5),
+            }
+        )
     return evidence
 
 
@@ -1581,6 +1808,10 @@ def _build_document_response(
         novelty_score=_coerce_float((row.raw_metadata or {}).get("novelty_score")),
         ingest_mode=str((row.raw_metadata or {}).get("ingest_mode") or "") or None,
         provenance=dict((row.raw_metadata or {}).get("provenance") or {}),
+        graph_entities=[
+            ResearchGraphEntity.model_validate(item)
+            for item in list((row.raw_metadata or {}).get("graph_entities") or [])
+        ],
         evidence=[
             ResearchEvidence(
                 evidence_text=item.evidence_text,

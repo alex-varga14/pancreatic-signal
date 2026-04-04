@@ -95,7 +95,7 @@ Implemented outcomes:
 Next slices:
 
 1. replace or augment seeded documents with live curated connectors
-2. deepen ontology tagging, clustering stability, and disagreement-aware council behavior
+2. deepen ontology tagging into a richer graph-backed entity layer with stable cross-document resolution
 3. turn promoted opportunities into cleaner contributor workflows for benchmarks, rules, and trial-catalog upkeep
 4. document governance for paid-source access and donation-funded operations without introducing autonomous spending
 

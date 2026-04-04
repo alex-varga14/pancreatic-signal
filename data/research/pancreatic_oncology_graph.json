@@ -3,50 +3,199 @@
     {
       "node_id": "pdac",
       "label": "PDAC",
-      "aliases": ["pancreatic ductal adenocarcinoma", "pancreatic cancer"],
-      "tags": ["pdac", "oncology"]
+      "node_type": "disease",
+      "description": "Pancreatic ductal adenocarcinoma and closely related disease references.",
+      "aliases": [
+        "pancreatic ductal adenocarcinoma",
+        "pancreatic adenocarcinoma",
+        "pancreatic cancer"
+      ],
+      "keywords": ["pdac", "adenocarcinoma"],
+      "tags": ["pdac", "oncology", "adenocarcinoma"],
+      "topic_ids": ["early_detection", "pdac_trials"]
+    },
+    {
+      "node_id": "high_risk_screening",
+      "label": "High-risk screening",
+      "node_type": "strategy",
+      "description": "Structured early-detection and surveillance programs for elevated-risk cohorts.",
+      "aliases": ["high-risk cohort", "high risk cohort", "risk stratification"],
+      "keywords": ["screening", "surveillance workflow"],
+      "tags": ["screening", "surveillance", "risk"],
+      "topic_ids": ["early_detection"]
     },
     {
       "node_id": "ipmn",
       "label": "IPMN",
-      "aliases": ["intraductal papillary mucinous neoplasm", "pancreatic cyst"],
-      "tags": ["ipmn", "cyst"]
+      "node_type": "precursor_lesion",
+      "description": "Intraductal papillary mucinous neoplasm and related pancreatic cyst surveillance concepts.",
+      "aliases": [
+        "intraductal papillary mucinous neoplasm",
+        "pancreatic cyst",
+        "side-branch ipmn",
+        "side branch ipmn"
+      ],
+      "keywords": ["cyst surveillance", "surveillance interval"],
+      "tags": ["ipmn", "cyst", "surveillance"],
+      "topic_ids": ["cyst_surveillance", "radiology_workflow"]
     },
     {
-      "node_id": "eus",
-      "label": "EUS",
-      "aliases": ["endoscopic ultrasound", "biopsy"],
-      "tags": ["eus", "biopsy", "follow_up"]
+      "node_id": "liquid_biopsy",
+      "label": "Liquid biopsy",
+      "node_type": "biomarker",
+      "description": "Blood-based biomarker and circulating DNA concepts for pancreatic detection and monitoring.",
+      "aliases": [
+        "liquid biopsy",
+        "circulating tumor dna",
+        "blood biomarker",
+        "multi-omics blood biomarker",
+        "multi-omics"
+      ],
+      "keywords": ["ctdna", "assay validation"],
+      "tags": ["biomarker", "ctdna", "assay"],
+      "topic_ids": ["liquid_biopsy", "early_detection"]
     },
     {
-      "node_id": "ctdna",
-      "label": "ctDNA",
-      "aliases": ["circulating tumor dna", "liquid biopsy"],
-      "tags": ["ctdna", "biomarker"]
+      "node_id": "ca19_9",
+      "label": "CA 19-9",
+      "node_type": "biomarker",
+      "description": "Conventional biomarker tracking in pancreatic oncology evidence and trial design.",
+      "aliases": ["ca 19-9", "ca19-9"],
+      "keywords": ["serum marker"],
+      "tags": ["biomarker", "serology"],
+      "topic_ids": ["liquid_biopsy", "pdac_trials"]
     },
     {
-      "node_id": "radiomics",
-      "label": "Radiomics",
-      "aliases": ["lesion detection", "segmentation", "foundation model"],
-      "tags": ["radiomics", "imaging", "ai"]
+      "node_id": "kras",
+      "label": "KRAS",
+      "node_type": "biomarker",
+      "description": "Common molecular marker used in pancreatic oncology biomarker and translational literature.",
+      "aliases": ["kras mutation", "mutant kras"],
+      "keywords": ["kras"],
+      "tags": ["genomics", "biomarker"],
+      "topic_ids": ["liquid_biopsy", "pdac_trials"]
     },
     {
-      "node_id": "workflow",
-      "label": "Workflow",
-      "aliases": ["navigator", "human review", "follow-up pathway"],
-      "tags": ["workflow", "navigation"]
+      "node_id": "radiomics_foundation_models",
+      "label": "Radiomics and foundation models",
+      "node_type": "model_family",
+      "description": "Imaging-model, radiomics, and foundation-model methods applied to pancreas workflows.",
+      "aliases": [
+        "radiomics",
+        "foundation model",
+        "foundation model pretraining",
+        "transfer learning"
+      ],
+      "keywords": ["segmentation", "lesion detection"],
+      "tags": ["radiomics", "imaging", "ai"],
+      "topic_ids": ["ai_imaging", "oss_opportunities"]
     },
     {
-      "node_id": "benchmark",
-      "label": "Benchmark",
-      "aliases": ["benchmark pack", "dataset release", "evaluation bundle"],
-      "tags": ["benchmark", "open_source"]
+      "node_id": "pancreatic_mri",
+      "label": "Pancreatic MRI",
+      "node_type": "modality",
+      "description": "Pancreatic MRI as a modality in detection, segmentation, and imaging studies.",
+      "aliases": ["pancreatic mri", "mri lesion detection"],
+      "keywords": ["mri", "lesion detection"],
+      "tags": ["mri", "imaging"],
+      "topic_ids": ["ai_imaging"]
+    },
+    {
+      "node_id": "eus_fna",
+      "label": "EUS and biopsy",
+      "node_type": "procedure",
+      "description": "Endoscopic ultrasound, FNA, and tissue-confirmation workflow steps.",
+      "aliases": [
+        "endoscopic ultrasound",
+        "eus",
+        "eus-fna",
+        "tissue confirmation"
+      ],
+      "keywords": ["biopsy"],
+      "tags": ["eus", "biopsy", "follow_up"],
+      "topic_ids": ["radiology_workflow", "pdac_trials"]
+    },
+    {
+      "node_id": "resectable_pdac",
+      "label": "Resectable PDAC cohort",
+      "node_type": "cohort",
+      "description": "References to resectable pancreatic head disease and related trial cohorts.",
+      "aliases": [
+        "resectable pancreatic head adenocarcinoma",
+        "resectable pancreatic cancer",
+        "resectable pancreatic head"
+      ],
+      "keywords": ["resectable"],
+      "tags": ["cohort", "resectable"],
+      "topic_ids": ["pdac_trials"]
+    },
+    {
+      "node_id": "neoadjuvant_therapy",
+      "label": "Neoadjuvant therapy",
+      "node_type": "therapy_strategy",
+      "description": "Neoadjuvant and perioperative treatment strategy concepts in PDAC trials.",
+      "aliases": ["neoadjuvant strategy", "neoadjuvant enrollment"],
+      "keywords": ["neoadjuvant"],
+      "tags": ["therapy", "neoadjuvant"],
+      "topic_ids": ["pdac_trials"]
+    },
+    {
+      "node_id": "trial_eligibility",
+      "label": "Trial eligibility",
+      "node_type": "trial_concept",
+      "description": "Eligibility, cohort assignment, and explainable trial abstraction concepts.",
+      "aliases": ["eligibility criteria", "cohort assignment", "trial registry update"],
+      "keywords": ["eligibility", "trial registry"],
+      "tags": ["trial", "eligibility"],
+      "topic_ids": ["pdac_trials", "radiology_workflow"]
+    },
+    {
+      "node_id": "navigator_workflow",
+      "label": "Navigator workflow",
+      "node_type": "workflow",
+      "description": "Human review, navigation, and escalation workflow concepts.",
+      "aliases": [
+        "navigator dashboards",
+        "follow-up pathway",
+        "escalation workflow",
+        "human review"
+      ],
+      "keywords": ["navigator", "workflow stack"],
+      "tags": ["workflow", "navigation", "follow_up"],
+      "topic_ids": ["radiology_workflow", "oss_opportunities"]
+    },
+    {
+      "node_id": "benchmark_dataset",
+      "label": "Benchmark dataset",
+      "node_type": "research_artifact",
+      "description": "Open benchmark packs, evaluation bundles, and reproducible dataset assets.",
+      "aliases": [
+        "benchmark pack",
+        "dataset release",
+        "evaluation bundle",
+        "open evaluation bundles"
+      ],
+      "keywords": ["workflow notes", "issue templates"],
+      "tags": ["benchmark", "open_source", "tooling"],
+      "topic_ids": ["oss_opportunities", "ai_imaging"]
     }
   ],
   "edges": [
-    {"source": "ipmn", "target": "workflow", "relation": "requires_surveillance"},
-    {"source": "ctdna", "target": "early_detection", "relation": "supports"},
-    {"source": "radiomics", "target": "benchmark", "relation": "needs"},
-    {"source": "workflow", "target": "benchmark", "relation": "benefits_from"}
+    { "source": "pdac", "target": "high_risk_screening", "relation": "motivates", "weight": 0.82 },
+    { "source": "pdac", "target": "trial_eligibility", "relation": "requires_abstraction", "weight": 0.78 },
+    { "source": "ipmn", "target": "high_risk_screening", "relation": "extends_surveillance", "weight": 0.72 },
+    { "source": "ipmn", "target": "navigator_workflow", "relation": "requires_follow_up", "weight": 0.76 },
+    { "source": "liquid_biopsy", "target": "high_risk_screening", "relation": "supports_detection", "weight": 0.84 },
+    { "source": "liquid_biopsy", "target": "trial_eligibility", "relation": "stratifies_cohorts", "weight": 0.66 },
+    { "source": "ca19_9", "target": "liquid_biopsy", "relation": "complements", "weight": 0.61 },
+    { "source": "kras", "target": "liquid_biopsy", "relation": "strengthens_signal", "weight": 0.63 },
+    { "source": "radiomics_foundation_models", "target": "pancreatic_mri", "relation": "applies_to", "weight": 0.8 },
+    { "source": "radiomics_foundation_models", "target": "benchmark_dataset", "relation": "needs_validation", "weight": 0.88 },
+    { "source": "eus_fna", "target": "trial_eligibility", "relation": "confirms_entry", "weight": 0.69 },
+    { "source": "resectable_pdac", "target": "neoadjuvant_therapy", "relation": "treated_with", "weight": 0.74 },
+    { "source": "resectable_pdac", "target": "trial_eligibility", "relation": "defines_cohort", "weight": 0.71 },
+    { "source": "neoadjuvant_therapy", "target": "trial_eligibility", "relation": "depends_on", "weight": 0.67 },
+    { "source": "navigator_workflow", "target": "benchmark_dataset", "relation": "benefits_from", "weight": 0.75 },
+    { "source": "benchmark_dataset", "target": "trial_eligibility", "relation": "tests_abstraction", "weight": 0.58 }
   ]
 }

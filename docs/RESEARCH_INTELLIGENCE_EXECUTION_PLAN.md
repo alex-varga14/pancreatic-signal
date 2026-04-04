@@ -106,6 +106,11 @@ Required outputs:
 Acceptance gate:
 - graph-backed tags are stable enough to support cross-document reasoning and clustering
 
+Current progress:
+- typed graph nodes and edges are now implemented
+- graph-backed entity resolution is part of ingest normalization
+- graph activity is exposed through a dedicated research-intel graph surface
+
 ### Phase 3. Multi-Agent Research Council
 
 Goal:

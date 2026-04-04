@@ -8,6 +8,7 @@ from app.schemas.research_intel import (
     ResearchDigestListItem,
     ResearchDigestTriggerInput,
     ResearchDocument,
+    ResearchGraphSnapshot,
     ResearchOpportunity,
     ResearchPromotionInput,
     ResearchPromotionResult,
@@ -21,6 +22,7 @@ from app.schemas.research_intel import (
 from app.services.research_intel import (
     build_research_case_brief,
     get_research_digest,
+    get_research_graph_snapshot,
     get_research_run,
     list_research_digests,
     list_research_documents,
@@ -62,6 +64,11 @@ def get_documents(
 @router.get("/topics", response_model=list[ResearchTopic])
 def get_topics() -> list[ResearchTopic]:
     return list_research_topics()
+
+
+@router.get("/graph", response_model=ResearchGraphSnapshot)
+def get_graph() -> ResearchGraphSnapshot:
+    return get_research_graph_snapshot()
 
 
 @router.get("/digests", response_model=list[ResearchDigestListItem])

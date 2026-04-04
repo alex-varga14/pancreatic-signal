@@ -102,6 +102,18 @@ class ResearchEvidence(BaseModel):
     confidence: float | None = None
 
 
+class ResearchGraphEntity(BaseModel):
+    node_id: str
+    label: str
+    node_type: str
+    description: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    topic_ids: list[str] = Field(default_factory=list)
+    match_terms: list[str] = Field(default_factory=list)
+    related_node_ids: list[str] = Field(default_factory=list)
+    confidence: float | None = None
+
+
 class ResearchDocument(BaseModel):
     document_id: str
     source_id: str
@@ -126,6 +138,7 @@ class ResearchDocument(BaseModel):
     novelty_score: float | None = None
     ingest_mode: str | None = None
     provenance: dict[str, object] = Field(default_factory=dict)
+    graph_entities: list[ResearchGraphEntity] = Field(default_factory=list)
     evidence: list[ResearchEvidence] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
@@ -151,6 +164,35 @@ class ResearchDigestDocumentRef(BaseModel):
     citation_key: str
     url: str | None = None
     topic_labels: list[str] = Field(default_factory=list)
+
+
+class ResearchGraphEdge(BaseModel):
+    source: str
+    target: str
+    relation: str
+    weight: float | None = None
+
+
+class ResearchGraphNode(BaseModel):
+    node_id: str
+    label: str
+    node_type: str
+    description: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    topic_ids: list[str] = Field(default_factory=list)
+    aliases: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+    related_node_ids: list[str] = Field(default_factory=list)
+    document_count: int
+    heat: float
+    recent_document_ids: list[str] = Field(default_factory=list)
+
+
+class ResearchGraphSnapshot(BaseModel):
+    generated_at: datetime
+    active_node_ids: list[str] = Field(default_factory=list)
+    nodes: list[ResearchGraphNode] = Field(default_factory=list)
+    edges: list[ResearchGraphEdge] = Field(default_factory=list)
 
 
 class ResearchCouncilStage1Opinion(BaseModel):

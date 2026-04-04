@@ -4,6 +4,7 @@ import {
   getCurrentUser,
   getResearchDigests,
   getResearchDocuments,
+  getResearchGraph,
   getResearchOpportunities,
   getResearchRuns,
   getResearchSources,
@@ -29,7 +30,7 @@ function formatLabel(value: string): string {
 
 
 export default async function ResearchIntelPage() {
-  const [currentUser, sources, topics, digests, opportunities, runs, documents] = await Promise.all([
+  const [currentUser, sources, topics, digests, opportunities, runs, documents, graph] = await Promise.all([
     getCurrentUser(),
     getResearchSources(),
     getResearchTopics(),
@@ -37,6 +38,7 @@ export default async function ResearchIntelPage() {
     getResearchOpportunities(),
     getResearchRuns(6),
     getResearchDocuments({ limit: 5 }),
+    getResearchGraph(),
   ]);
 
   const canManage = currentUser?.capabilities.can_manage_research_intel ?? false;
@@ -48,6 +50,7 @@ export default async function ResearchIntelPage() {
   const publishedDigest = digests[0] ?? null;
   const hottestTopics = topics.slice(0, 4);
   const topOpportunities = opportunities.slice(0, 4);
+  const graphHighlights = (graph?.nodes || []).filter((node) => node.document_count > 0).slice(0, 4);
 
   return (
     <main style={{ padding: 32, maxWidth: 1160, margin: "0 auto" }}>
@@ -117,6 +120,7 @@ export default async function ResearchIntelPage() {
           note="Fixture-backed discovery feeds with live-ready connector scaffolding"
         />
         <StatCard label="Topic watchlists" value={String(topics.length)} note="Rolling pancreatic oncology clusters" />
+        <StatCard label="Graph entities" value={String(graph?.nodes.length || 0)} note="Disease, biomarker, trial, workflow, and dataset nodes" />
         <StatCard label="Published digests" value={String(digests.length)} note="Cited summaries with council output" />
         <StatCard label="Open opportunities" value={String(opportunities.length)} note="Human-gated proposals for next work" />
       </div>
@@ -217,6 +221,41 @@ export default async function ResearchIntelPage() {
                   <p style={{ margin: "0 0 8px", color: "#475569" }}>{opportunity.summary}</p>
                   <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
                     confidence {(opportunity.confidence_score * 100).toFixed(0)}% • {opportunity.topic_labels.join(", ") || "unbucketed"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", marginBottom: 16 }}>
+        <section style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 14, padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 12 }}>
+            <div>
+              <p style={{ margin: 0, fontSize: 12, textTransform: "uppercase", color: "#64748b" }}>Knowledge graph</p>
+              <h2 style={{ margin: "6px 0 0", fontSize: 22 }}>Entity layer shaping discovery</h2>
+            </div>
+            <Link href="/research-intel/graph" style={{ color: "#2563eb" }}>
+              Open graph
+            </Link>
+          </div>
+
+          {graphHighlights.length === 0 ? (
+            <p style={{ marginBottom: 0, color: "#64748b" }}>No active graph entities yet.</p>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              {graphHighlights.map((node) => (
+                <div key={node.node_id} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, background: "#f8fafc" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                    <strong>{node.label}</strong>
+                    <span style={{ fontSize: 12, color: "#1d4ed8", fontWeight: 700 }}>
+                      {node.document_count} doc{node.document_count === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <p style={{ margin: "6px 0", color: "#475569" }}>{node.description}</p>
+                  <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
+                    {node.node_type.replace(/_/g, " ")} • heat {node.heat.toFixed(2)} • {node.topic_ids.join(", ") || "no topic links"}
                   </p>
                 </div>
               ))}

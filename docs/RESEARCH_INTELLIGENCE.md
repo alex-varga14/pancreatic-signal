@@ -28,6 +28,7 @@ The current implementation includes:
 - case-level research briefs linked from the existing case detail page
 - discovery-ingest source health, document provenance, and novelty scoring
 - fixture-backed connector feeds for reproducible validation plus opt-in live connector scaffolding
+- graph-backed entity resolution plus a `/research-intel/graph` workspace for active node and edge inspection
 
 Current status:
 
@@ -66,6 +67,7 @@ Then explore:
 
 - `/research-intel` for dashboard and run health
 - `/research-intel/documents` for normalized documents, citations, and topic tags
+- `/research-intel/graph` for graph entities, edges, and active node heat
 - `/research-intel/digests` for council-backed digest output
 - `/research-intel/opportunities` for human-gated contribution proposals
 
@@ -124,6 +126,15 @@ Phase 1 is now in progress with these capabilities:
 - source health is persisted in the source registry state
 - document provenance and novelty are stored and exposed through the API
 - opt-in live connector code paths exist for Europe PMC and ClinicalTrials.gov, while the remaining sources stay fixture-backed until their live contracts are hardened
+
+## Phase 2 Knowledge Graph Status
+
+Phase 2 is now underway with these capabilities:
+
+- the pancreatic oncology graph now includes typed entities for disease, biomarkers, procedures, cohorts, workflow concepts, and research artifacts
+- graph-backed entity resolution runs during document normalization
+- graph entities now help reinforce topic assignment and evidence extraction
+- a dedicated graph surface exposes active nodes, edge relationships, and document-backed entity heat
 
 ## Opportunity Types
 

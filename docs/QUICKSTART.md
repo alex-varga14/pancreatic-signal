@@ -83,6 +83,7 @@ Then explore:
 
 - `/research-intel` for ingest health, topic heat, and recent digest activity
 - `/research-intel/documents` for the normalized document explorer
+- `/research-intel/graph` for the active pancreatic oncology knowledge graph
 - `/research-intel/digests` for the cited council summaries
 - `/research-intel/opportunities` for benchmark, rule, trial-catalog, and tooling proposals
 

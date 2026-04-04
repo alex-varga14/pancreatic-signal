@@ -184,6 +184,7 @@ Then open:
 
 - `/research-intel` for the dashboard
 - `/research-intel/documents` for the document explorer
+- `/research-intel/graph` for the pancreatic oncology knowledge graph
 - `/research-intel/digests` for cited council summaries
 - `/research-intel/opportunities` for human-gated benchmark, rule, and tooling proposals
 

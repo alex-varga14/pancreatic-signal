@@ -42,6 +42,7 @@ export default async function ResearchDocumentsPage({
         <div style={{ display: "flex", gap: 12 }}>
           <Link href="/research-intel" style={{ color: "#2563eb" }}>Dashboard</Link>
           <Link href="/research-intel/digests" style={{ color: "#2563eb" }}>Digests</Link>
+          <Link href="/research-intel/graph" style={{ color: "#2563eb" }}>Graph</Link>
         </div>
       </div>
 
@@ -136,6 +137,11 @@ export default async function ResearchDocumentsPage({
                   ? document.provenance["connector_id"]
                   : "unknown"}
               </p>
+              {document.graph_entities.length > 0 ? (
+                <p style={{ margin: "0 0 10px", color: "#64748b", fontSize: 13 }}>
+                  Graph entities: {document.graph_entities.map((item) => item.label).join(", ")}
+                </p>
+              ) : null}
 
               {document.evidence.length > 0 ? (
                 <div style={{ marginBottom: 10 }}>

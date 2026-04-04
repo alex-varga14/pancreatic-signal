@@ -62,6 +62,8 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert all(item["ingest_mode"] == "fixture" for item in documents)
     assert all(item["provenance"]["connector_id"] for item in documents)
     assert any(item["novelty_score"] for item in documents)
+    assert any(any(entity["node_id"] == "liquid_biopsy" for entity in item["graph_entities"]) for item in documents)
+    assert any(any(entity["node_id"] == "neoadjuvant_therapy" for entity in item["graph_entities"]) for item in documents)
 
     response = client.get("/api/v1/research-intel/sources")
     assert response.status_code == 200
@@ -71,6 +73,16 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert pubmed["last_success_at"]
     assert pubmed["connector_id"] == "europe_pmc_search"
     assert pubmed["default_mode"] == "fixture"
+
+    response = client.get("/api/v1/research-intel/graph")
+    assert response.status_code == 200
+    graph = response.json()
+    assert graph["nodes"]
+    assert graph["edges"]
+    assert "liquid_biopsy" in graph["active_node_ids"]
+    liquid_biopsy = next(item for item in graph["nodes"] if item["node_id"] == "liquid_biopsy")
+    assert liquid_biopsy["document_count"] >= 1
+    assert "high_risk_screening" in liquid_biopsy["related_node_ids"]
 
     response = client.post(
         "/api/v1/research-intel/runs/digest",

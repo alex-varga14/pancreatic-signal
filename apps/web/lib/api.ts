@@ -496,6 +496,18 @@ export type ResearchEvidence = {
   confidence?: number | null;
 };
 
+export type ResearchGraphEntity = {
+  node_id: string;
+  label: string;
+  node_type: string;
+  description?: string | null;
+  tags: string[];
+  topic_ids: string[];
+  match_terms: string[];
+  related_node_ids: string[];
+  confidence?: number | null;
+};
+
 export type ResearchDocument = {
   document_id: string;
   source_id: string;
@@ -520,6 +532,7 @@ export type ResearchDocument = {
   novelty_score?: number | null;
   ingest_mode?: string | null;
   provenance: Record<string, unknown>;
+  graph_entities: ResearchGraphEntity[];
   evidence: ResearchEvidence[];
   created_at: string;
   updated_at: string;
@@ -573,6 +586,35 @@ export type ResearchDigestDocumentRef = {
   citation_key: string;
   url?: string | null;
   topic_labels: string[];
+};
+
+export type ResearchGraphEdge = {
+  source: string;
+  target: string;
+  relation: string;
+  weight?: number | null;
+};
+
+export type ResearchGraphNode = {
+  node_id: string;
+  label: string;
+  node_type: string;
+  description?: string | null;
+  tags: string[];
+  topic_ids: string[];
+  aliases: string[];
+  keywords: string[];
+  related_node_ids: string[];
+  document_count: number;
+  heat: number;
+  recent_document_ids: string[];
+};
+
+export type ResearchGraphSnapshot = {
+  generated_at: string;
+  active_node_ids: string[];
+  nodes: ResearchGraphNode[];
+  edges: ResearchGraphEdge[];
 };
 
 export type ResearchDigestListItem = {
@@ -945,6 +987,12 @@ export async function getResearchDocuments(filters: ResearchDocumentFilters = {}
 export async function getResearchTopics(): Promise<ResearchTopic[]> {
   const res = await apiFetch("/api/v1/research-intel/topics");
   if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getResearchGraph(): Promise<ResearchGraphSnapshot | null> {
+  const res = await apiFetch("/api/v1/research-intel/graph");
+  if (!res.ok) return null;
   return res.json();
 }
 
