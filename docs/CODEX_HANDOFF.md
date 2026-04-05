@@ -4,12 +4,12 @@ Updated: 2026-04-04
 
 This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, Phase 6
 hosted smoke evidence capture is now complete, and the codebase now also carries the research-intel branch-wrap work that
-adds watchtower scheduling, audited watchtower automation, multi-run council comparison, contributor packets, richer
-stress-test experiments, and explicit governance for paid-source or donation-funded expansion. The best next work should
-now move from the expanded proof set and automated research-intel watchtower toward broader de-identified or externally
-supplied benchmark inputs, longer-horizon discovery calibration, and deeper live corpus quality built on top of the
-existing pilot packaging, proof surfaces, public benchmark pack, external evaluation bundle writer, and cited pancreatic
-oncology watchtower.
+adds watchtower scheduling, audited watchtower automation, multi-run council comparison, longer-horizon council
+calibration, contributor packets plus collaborator bundles, richer stress-test experiments, and explicit governance for
+paid-source or donation-funded expansion. The best next work should now move from the expanded proof set and automated
+research-intel watchtower toward broader de-identified or externally supplied benchmark inputs and deeper live corpus
+quality built on top of the existing pilot packaging, proof surfaces, public benchmark pack, external evaluation bundle
+writer, and cited pancreatic oncology watchtower.
 
 ## Current State
 
@@ -18,8 +18,8 @@ oncology watchtower.
 - A second primary pillar, Research Intelligence, is now implemented with a sibling `/research-intel` workspace, a `/api/v1/research-intel/*` namespace, seeded pancreatic oncology source and topic catalogs, a lightweight domain graph, persisted run audits, normalized research documents, cited evidence spans, topic watchlists, council digests, opportunity proposals, and case-level research briefs.
 - Landing, about, quickstart, README, and handoff surfaces now frame Research Intelligence as the primary entry point, with triage, imports, benchmark proof, and case briefs positioned as explainable downstream applications of the discovery engine.
 - The discovery layer now also includes watchtower scheduling and automation: broader curated literature and trial watches, due-only ingest support, schedule snapshots, consecutive-failure tracking, a `make research-intel-ingest-due` path, a `make research-intel-watchtower` path, an audited `/api/v1/research-intel/runs/watchtower` trigger, and a dedicated `/research-intel/schedule` workspace.
-- Research-intel digests now compare themselves against recent runs, preserving confidence trend, disagreement deltas, recurring open questions, recurring disagreement points, and resolved items instead of treating each digest as a sealed one-off summary.
-- Research-intel opportunities now carry contributor packets for issue, benchmark, dataset, rule, trial, case-brief, and tooling follow-through, with packet artifacts written under `artifacts/research-intel/packets/`.
+- Research-intel digests now compare themselves against recent runs, preserving confidence trend, disagreement deltas, recurring open questions, recurring disagreement points, resolved items, and a longer-horizon calibration snapshot instead of treating each digest as a sealed one-off summary.
+- Research-intel opportunities now carry contributor packets for issue, benchmark, dataset, rule, trial, case-brief, and tooling follow-through, with packet artifacts written under `artifacts/research-intel/packets/` and collaborator bundle artifacts under `artifacts/research-intel/collaborator-bundles/`.
 - Safe experiment support is stronger too: benchmark and rule opportunities now expose both readiness and stress-test modes with dimension-level scoring, while still staying proposal-only and human-gated.
 - Governance for paid-source access and donation-funded operations is now documented in `docs/RESEARCH_INTELLIGENCE_GOVERNANCE.md`, and autonomous payment or procurement remains explicitly out of scope.
 - The research-intel watchtower is still fixture-first and operator-triggered for reproducibility, but it now also carries selectively live-ready curated connectors with pancreas-aware filtering and source-health tracking instead of remaining purely seeded.
@@ -43,7 +43,7 @@ oncology watchtower.
 - HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component plus repetition separators, normalize common HL7 escape sequences, and clean composite metadata fields with subcomponent-aware extraction before the existing report-text assembly flows into triage and audit persistence.
 - Top-level repo docs now reflect the implemented platform instead of the earlier scaffold framing, and the repository includes checked-in contributor, security, and code-of-conduct docs appropriate for a near-1.0 open-source handoff.
 - The repo still includes checked-in GitHub Actions workflows for strict validation plus hosted base, attachment-backed FHIR success-path, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage, and the hosted pilot workflow now supports narrower manual FHIR-only plus HL7-only dispatches with per-job raw-log and structured-summary artifacts. Those hosted slices are now verified with green March 25, 2026 runs for FHIR and HL7, while HL7 remains manual-only in the default weekly matrix by explicit decision.
-- The highest-value remaining work is no longer bootstrapping or late-Phase-6 smoke capture. The repo-side Phase 6D release polish is already in place, the research-first repositioning is visible across product and docs surfaces, the watchtower and council history loop are in place, the external starter pack matches the reviewer-facing proof shape, `/proof` compares the checked-in packs directly, and recurring watchtower automation is now in place, so the next work should move toward broader collaborator-supplied or deidentified benchmark inputs, longer-horizon calibration, and deeper live discovery quality instead of reopening parser or smoke-baseline work.
+- The highest-value remaining work is no longer bootstrapping or late-Phase-6 smoke capture. The repo-side Phase 6D release polish is already in place, the research-first repositioning is visible across product and docs surfaces, the watchtower and council history loop are in place, the external starter pack matches the reviewer-facing proof shape, `/proof` compares the checked-in packs directly, recurring watchtower automation is in place, and digests now carry longer-horizon calibration plus collaborator bundle output, so the next work should move toward broader collaborator-supplied or deidentified benchmark inputs and deeper live discovery quality instead of reopening parser or smoke-baseline work.
 - The next benchmark-proof slice should focus on either a larger collaborator-supplied benchmark drop through the registry flow or deeper cross-pack analysis features such as bucket-level comparisons or reviewer-focused filtering, rather than just adding another static pack section.
 
 ## Fresh Validation Status

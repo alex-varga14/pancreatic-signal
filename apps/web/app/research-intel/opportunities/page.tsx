@@ -316,6 +316,26 @@ export default async function ResearchOpportunitiesPage({
                         <SectionList title="Expected outputs" items={packet.output_artifacts} />
                         <SectionList title="Validation steps" items={packet.validation_steps} />
                         <SectionList title="Handoff notes" items={packet.handoff_notes} />
+                        {packet.bundle ? (
+                          <div style={{ marginTop: 14 }}>
+                            <p style={{ margin: "0 0 8px", fontWeight: 700 }}>Collaborator bundle</p>
+                            <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
+                              {formatLabel(packet.bundle.bundle_kind)}
+                            </p>
+                            <SectionList title="Templates" items={packet.bundle.template_paths} />
+                            <SectionList title="Intake fields" items={packet.bundle.intake_fields} />
+                            {packet.bundle.starter_command ? (
+                              <p style={{ margin: "10px 0 0", color: "#475569", lineHeight: 1.6 }}>
+                                <strong>Starter command:</strong> {packet.bundle.starter_command}
+                              </p>
+                            ) : null}
+                            {packet.bundle.validation_command ? (
+                              <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
+                                <strong>Validation command:</strong> {packet.bundle.validation_command}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                     ))}
                   </div>

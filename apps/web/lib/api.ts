@@ -661,6 +661,22 @@ export type ResearchDigestHistoryItem = {
   topic_labels: string[];
 };
 
+export type ResearchDigestCalibrationSnapshot = {
+  lookback_digest_count: number;
+  lookback_window_days: number;
+  confidence_distribution: Record<string, number>;
+  average_disagreement_score?: number | null;
+  average_citation_count?: number | null;
+  confidence_consistency_score?: number | null;
+  disagreement_volatility_score?: number | null;
+  status: string;
+  dominant_topic_labels: string[];
+  recurring_themes: ResearchDigestRecurringItem[];
+  long_horizon_open_questions: ResearchDigestRecurringItem[];
+  long_horizon_disagreement_points: ResearchDigestRecurringItem[];
+  notes: string[];
+};
+
 export type ResearchDigestHistorySnapshot = {
   trend: ResearchDigestTrend;
   recent_digests: ResearchDigestHistoryItem[];
@@ -668,6 +684,7 @@ export type ResearchDigestHistorySnapshot = {
   recurring_disagreement_points: ResearchDigestRecurringItem[];
   resolved_open_questions: string[];
   resolved_disagreement_points: string[];
+  calibration: ResearchDigestCalibrationSnapshot;
 };
 
 export type ResearchGraphEdge = {
@@ -712,6 +729,8 @@ export type ResearchDigestListItem = {
   disagreement_score: number;
   citation_count: number;
   trend: ResearchDigestTrend;
+  calibration_status: string;
+  calibration_theme_labels: string[];
 };
 
 export type ResearchDigestDetail = ResearchDigestListItem & {
@@ -759,6 +778,25 @@ export type ResearchContributorPacket = {
   output_artifacts: string[];
   validation_steps: string[];
   handoff_notes: string[];
+  bundle?: ResearchContributorBundleSpec | null;
+};
+
+export type ResearchContributorBundleSpec = {
+  bundle_kind:
+    | "benchmark_submission_bundle"
+    | "dataset_submission_bundle"
+    | "issue_handoff_bundle"
+    | "rule_handoff_bundle"
+    | "trial_handoff_bundle"
+    | "case_brief_handoff_bundle"
+    | "tooling_handoff_bundle";
+  slug: string;
+  manifest_path?: string | null;
+  readme_path?: string | null;
+  template_paths: string[];
+  starter_command?: string | null;
+  validation_command?: string | null;
+  intake_fields: string[];
 };
 
 export type ResearchOpportunityExperimentResult = {

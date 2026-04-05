@@ -90,6 +90,35 @@ function LabeledList({
 }
 
 
+function RecurringItemList({
+  title,
+  items,
+  emptyLabel,
+}: {
+  title: string;
+  items: Array<{ text: string; occurrence_count: number }>;
+  emptyLabel?: string;
+}) {
+  if (items.length === 0 && !emptyLabel) return null;
+  return (
+    <div style={{ marginTop: 14 }}>
+      <p style={{ margin: "0 0 8px", fontWeight: 600 }}>{title}</p>
+      {items.length > 0 ? (
+        <ul style={{ paddingLeft: 18, margin: 0, color: "#334155" }}>
+          {items.map((item) => (
+            <li key={item.text} style={{ marginBottom: 8, lineHeight: 1.6 }}>
+              {item.text} ({item.occurrence_count} digests)
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p style={{ margin: 0, color: "#64748b" }}>{emptyLabel}</p>
+      )}
+    </div>
+  );
+}
+
+
 export default async function ResearchDigestDetailPage({
   params,
 }: {
@@ -308,6 +337,36 @@ export default async function ResearchDigestDetailPage({
             </div>
           </div>
         ) : null}
+      </section>
+
+      <section style={{ ...panelStyle, marginTop: 16 }}>
+        <h2 style={{ marginTop: 0 }}>Calibration</h2>
+        <p style={{ color: "#334155", lineHeight: 1.7 }}>
+          Status {digest.history.calibration.status} {" • "}
+          lookback {digest.history.calibration.lookback_digest_count} digests across{" "}
+          {digest.history.calibration.lookback_window_days} day(s) {" • "}
+          avg disagreement {formatSigned(digest.history.calibration.average_disagreement_score ?? null)} {" • "}
+          avg citations {formatSigned(digest.history.calibration.average_citation_count ?? null, 1)}
+        </p>
+        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+          <LabeledList title="Dominant topics" items={digest.history.calibration.dominant_topic_labels} />
+          <LabeledList title="Calibration notes" items={digest.history.calibration.notes} />
+          <RecurringItemList
+            title="Recurring themes"
+            items={digest.history.calibration.recurring_themes}
+            emptyLabel="No recurring themes have stabilized across the lookback window yet."
+          />
+          <RecurringItemList
+            title="Long-horizon open questions"
+            items={digest.history.calibration.long_horizon_open_questions}
+            emptyLabel="No recurring open-question backlog is present yet."
+          />
+          <RecurringItemList
+            title="Long-horizon disagreement"
+            items={digest.history.calibration.long_horizon_disagreement_points}
+            emptyLabel="No recurring disagreement backlog is present yet."
+          />
+        </div>
       </section>
 
       <section style={{ ...panelStyle, marginTop: 16 }}>

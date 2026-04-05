@@ -188,6 +188,7 @@ Phase 3 is now underway with these capabilities:
 - stage 2 rankings now include explicit peer critiques, challenge targets, preferred actions, and confidence adjustments
 - stage 3 synthesis now records overall confidence, evidence gaps, open questions, next experiments, and promotion guardrails
 - digests now also persist multi-run history snapshots with trend, recurring open questions, recurring disagreement points, resolved items, and recent digest windows
+- digest history now also carries a longer-horizon calibration snapshot with confidence distribution, disagreement volatility, recurring themes, and long-horizon backlog items
 - persisted council payloads remain backward-compatible with older digest versions
 
 ## Phase 4 Discovery-To-Action Status
@@ -200,6 +201,7 @@ Phase 4 is now underway with these capabilities:
 - digest runs now write contributor-ready opportunity JSON and Markdown artifacts under `artifacts/research-intel/opportunities/`
 - opportunities now also include contributor packets for issue-ready, benchmark-ready, dataset-ready, rule, trial, case-brief, and tooling follow-through
 - contributor packet artifacts now live under `artifacts/research-intel/packets/`
+- benchmark and dataset packets now also emit collaborator bundle manifests and READMEs under `artifacts/research-intel/collaborator-bundles/`
 - promotion artifacts now preserve the same structured discovery-to-action context instead of collapsing into shallow summaries
 
 ## Phase 5 Safe Experimentation Status
@@ -279,6 +281,6 @@ The implementation direction borrows selectively from several open-source resear
 ## Next Slices
 
 - deepen graph coverage and cross-document entity resolution against a wider live corpus
-- extend council comparison from short windows into longer-horizon calibration and recurring-theme analysis
-- expand contributor packets against larger collaborator benchmark drops and public dataset bundles
+- exercise the new collaborator bundles against a larger real benchmark drop or public dataset bundle
 - keep governance and procurement notes current before any paid-source expansion is activated
+- continue improving connector quality where the watchtower still leans on fixtures

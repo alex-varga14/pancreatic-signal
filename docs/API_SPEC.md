@@ -446,7 +446,7 @@ Behavior:
 Return cited digest summaries with publication status, disagreement score, and citation counts.
 
 Behavior:
-- Digest list items now also include a trend snapshot showing the previous digest, confidence movement, disagreement delta, citation delta, and topic churn.
+- Digest list items now also include a trend snapshot showing the previous digest, confidence movement, disagreement delta, citation delta, topic churn, and a lightweight calibration summary.
 
 ### `GET /research-intel/digests/{digest_id}`
 Return a digest detail view with supporting documents plus persisted council stages:
@@ -454,7 +454,7 @@ Return a digest detail view with supporting documents plus persisted council sta
 - stage 1 confidence, open questions, and evidence gaps
 - stage 2 peer ranking, critique, requested evidence, and confidence adjustment
 - stage 3 chairman synthesis, overall confidence, next experiments, and promotion guardrails
-- a multi-run history snapshot with recent digest window, recurring open questions, recurring disagreement points, and resolved items
+- a multi-run history snapshot with recent digest window, recurring open questions, recurring disagreement points, resolved items, and a longer-horizon calibration snapshot covering confidence distribution, recurring themes, and backlog persistence
 
 ### `GET /research-intel/opportunities`
 Return human-gated research opportunities generated from the digest flow.
@@ -462,6 +462,7 @@ Return human-gated research opportunities generated from the digest flow.
 Behavior:
 - Each opportunity includes a typed action payload with objective, why-now rationale, discovery question, evidence bundle, proposed steps, measurable outcomes, and promotion guardrails.
 - Each opportunity now also includes contributor packets for issue-ready, benchmark-ready, dataset-ready, rule, trial, case-brief, or tooling follow-through depending on type.
+- Benchmark and dataset packets now also include collaborator bundle specs with template paths, starter commands, validation commands, and generated bundle artifacts under `artifacts/research-intel/collaborator-bundles/`.
 - When available, the action payload also includes the latest experiment result with ratchet outcome, score deltas, dimension-level scoring, and artifact paths.
 
 Query params:

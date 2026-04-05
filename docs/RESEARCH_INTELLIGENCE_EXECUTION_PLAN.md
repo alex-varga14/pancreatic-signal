@@ -216,6 +216,8 @@ Current progress:
 - strict validation now checks the schedule snapshot alongside ingest, digest, and experiment flows
 - the watchtower now also has a single audited automation tick entrypoint through API, CLI, Make, and a cache-backed hosted workflow
 - digest creation is policy-gated during watchtower ticks so recurring automation can skip synthetic digest churn when no new documents were added
+- digest history now also includes longer-horizon calibration snapshots with recurring-theme analysis and backlog persistence
+- contributor packets now also emit collaborator bundle manifests plus READMEs so benchmark and dataset work can start from repo artifacts directly
 
 ### Governance And Source Policy
 
@@ -251,6 +253,5 @@ Before a phase is considered complete, confirm:
 The branch wrap-up slice is now in place. The highest-value next work after this checkpoint is:
 
 - deepen graph breadth and cross-document entity resolution against a larger live corpus
-- extend council history from short digest windows into longer-horizon calibration and recurring-theme analysis
-- bring in larger collaborator-supplied benchmark or dataset drops that exercise the new contributor packets
+- bring in larger collaborator-supplied benchmark or dataset drops that exercise the new collaborator bundles
 - continue expanding live curated connector quality and trust coverage beyond the current official literature and trial baseline

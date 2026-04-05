@@ -130,6 +130,7 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     digests = response.json()
     assert len(digests) == 1
     digest_id = digests[0]["digest_id"]
+    assert digests[0]["calibration_status"] in {"emerging", "stable", "mixed", "volatile"}
 
     response = client.get(f"/api/v1/research-intel/digests/{digest_id}")
     assert response.status_code == 200
@@ -149,6 +150,8 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert digest["council"]["stage_3"]["recommended_actions"]
     assert "Open questions:" in digest["summary_markdown"]
     assert "Promotion guardrails:" in digest["summary_markdown"]
+    assert digest["history"]["calibration"]["lookback_digest_count"] >= 1
+    assert digest["history"]["calibration"]["status"] in {"emerging", "stable", "mixed", "volatile"}
 
     response = client.get("/api/v1/research-intel/opportunities")
     assert response.status_code == 200
@@ -166,6 +169,7 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert first_opportunity["action_payload"]["measurable_outcomes"]
     assert first_opportunity["action_payload"]["promotion_guardrails"]
     assert first_opportunity["action_payload"]["contributor_packets"]
+    assert any(packet.get("bundle") for packet in first_opportunity["action_payload"]["contributor_packets"])
 
     opportunity_artifact_path = next(
         path
@@ -178,6 +182,15 @@ def test_research_intel_ingest_digest_and_promotion_routes() -> None:
     assert "## Evidence bundle" in opportunity_artifact_text
     assert "## Suggested downstream artifact" in opportunity_artifact_text
     assert "## Contributor packets" in opportunity_artifact_text
+    assert any(path.startswith("artifacts/research-intel/collaborator-bundles/") for path in digest_run["artifact_paths"])
+    collaborator_bundle_path = next(
+        path
+        for path in digest_run["artifact_paths"]
+        if path.startswith("artifacts/research-intel/collaborator-bundles/") and path.endswith("bundle.json")
+    )
+    collaborator_bundle_text = _artifact_text(collaborator_bundle_path)
+    assert "\"bundle_kind\"" in collaborator_bundle_text
+    assert "\"template_paths\"" in collaborator_bundle_text
 
     supported_opportunity = next(
         item for item in opportunities if item["opportunity_type"] in {"benchmark_gap", "rule_gap"}
@@ -307,12 +320,17 @@ def test_research_intel_digest_history_tracks_recurring_questions_across_runs() 
     previous = digests[1]
     assert latest["trend"]["previous_digest_id"] == previous["digest_id"]
     assert latest["trend"]["confidence_trend"] in {"holding", "raising", "lowering"}
+    assert latest["calibration_status"] in {"emerging", "stable", "mixed", "volatile"}
 
     detail = client.get(f"/api/v1/research-intel/digests/{latest['digest_id']}").json()
     assert detail["history"]["recent_digests"]
     assert len(detail["history"]["recent_digests"]) >= 2
     assert detail["history"]["recurring_open_questions"]
     assert "## Across runs" in detail["summary_markdown"]
+    assert "## Calibration" in detail["summary_markdown"]
+    assert detail["history"]["calibration"]["lookback_digest_count"] >= 2
+    assert detail["history"]["calibration"]["dominant_topic_labels"]
+    assert detail["history"]["calibration"]["notes"]
 
 
 def test_research_intel_documents_support_filters_and_viewer_cannot_trigger_runs() -> None:

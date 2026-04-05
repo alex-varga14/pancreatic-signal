@@ -105,14 +105,15 @@ Implemented outcomes:
 - governance for paid-source access and donation-funded operations is now documented without introducing autonomous spending
 - the live watchtower now covers `8` live-ready sources, including official NCI and FDA feeds plus GitHub-backed open-source discovery with pancreas-aware filtering
 - the watchtower can now run as one audited automation tick through API, CLI, Make, and a hosted GitHub Actions workflow with digest gating
+- digests now also include longer-horizon calibration snapshots, and benchmark or dataset packets now emit collaborator bundle artifacts
 
 Next slices:
 
-1. deepen council history from short digest windows into longer-horizon calibration and recurring-theme analysis
-2. exercise the contributor-packet workflow against larger collaborator benchmark and dataset drops
-3. deepen graph and topic quality against a larger live corpus
-4. keep governance and procurement notes current before any paid-source expansion is activated
-5. continue broadening trusted live connector coverage where the watchtower still leans on fixtures
+1. exercise the new collaborator bundles against larger collaborator benchmark and dataset drops
+2. deepen graph and topic quality against a larger live corpus
+3. keep governance and procurement notes current before any paid-source expansion is activated
+4. continue broadening trusted live connector coverage where the watchtower still leans on fixtures
+5. deepen proof and cross-pack comparison once larger external bundles start landing
 
 ## What is not a current phase target
 

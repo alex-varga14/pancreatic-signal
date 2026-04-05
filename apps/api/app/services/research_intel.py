@@ -27,7 +27,9 @@ from app.schemas.research_intel import (
     ResearchCaseBrief,
     ResearchCaseBriefDocument,
     ResearchCaseBriefTopic,
+    ResearchContributorBundleSpec,
     ResearchContributorPacket,
+    ResearchDigestCalibrationSnapshot,
     ResearchOpportunityActionPayload,
     ResearchOpportunityArtifactSpec,
     ResearchOpportunityEvidence,
@@ -1122,7 +1124,7 @@ def run_research_digest(
             return _build_run_detail(run, [])
 
         previous_digests = session.execute(
-            select(ResearchDigestRecord).order_by(ResearchDigestRecord.generated_at.desc()).limit(5)
+            select(ResearchDigestRecord).order_by(ResearchDigestRecord.generated_at.desc()).limit(8)
         ).scalars().all()
         digest_payload = _build_digest_payload(
             documents=documents,
@@ -1391,6 +1393,8 @@ def list_research_digests() -> list[ResearchDigestListItem]:
                     disagreement_score=row.disagreement_score,
                     citation_count=row.citation_count,
                     trend=history.trend,
+                    calibration_status=history.calibration.status,
+                    calibration_theme_labels=[item.text for item in history.calibration.recurring_themes[:3]],
                 )
             )
         return items
@@ -1432,6 +1436,8 @@ def get_research_digest(digest_id: str) -> ResearchDigestDetail | None:
             topic_labels=[topic_label_map[item] for item in digest.topic_ids or [] if item in topic_label_map],
             disagreement_score=digest.disagreement_score,
             citation_count=digest.citation_count,
+            calibration_status=history.calibration.status,
+            calibration_theme_labels=[item.text for item in history.calibration.recurring_themes[:3]],
             window_start=digest.window_start,
             window_end=digest.window_end,
             summary_markdown=digest.summary_markdown,
@@ -3108,6 +3114,153 @@ def _build_recurring_digest_items(
     return recurring[:5]
 
 
+def _build_recurring_items_from_history_rows(
+    *,
+    history_rows: list[tuple[str, datetime, list[str]]],
+    min_occurrence: int = 2,
+    limit: int = 5,
+) -> list[ResearchDigestRecurringItem]:
+    counts: dict[str, int] = {}
+    digest_ids: dict[str, list[str]] = defaultdict(list)
+    last_seen_at: dict[str, datetime] = {}
+
+    for digest_id, generated_at, items in history_rows:
+        for item in _unique_preserve_order(items):
+            counts[item] = counts.get(item, 0) + 1
+            digest_ids.setdefault(item, []).append(digest_id)
+            last_seen_at[item] = generated_at
+
+    recurring = [
+        ResearchDigestRecurringItem(
+            text=item,
+            occurrence_count=count,
+            digest_ids=digest_ids.get(item, []),
+            last_seen_at=last_seen_at.get(item),
+        )
+        for item, count in counts.items()
+        if count >= min_occurrence
+    ]
+    recurring.sort(key=lambda item: (-item.occurrence_count, item.text))
+    return recurring[:limit]
+
+
+def _build_digest_calibration_snapshot(
+    *,
+    recent_digests: list[ResearchDigestHistoryItem],
+    topic_history_rows: list[tuple[str, datetime, list[str]]],
+    question_history_rows: list[tuple[str, datetime, list[str]]],
+    disagreement_history_rows: list[tuple[str, datetime, list[str]]],
+) -> ResearchDigestCalibrationSnapshot:
+    if not recent_digests:
+        return ResearchDigestCalibrationSnapshot()
+
+    digests_considered = len(recent_digests)
+    confidence_distribution = Counter(item.overall_confidence for item in recent_digests)
+    disagreement_values = [item.disagreement_score for item in recent_digests]
+    citation_values = [item.citation_count for item in recent_digests]
+    average_disagreement_score = round(sum(disagreement_values) / digests_considered, 4)
+    average_citation_count = round(sum(citation_values) / digests_considered, 2)
+    confidence_consistency_score = round(
+        max(confidence_distribution.values()) / digests_considered,
+        4,
+    )
+    disagreement_volatility_score = round(
+        max(disagreement_values) - min(disagreement_values),
+        4,
+    )
+
+    theme_counter = Counter(
+        item
+        for _digest_id, _generated_at, labels in topic_history_rows
+        for item in _unique_preserve_order(labels)
+    )
+    dominant_topic_labels = [
+        label
+        for label, _count in theme_counter.most_common(5)
+    ]
+    recurring_themes = _build_recurring_items_from_history_rows(
+        history_rows=topic_history_rows,
+        min_occurrence=2,
+        limit=5,
+    )
+    long_horizon_open_questions = _build_recurring_items_from_history_rows(
+        history_rows=question_history_rows,
+        min_occurrence=2,
+        limit=5,
+    )
+    long_horizon_disagreement_points = _build_recurring_items_from_history_rows(
+        history_rows=disagreement_history_rows,
+        min_occurrence=2,
+        limit=5,
+    )
+
+    normalized_generated_at = [
+        _coerce_utc(item.generated_at) or _utcnow()
+        for item in recent_digests
+    ]
+    earliest_generated_at = min(normalized_generated_at)
+    latest_generated_at = max(normalized_generated_at)
+    lookback_window_days = max(
+        1,
+        int((latest_generated_at - earliest_generated_at).total_seconds() / 86400) + 1,
+    )
+
+    if digests_considered < 3:
+        status = "emerging"
+    elif (
+        confidence_consistency_score >= 0.7
+        and disagreement_volatility_score <= 0.2
+        and len(recurring_themes) >= 2
+    ):
+        status = "stable"
+    elif disagreement_volatility_score >= 0.4 or len(long_horizon_disagreement_points) >= 3:
+        status = "volatile"
+    else:
+        status = "mixed"
+
+    dominant_confidence = (
+        max(confidence_distribution.items(), key=lambda item: (item[1], item[0]))[0]
+        if confidence_distribution
+        else "medium"
+    )
+    notes = [
+        (
+            f"{dominant_confidence.capitalize()} confidence dominated {max(confidence_distribution.values())} "
+            f"of the last {digests_considered} digest(s)."
+        ),
+        (
+            f"Persistent themes include {', '.join(item.text for item in recurring_themes[:3])}."
+            if recurring_themes
+            else "No recurring themes have persisted long enough to form a stable pattern yet."
+        ),
+        (
+            f"Long-horizon open-question backlog: {len(long_horizon_open_questions)} recurring item(s)."
+        ),
+    ]
+    if disagreement_volatility_score >= 0.25:
+        notes.append(
+            f"Disagreement moved by {disagreement_volatility_score:.2f} across the lookback window, so promotion confidence should stay conservative."
+        )
+    else:
+        notes.append("Disagreement stayed relatively bounded across the current lookback window.")
+
+    return ResearchDigestCalibrationSnapshot(
+        lookback_digest_count=digests_considered,
+        lookback_window_days=lookback_window_days,
+        confidence_distribution=dict(confidence_distribution),
+        average_disagreement_score=average_disagreement_score,
+        average_citation_count=average_citation_count,
+        confidence_consistency_score=confidence_consistency_score,
+        disagreement_volatility_score=disagreement_volatility_score,
+        status=status,
+        dominant_topic_labels=dominant_topic_labels,
+        recurring_themes=recurring_themes,
+        long_horizon_open_questions=long_horizon_open_questions,
+        long_horizon_disagreement_points=long_horizon_disagreement_points,
+        notes=notes,
+    )
+
+
 def _build_digest_history_snapshot(
     *,
     digest_id: str,
@@ -3160,8 +3313,19 @@ def _build_digest_history_snapshot(
     ]
     recent_digests.extend(
         _digest_history_item_from_record(row, topic_label_map=topic_label_map)
-        for row in previous_digests[:4]
+        for row in previous_digests[:7]
     )
+    topic_history_rows = [
+        (digest_id, generated_at, list(topic_labels)),
+        *[
+            (
+                row.digest_id,
+                row.generated_at,
+                [topic_label_map[item] for item in row.topic_ids or [] if item in topic_label_map],
+            )
+            for row in previous_digests[:7]
+        ],
+    ]
     question_history_rows = [
         (digest_id, generated_at, list(council.stage_3.open_questions)),
         *[
@@ -3172,7 +3336,7 @@ def _build_digest_history_snapshot(
                     ResearchCouncilPayload.model_validate(_normalize_council_payload(row.council_payload)).stage_3.open_questions
                 ),
             )
-            for row in previous_digests[:4]
+            for row in previous_digests[:7]
         ],
     ]
     disagreement_history_rows = [
@@ -3185,7 +3349,7 @@ def _build_digest_history_snapshot(
                     ResearchCouncilPayload.model_validate(_normalize_council_payload(row.council_payload)).stage_3.disagreement_points
                 ),
             )
-            for row in previous_digests[:4]
+            for row in previous_digests[:7]
         ],
     ]
     resolved_open_questions = (
@@ -3219,6 +3383,12 @@ def _build_digest_history_snapshot(
         ),
         resolved_open_questions=resolved_open_questions,
         resolved_disagreement_points=resolved_disagreement_points,
+        calibration=_build_digest_calibration_snapshot(
+            recent_digests=recent_digests,
+            topic_history_rows=topic_history_rows,
+            question_history_rows=question_history_rows,
+            disagreement_history_rows=disagreement_history_rows,
+        ),
     )
 
 
@@ -3263,6 +3433,7 @@ def _normalize_digest_history(payload: Any) -> ResearchDigestHistorySnapshot:
     value.setdefault("recurring_disagreement_points", [])
     value.setdefault("resolved_open_questions", [])
     value.setdefault("resolved_disagreement_points", [])
+    value.setdefault("calibration", {})
     return ResearchDigestHistorySnapshot.model_validate(value)
 
 
@@ -3306,6 +3477,24 @@ def _render_digest_markdown(
             lines.append(f"- recurring open question ({item.occurrence_count}x): {item.text}")
         for item in history.recurring_disagreement_points[:2]:
             lines.append(f"- recurring disagreement ({item.occurrence_count}x): {item.text}")
+    if history.calibration.lookback_digest_count:
+        lines.extend(["", "## Calibration"])
+        lines.append(f"- status: {history.calibration.status}")
+        lines.append(
+            f"- lookback: {history.calibration.lookback_digest_count} digest(s) across {history.calibration.lookback_window_days} day(s)"
+        )
+        if history.calibration.average_disagreement_score is not None:
+            lines.append(
+                f"- average disagreement: {history.calibration.average_disagreement_score:.2f}"
+            )
+        if history.calibration.average_citation_count is not None:
+            lines.append(
+                f"- average citations: {history.calibration.average_citation_count:.1f}"
+            )
+        for item in history.calibration.recurring_themes[:3]:
+            lines.append(f"- recurring theme ({item.occurrence_count}x): {item.text}")
+        for note in history.calibration.notes[:3]:
+            lines.append(f"- note: {note}")
     lines.extend(["", "## Supporting documents"])
     for document in documents:
         lines.append(f"- {document.title} ({document.citation_key})")
@@ -3681,6 +3870,135 @@ def _contributor_repo_targets(opportunity_type: str) -> list[str]:
     ]
 
 
+def _contributor_bundle_spec(
+    *,
+    opportunity_id: str,
+    packet_kind: str,
+    topic: ResearchTopicRecord,
+) -> ResearchContributorBundleSpec:
+    slug = f"{opportunity_id}-{packet_kind}"
+    bundle_root = f"artifacts/research-intel/collaborator-bundles/{slug}"
+    manifest_path = f"{bundle_root}/bundle.json"
+    readme_path = f"{bundle_root}/README.md"
+
+    bundle_kind = "issue_handoff_bundle"
+    template_paths: list[str] = []
+    starter_command: str | None = None
+    validation_command: str | None = None
+    intake_fields: list[str] = []
+
+    if packet_kind == "benchmark_packet":
+        bundle_kind = "benchmark_submission_bundle"
+        template_paths = [
+            "docs/examples/benchmark-label-template.jsonl",
+            "docs/examples/benchmark-prediction-template.jsonl",
+            "docs/examples/benchmark-manifest-template.json",
+            "docs/examples/benchmark-submission-template.json",
+        ]
+        starter_command = (
+            "make benchmark-external LABELS=<labels.jsonl> PREDICTIONS=<predictions.jsonl> "
+            "MANIFEST=<manifest.json> OUT_DIR=artifacts/benchmarks BASENAME="
+            f"{topic.topic_id}-external-benchmark"
+        )
+        validation_command = (
+            "make validate-benchmark-submission SUBMISSION="
+            f"artifacts/benchmarks/{topic.topic_id}-external-benchmark-submission.json"
+        )
+        intake_fields = [
+            "Deidentified label JSONL with benchmark buckets or reviewer-focus fields when available.",
+            "Prediction JSONL with comparable scores and optional rationale codes.",
+            "Benchmark manifest JSON with dataset framing, cohort notes, and threshold defaults.",
+        ]
+    elif packet_kind == "dataset_packet":
+        bundle_kind = "dataset_submission_bundle"
+        template_paths = [
+            "docs/LABELING_GUIDE.md",
+            "docs/BENCHMARK_SUBMISSIONS.md",
+            "docs/examples/benchmark-label-template.jsonl",
+            "docs/examples/benchmark-manifest-template.json",
+            "docs/examples/published-external-benchmarks.json",
+        ]
+        starter_command = (
+            "make benchmark-external LABELS=<labels.jsonl> PREDICTIONS=<predictions.jsonl> "
+            "MANIFEST=<manifest.json> OUT_DIR=artifacts/benchmarks BASENAME="
+            f"{topic.topic_id}-dataset-pack"
+        )
+        validation_command = (
+            "make validate-benchmark-submission SUBMISSION="
+            f"artifacts/benchmarks/{topic.topic_id}-dataset-pack-submission.json"
+        )
+        intake_fields = [
+            "Deidentified dataset framing note or README.",
+            "Label JSONL or manifest slice with cohort and labeling-policy context.",
+            "Evidence provenance summary tying the dataset back to cited research pressure.",
+        ]
+    elif packet_kind == "rule_packet":
+        bundle_kind = "rule_handoff_bundle"
+        template_paths = [
+            "apps/api/app/services/research_intel.py",
+            "apps/api/tests/test_research_intel.py",
+        ]
+        validation_command = "make validate-strict"
+        intake_fields = [
+            "Plain-language description of the missing rule behavior.",
+            "Expected rationale codes or confounder protections.",
+        ]
+    elif packet_kind == "trial_packet":
+        bundle_kind = "trial_handoff_bundle"
+        template_paths = [
+            "data/trials/pdac_trial_rules.json",
+            "apps/api/app/services/trial_matching.py",
+        ]
+        validation_command = "make validate-strict"
+        intake_fields = [
+            "Eligibility or pathway gap statement.",
+            "Cited trial identifiers or follow-up rationale.",
+        ]
+    elif packet_kind == "case_brief_packet":
+        bundle_kind = "case_brief_handoff_bundle"
+        template_paths = [
+            "apps/api/app/services/research_intel.py",
+            "apps/web/app/cases/[caseId]/page.tsx",
+        ]
+        validation_command = "make validate-strict"
+        intake_fields = [
+            "Mapped rationale codes or trial abstractions.",
+            "Cited documents and open questions that should remain additive only.",
+        ]
+    elif packet_kind == "tooling_packet":
+        bundle_kind = "tooling_handoff_bundle"
+        template_paths = [
+            "apps/api/app/services/research_intel.py",
+            "apps/web/app/research-intel/opportunities/page.tsx",
+        ]
+        validation_command = "make validate-strict"
+        intake_fields = [
+            "Operator pain point or workflow bottleneck.",
+            "Validation hook showing how the tooling change helped.",
+        ]
+    else:
+        template_paths = [
+            "docs/RESEARCH_INTELLIGENCE.md",
+            "docs/RESEARCH_INTELLIGENCE_EXECUTION_PLAN.md",
+        ]
+        validation_command = "make validate-strict"
+        intake_fields = [
+            "Cited evidence summary.",
+            "Acceptance gates and first measurable outcome.",
+        ]
+
+    return ResearchContributorBundleSpec(
+        bundle_kind=bundle_kind,
+        slug=slug,
+        manifest_path=manifest_path,
+        readme_path=readme_path,
+        template_paths=template_paths,
+        starter_command=starter_command,
+        validation_command=validation_command,
+        intake_fields=intake_fields,
+    )
+
+
 def _build_contributor_packets(
     *,
     opportunity_id: str,
@@ -3915,6 +4233,26 @@ def _build_contributor_packets(
             packet.handoff_notes = list(packet.handoff_notes) + [
                 f"Evidence gaps to protect during implementation: {', '.join(action_payload_context['evidence_gaps'][:2])}.",
             ]
+    for packet in packets:
+        packet.handoff_notes = list(packet.handoff_notes) + [
+            f"Calibration status across the digest window is {digest_history.calibration.status}.",
+        ]
+        if digest_history.calibration.recurring_themes:
+            packet.handoff_notes = list(packet.handoff_notes) + [
+                "Recurring themes across the longer lookback include "
+                + ", ".join(item.text for item in digest_history.calibration.recurring_themes[:2])
+                + ".",
+            ]
+        bundle = _contributor_bundle_spec(
+            opportunity_id=opportunity_id,
+            packet_kind=packet.packet_kind,
+            topic=topic,
+        )
+        packet.bundle = bundle
+        packet.output_artifacts = _unique_preserve_order(
+            list(packet.output_artifacts)
+            + [item for item in [bundle.readme_path, bundle.manifest_path] if item]
+        )
     return packets
 
 
@@ -4799,6 +5137,76 @@ def _write_contributor_packet_artifacts(
                 str(markdown_path.relative_to(_repo_root())),
             ]
         )
+        if packet.bundle:
+            bundle_manifest_path = _repo_root() / packet.bundle.manifest_path if packet.bundle.manifest_path else None
+            bundle_readme_path = _repo_root() / packet.bundle.readme_path if packet.bundle.readme_path else None
+            if bundle_manifest_path is not None and bundle_readme_path is not None:
+                bundle_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+                bundle_payload = {
+                    "bundle_kind": packet.bundle.bundle_kind,
+                    "slug": packet.bundle.slug,
+                    "opportunity_id": row.opportunity_id,
+                    "packet_kind": packet.packet_kind,
+                    "title": packet.title,
+                    "summary": packet.summary,
+                    "digest_id": action_payload.digest_id,
+                    "template_paths": packet.bundle.template_paths,
+                    "starter_command": packet.bundle.starter_command,
+                    "validation_command": packet.bundle.validation_command,
+                    "intake_fields": packet.bundle.intake_fields,
+                    "repo_targets": packet.repo_targets,
+                    "checklist": packet.checklist,
+                    "validation_steps": packet.validation_steps,
+                    "handoff_notes": packet.handoff_notes,
+                    "evidence_bundle": [
+                        {
+                            "citation_key": item.citation_key,
+                            "title": item.title,
+                            "why_it_matters": item.why_it_matters,
+                        }
+                        for item in action_payload.evidence_bundle[:4]
+                    ],
+                    "acceptance_gates": action_payload.acceptance_gates,
+                    "open_questions": action_payload.open_questions,
+                    "evidence_gaps": action_payload.evidence_gaps,
+                }
+                bundle_manifest_path.write_text(json.dumps(bundle_payload, indent=2) + "\n", encoding="utf-8")
+                bundle_lines = [
+                    f"# {packet.title} collaborator bundle",
+                    "",
+                    f"- bundle kind: `{packet.bundle.bundle_kind}`",
+                    f"- opportunity id: `{row.opportunity_id}`",
+                    f"- packet kind: `{packet.packet_kind}`",
+                    "",
+                    packet.summary,
+                ]
+                if packet.bundle.intake_fields:
+                    bundle_lines.extend(["", "## Intake fields"])
+                    for item in packet.bundle.intake_fields:
+                        bundle_lines.append(f"- {item}")
+                if packet.bundle.template_paths:
+                    bundle_lines.extend(["", "## Templates"])
+                    for item in packet.bundle.template_paths:
+                        bundle_lines.append(f"- {item}")
+                if packet.bundle.starter_command:
+                    bundle_lines.extend(["", "## Starter command", f"`{packet.bundle.starter_command}`"])
+                if packet.bundle.validation_command:
+                    bundle_lines.extend(["", "## Validation command", f"`{packet.bundle.validation_command}`"])
+                if action_payload.evidence_bundle:
+                    bundle_lines.extend(["", "## Evidence bundle"])
+                    for item in action_payload.evidence_bundle[:3]:
+                        bundle_lines.append(f"- {item.citation_key}: {item.why_it_matters}")
+                if packet.checklist:
+                    bundle_lines.extend(["", "## Checklist"])
+                    for item in packet.checklist:
+                        bundle_lines.append(f"- {item}")
+                bundle_readme_path.write_text("\n".join(bundle_lines) + "\n", encoding="utf-8")
+                artifact_paths.extend(
+                    [
+                        str(bundle_manifest_path.relative_to(_repo_root())),
+                        str(bundle_readme_path.relative_to(_repo_root())),
+                    ]
+                )
     return artifact_paths
 
 

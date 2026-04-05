@@ -43,6 +43,15 @@ ResearchContributorPacketKind = Literal[
     "case_brief_packet",
     "tooling_packet",
 ]
+ResearchContributorBundleKind = Literal[
+    "benchmark_submission_bundle",
+    "dataset_submission_bundle",
+    "issue_handoff_bundle",
+    "rule_handoff_bundle",
+    "trial_handoff_bundle",
+    "case_brief_handoff_bundle",
+    "tooling_handoff_bundle",
+]
 
 
 class ResearchSource(BaseModel):
@@ -341,6 +350,22 @@ class ResearchDigestHistoryItem(BaseModel):
     topic_labels: list[str] = Field(default_factory=list)
 
 
+class ResearchDigestCalibrationSnapshot(BaseModel):
+    lookback_digest_count: int = 0
+    lookback_window_days: int = 90
+    confidence_distribution: dict[str, int] = Field(default_factory=dict)
+    average_disagreement_score: float | None = None
+    average_citation_count: float | None = None
+    confidence_consistency_score: float | None = None
+    disagreement_volatility_score: float | None = None
+    status: str = "emerging"
+    dominant_topic_labels: list[str] = Field(default_factory=list)
+    recurring_themes: list[ResearchDigestRecurringItem] = Field(default_factory=list)
+    long_horizon_open_questions: list[ResearchDigestRecurringItem] = Field(default_factory=list)
+    long_horizon_disagreement_points: list[ResearchDigestRecurringItem] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
 class ResearchDigestHistorySnapshot(BaseModel):
     trend: ResearchDigestTrend = Field(default_factory=ResearchDigestTrend)
     recent_digests: list[ResearchDigestHistoryItem] = Field(default_factory=list)
@@ -348,6 +373,7 @@ class ResearchDigestHistorySnapshot(BaseModel):
     recurring_disagreement_points: list[ResearchDigestRecurringItem] = Field(default_factory=list)
     resolved_open_questions: list[str] = Field(default_factory=list)
     resolved_disagreement_points: list[str] = Field(default_factory=list)
+    calibration: ResearchDigestCalibrationSnapshot = Field(default_factory=ResearchDigestCalibrationSnapshot)
 
 
 class ResearchDigestListItem(BaseModel):
@@ -361,6 +387,8 @@ class ResearchDigestListItem(BaseModel):
     disagreement_score: float
     citation_count: int
     trend: ResearchDigestTrend = Field(default_factory=ResearchDigestTrend)
+    calibration_status: str = "emerging"
+    calibration_theme_labels: list[str] = Field(default_factory=list)
 
 
 class ResearchDigestDetail(ResearchDigestListItem):
@@ -401,6 +429,18 @@ class ResearchContributorPacket(BaseModel):
     output_artifacts: list[str] = Field(default_factory=list)
     validation_steps: list[str] = Field(default_factory=list)
     handoff_notes: list[str] = Field(default_factory=list)
+    bundle: "ResearchContributorBundleSpec | None" = None
+
+
+class ResearchContributorBundleSpec(BaseModel):
+    bundle_kind: ResearchContributorBundleKind = "issue_handoff_bundle"
+    slug: str = ""
+    manifest_path: str | None = None
+    readme_path: str | None = None
+    template_paths: list[str] = Field(default_factory=list)
+    starter_command: str | None = None
+    validation_command: str | None = None
+    intake_fields: list[str] = Field(default_factory=list)
 
 
 class ResearchOpportunityExperimentResult(BaseModel):

@@ -74,6 +74,12 @@ export default async function ResearchDigestsPage() {
                 {" • "}disagreement {formatSignedNumber(digest.trend.disagreement_delta)}
                 {" • "}citations {formatSignedInteger(digest.trend.citation_delta)}
               </p>
+              <p style={{ margin: "0 0 12px", color: "#475569" }}>
+                Calibration: {digest.calibration_status}
+                {digest.calibration_theme_labels.length > 0
+                  ? ` • themes ${digest.calibration_theme_labels.join(", ")}`
+                  : ""}
+              </p>
               {digest.trend.new_topic_labels.length > 0 ? (
                 <p style={{ margin: "0 0 12px", color: "#475569" }}>
                   New topics: {digest.trend.new_topic_labels.join(", ")}
