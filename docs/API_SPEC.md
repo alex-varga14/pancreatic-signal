@@ -156,11 +156,15 @@ Response:
 ## Imports
 
 ### `POST /imports/reports`
-Upload CSV or JSONL metadata and create / update cases.
-
-Initial implementation may accept JSON only.
+Upload CSV, JSON, JSONL (or NDJSON) report payloads and create / update cases.
 
 Behavior:
+- Accepts a multipart upload whose extension or `Content-Type` is one of:
+  - `.csv` / `text/csv` / `application/csv`
+  - `.json` / `application/json` (either a top-level array of report records or an object with a `reports` array)
+  - `.jsonl` / `.ndjson` / `application/x-ndjson` / `application/jsonl` / `application/jsonlines`
+- Other extensions / content types are rejected with the `unsupported_payload` failure bucket.
+- Each record must satisfy the `ReportInput` schema (`report_id`, `case_id`, `report_datetime`, `modality`, `report_text`, optional `site` and `import_metadata`).
 - Flat `patient_identifier`, `encounter_identifier`, `accession_number`, `ordering_provider`, `source_system`, `source_format`, and `import_source_id` fields are normalized into `import_metadata`.
 - JSON and JSONL payloads may also supply these values as a nested `import_metadata` object.
 
@@ -599,5 +603,49 @@ Visibility:
 Behavior:
 - Suggests benchmark, rule, and trial-catalog follow-up ideas without mutating the case score or review state.
 
+## Autoresearch
+
+The `/autoresearch/*` namespace exposes the opt-in autoresearch lab subsystem
+(see [docs/AUTORESEARCH.md](AUTORESEARCH.md) for the design rationale). It is a
+sibling subsystem to triage / imports / cases: the agent loop only edits
+`data/ontologies/pancreatic_signal_rules.json` and writes append-only runs into
+`autoresearch/runs/`. None of these endpoints mutate live cases or reports.
+
+### `GET /autoresearch/runs`
+List autoresearch runs (most recent first).
+
+Query params:
+- `limit`
+- `offset`
+
+Response (per item): `run_id`, `created_at`, `status` (`kept` / `discarded` /
+`pending`), `primary_metric` (e.g. `f1_at_top_k`), `primary_value`, `delta_vs_baseline`,
+`agent` label, `notes` summary.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`.
+
+### `GET /autoresearch/runs/{run_id}`
+Return a run detail view including:
+- candidate ontology diff vs. baseline (`diff.json` contents)
+- evaluation snapshot (`eval.json`) with rules + hybrid + external metrics
+- decision metadata (`decision.json`): primary metric delta, guardrail outcomes,
+  determinism check, kept/discarded reason
+- promotion provenance when the run has been promoted
+
+### `GET /autoresearch/leaderboard`
+Return the top-N kept runs ranked by primary metric, with tiebreak metrics.
+
+### `POST /autoresearch/promote/{run_id}`
+Promote a kept candidate ontology into the live triage engine.
+
+Behavior:
+- Copies the candidate ontology into `data/ontologies/pancreatic_signal_rules.json`.
+- Writes provenance to `autoresearch/runs/{run_id}/promotion.json` and the audit log.
+- Bumps the in-memory ontology cache so subsequent triage requests pick up the new rules.
+
+Access:
+- Allowed roles: `admin` only.
+
 ## Future endpoints
-- `/settings/rules`
+- `/settings/rules` (planned reviewer-facing rule editor; not yet implemented)

@@ -58,7 +58,7 @@ def _build_abstraction(case: CaseDetail, *, modality: str) -> tuple[TrialAbstrac
     rationale_codes = set(case.rationale_codes)
     evidence_by_code: dict[str, list[str]] = {}
     for item in case.evidence:
-        evidence_by_code.setdefault(item["code"], []).append(item["text"])
+        evidence_by_code.setdefault(item.code, []).append(item.text)
 
     evidence_map: dict[str, list[str]] = {}
 

@@ -24,6 +24,13 @@ Pancreatic Signal is no longer a scaffold. As of 2026-04-03, this repository inc
 - pilot-ready Docker overlays for trusted-proxy auth and header-auth demos
 - live smoke coverage across success, failure, and cross-actor visibility paths
 
+Pancreatic Signal **v2** additionally ships:
+
+- sentence-bounded negation in the triage engine and persisted structured `FindingRecord` rows
+- an externalized `scoring` block in `data/ontologies/pancreatic_signal_rules.json` (new `OntologyConfig` schema)
+- Playwright e2e smoke for `/proof`, `/cases`, case detail review, and `/imports`, wired into CI
+- an **opt-in autoresearch lab subsystem** inspired by [karpathy/autoresearch](https://github.com/karpathy/autoresearch): an external coding agent edits one file (`data/ontologies/pancreatic_signal_rules.json`), a deterministic experiment driver scores it, an append-only run log keeps history, and humans explicitly promote winners. See [docs/AUTORESEARCH.md](docs/AUTORESEARCH.md). Triage, imports, and the worklist remain the primary product surfaces; autoresearch never writes to the live database.
+
 ## What A `1.0` Release Should Mean
 
 For this project, a credible `1.0` is:
@@ -75,10 +82,15 @@ It is not:
 │   ├── RELEASE_NOTES_TEMPLATE.md
 │   ├── SAFETY_AND_COMPLIANCE.md
 │   ├── OPEN_SOURCE_STRATEGY.md
+│   ├── AUTORESEARCH.md
 │   └── CODEX_HANDOFF.md
 ├── apps/
 │   ├── api/
 │   └── web/
+├── autoresearch/
+│   ├── program.md
+│   ├── baseline/
+│   └── runs/
 ├── data/
 │   ├── examples/
 │   └── ontologies/

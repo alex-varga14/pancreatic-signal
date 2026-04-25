@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes.auth import router as auth_router
+from app.api.routes.autoresearch import router as autoresearch_router
 from app.api.routes.health import router as health_router
 from app.api.routes.triage import router as triage_router
 from app.api.routes.cases import router as cases_router
@@ -20,3 +21,4 @@ api_router.include_router(exports_router, prefix="/exports", tags=["exports"])
 api_router.include_router(metrics_router, prefix="/metrics", tags=["metrics"])
 api_router.include_router(trials_router, prefix="/trials", tags=["trials"])
 api_router.include_router(research_intel_router, prefix="/research-intel", tags=["research-intel"])
+api_router.include_router(autoresearch_router, prefix="/autoresearch", tags=["autoresearch"])

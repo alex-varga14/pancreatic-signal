@@ -57,6 +57,32 @@ Do not tag a release that blurs those boundaries.
 - sample data remains synthetic or otherwise safe for publication
 - no secrets, PHI, or environment-specific credentials are present in tracked files
 
+## Autoresearch Readiness (v2+)
+
+The autoresearch lab subsystem is opt-in and must not block a release of the
+core product. Treat the following as additional gates only when the release
+notes explicitly call autoresearch out as part of the release:
+
+- [`autoresearch/program.md`](../autoresearch/program.md) reflects the intended
+  primary metric, recall floors, and edit-surface limits for the release
+- [`autoresearch/baseline/pancreatic_signal_rules.json`](../autoresearch/baseline/pancreatic_signal_rules.json)
+  matches the live ontology that ships with the release (or is updated and
+  the change is documented in the release notes)
+- `make autoresearch-once CANDIDATE=data/ontologies/pancreatic_signal_rules.json`
+  succeeds against the released ontology with `decision = "kept"` or
+  `discarded_no_improvement` (a `discarded_guardrail` outcome blocks the
+  release)
+- the `/api/v1/autoresearch/*` routes return `200` and the `/autoresearch`
+  web surface renders the run history and leaderboard in the release
+  environment
+- promotion remains gated by the `admin` role in the release auth posture and
+  is documented as such in [`docs/SAFETY_AND_COMPLIANCE.md`](./SAFETY_AND_COMPLIANCE.md)
+- `make autoresearch-rollback` is verified to restore the live ontology from
+  the frozen baseline before tagging
+- any kept run that has been promoted into the live ontology is referenced in
+  the release notes by `run_id`, with a link to the corresponding
+  `autoresearch/runs/<id>/` artifacts
+
 ## Release Notes Checklist
 
 Include:

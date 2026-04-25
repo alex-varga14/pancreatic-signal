@@ -115,6 +115,26 @@ Next slices:
 4. continue broadening trusted live connector coverage where the watchtower still leans on fixtures
 5. deepen proof and cross-pack comparison once larger external bundles start landing
 
+### Phase 7 — Audit fixes and autoresearch lab subsystem (v2.0)
+
+Completed outcomes:
+
+- sentence-bounded negation in the triage engine (no more 60-char regex windows leaking across sentences)
+- structured `FindingRecord` rows persisted by the triage engine, not just flattened evidence
+- additive scoring externalized into a `scoring` block in `data/ontologies/pancreatic_signal_rules.json` (new `OntologyConfig` schema, `extra="forbid"`)
+- store implementation moved to `apps/api/app/store/case_store.py` with a thin re-export shim at `memory_store.py`
+- `docs/API_SPEC.md` updated to reflect CSV/JSON/JSONL imports and label `/settings/rules` as future
+- Playwright e2e smoke under `apps/web/tests/e2e/` for `/proof`, `/cases`, case detail review, and `/imports`, wired into `make web-e2e` and CI
+- opt-in autoresearch lab subsystem inspired by [karpathy/autoresearch](https://github.com/karpathy/autoresearch):
+  - `autoresearch/program.md` (research org instructions)
+  - frozen `autoresearch/baseline/pancreatic_signal_rules.json`
+  - `scripts/run_autoresearch_experiment.py` (single-experiment driver: schema validation, demo eval, external snapshot lookup, determinism check, guardrails)
+  - `scripts/run_autoresearch_loop.py` (orchestrator with pluggable agent CLI)
+  - append-only `autoresearch/runs/` log
+  - `make autoresearch-once / loop / promote / rollback`
+  - read-only API at `/api/v1/autoresearch/*` with admin-gated promotion
+  - `/autoresearch` web surface with run history, leaderboard, diff/eval viewer, and capability-gated promote action
+
 ## What is not a current phase target
 
 The repo is not currently prioritizing:
@@ -123,6 +143,8 @@ The repo is not currently prioritizing:
 - autonomous diagnosis or treatment logic
 - opaque model-only triage replacements
 - broad hospital production deployment claims
+- agent editing of Python source (deferred to v2.2; see `docs/AUTORESEARCH.md`)
+- hosted continuous autoresearch in CI (the loop is run by humans, locally or overnight on a workstation)
 
 ## Phase 6 exit view
 

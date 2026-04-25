@@ -6,6 +6,25 @@ from app.schemas.feedback import ReviewerFeedbackRecord
 from app.schemas.triage import ImportMetadata
 
 
+class Finding(BaseModel):
+    """Structured persisted finding row exposed on case detail responses.
+
+    The legacy evidence dict shape (text/section/start/end/code/sentence_index)
+    is preserved verbatim and is enriched with the rationale family ``label``
+    and the per-finding ``score_contribution`` resolved from the ontology
+    scoring profile.
+    """
+
+    text: str
+    section: str = "unknown"
+    start: int
+    end: int
+    code: str
+    label: str | None = None
+    sentence_index: int | None = None
+    score_contribution: float | None = None
+
+
 class ReviewActionInput(BaseModel):
     action: str
     reviewer: str | None = None
@@ -64,7 +83,7 @@ class CaseDetail(BaseModel):
     report_text: str
     import_metadata: ImportMetadata | None = None
     rationale_codes: list[str]
-    evidence: list[dict]
+    evidence: list[Finding]
     review_actions: list[ReviewAction]
     review_feedback: list[ReviewerFeedbackRecord]
 

@@ -12,6 +12,9 @@ node_modules/
 dist/
 coverage/
 artifacts/
+*.tsbuildinfo
+playwright-report/
+test-results/
 docs/CODEX_HANDOFF.md
 docs/DEPLOYMENT.md
 docs/NEXT_AGENT_PROMPT.md

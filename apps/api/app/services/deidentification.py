@@ -251,17 +251,17 @@ def deidentify_case_detail(case: CaseDetail) -> ResearchCaseDetail:
 
     evidence: list[ResearchEvidenceSpan] = []
     for item in case.evidence:
-        start = int(item["start"])
-        end = int(item["end"])
-        redacted_text = _slice_or_fallback(report_redaction.text, start, end, str(item["text"]))
+        start = int(item.start)
+        end = int(item.end)
+        redacted_text = _slice_or_fallback(report_redaction.text, start, end, str(item.text))
         evidence.append(
             ResearchEvidenceSpan(
                 text=redacted_text,
-                section=str(item.get("section") or "unknown"),
+                section=str(item.section or "unknown"),
                 start=start,
                 end=end,
-                code=str(item["code"]),
-                sentence_index=item.get("sentence_index"),
+                code=str(item.code),
+                sentence_index=item.sentence_index,
             )
         )
 

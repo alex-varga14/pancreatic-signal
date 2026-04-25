@@ -39,7 +39,13 @@ jobs:
         run: make api-install
 
       - name: Install web dependencies
-        run: npm ci --prefix apps/web
+        run: npm install --prefix apps/web
 
       - name: Run strict validation
         run: make validate-strict
+
+      - name: Install Playwright browsers
+        run: npx --prefix apps/web playwright install --with-deps chromium
+
+      - name: Run web e2e smoke tests
+        run: make web-e2e

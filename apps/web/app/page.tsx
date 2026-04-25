@@ -295,6 +295,17 @@ docker compose up --build`}
               </p>
               <p className={styles.routeMeta}>Best for interoperability review</p>
             </Link>
+            <Link href="/autoresearch" className={styles.card}>
+              <h3 className={styles.routeCardTitle}>
+                Autoresearch lab
+                <span className={styles.inlineCode}>/autoresearch</span>
+              </h3>
+              <p className={styles.cardText}>
+                Browse the append-only run log, inspect candidate ontology diffs and evaluation snapshots, and promote kept
+                candidates into the live triage rules.
+              </p>
+              <p className={styles.routeMeta}>Opt-in lab subsystem · admin gated promotion</p>
+            </Link>
           </div>
         </section>
 

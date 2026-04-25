@@ -69,6 +69,16 @@ def test_triage_report_extracts_section_aware_evidence() -> None:
     assert result.hybrid_analysis.review_priority == "expedite"
     assert len(result.hybrid_analysis.sentence_candidates) >= 1
 
+    detail = CASE_STORE.get_case("C-SECTION-1")
+    assert detail is not None
+    assert len(detail.evidence) == len(result.evidence)
+    assert {finding.code for finding in detail.evidence} == {item.code for item in result.evidence}
+    assert all(finding.label is not None for finding in detail.evidence)
+    assert all(
+        finding.score_contribution is not None and finding.score_contribution > 0
+        for finding in detail.evidence
+    )
+
 
 def test_triage_report_suppresses_negated_benign_mentions() -> None:
     CASE_STORE.reset()

@@ -838,5 +838,32 @@ format-api:
 lint-web:
 	cd apps/web && npm run lint
 
+web-e2e-install:
+	cd apps/web && npm install && npx playwright install --with-deps chromium
+
+web-e2e:
+	cd apps/web && npx playwright test
+
 package:
 	bash scripts/package_release.sh
+
+# Autoresearch (opt-in lab subsystem; see docs/AUTORESEARCH.md)
+autoresearch-once:
+	$(PYTHON) scripts/run_autoresearch_experiment.py \
+		--candidate "$(or $(CANDIDATE),data/ontologies/pancreatic_signal_rules.json)" \
+		$(if $(BASELINE),--baseline "$(BASELINE)",) \
+		$(if $(NOTES),--notes "$(NOTES)",) \
+		$(if $(filter 1 true TRUE yes YES,$(SKIP_DETERMINISM)),--skip-determinism,)
+
+autoresearch-loop:
+	$(PYTHON) scripts/run_autoresearch_loop.py \
+		--iterations "$(or $(ITERATIONS),1)" \
+		$(if $(AGENT_CMD),--agent-cmd "$(AGENT_CMD)",) \
+		$(if $(NOTES),--notes "$(NOTES)",)
+
+autoresearch-promote:
+	@test -n "$(RUN)" || (echo "Usage: make autoresearch-promote RUN=<run-id>" && exit 2)
+	$(PYTHON) scripts/run_autoresearch_loop.py --promote "$(RUN)"
+
+autoresearch-rollback:
+	$(PYTHON) scripts/run_autoresearch_loop.py --rollback

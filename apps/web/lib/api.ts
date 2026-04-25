@@ -1349,3 +1349,78 @@ export async function getResearchBrief(caseId: string): Promise<ResearchCaseBrie
   if (!res.ok) return null;
   return res.json();
 }
+
+export type AutoresearchRunSummary = {
+  run_id: string;
+  created_at: string | null;
+  status: string;
+  primary_metric: string;
+  primary_value: number | null;
+  baseline_value: number | null;
+  delta: number | null;
+  notes_summary: string | null;
+  has_proposal: boolean;
+  promoted_at: string | null;
+};
+
+export type AutoresearchRunDetail = {
+  run_id: string;
+  created_at: string | null;
+  status: string;
+  decision: Record<string, unknown>;
+  eval: Record<string, unknown> | null;
+  diff: Record<string, unknown> | null;
+  proposal: Record<string, unknown> | null;
+  proposal_meta: Record<string, unknown> | null;
+  notes_markdown: string | null;
+  promotion: Record<string, unknown> | null;
+};
+
+export type AutoresearchLeaderboard = {
+  primary_metric: string;
+  runs: AutoresearchRunSummary[];
+};
+
+export async function getAutoresearchRuns({
+  limit = 50,
+  offset = 0,
+}: { limit?: number; offset?: number } = {}): Promise<AutoresearchRunSummary[]> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  const res = await apiFetch(`/api/v1/autoresearch/runs?${params.toString()}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getAutoresearchRun(runId: string): Promise<AutoresearchRunDetail | null> {
+  const res = await apiFetch(`/api/v1/autoresearch/runs/${encodeURIComponent(runId)}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function getAutoresearchLeaderboard(topN = 10): Promise<AutoresearchLeaderboard> {
+  const params = new URLSearchParams({ top_n: String(topN) });
+  const res = await apiFetch(`/api/v1/autoresearch/leaderboard?${params.toString()}`);
+  if (!res.ok) {
+    return { primary_metric: "f1_at_top_k_demo_rules", runs: [] };
+  }
+  return res.json();
+}
+
+export async function promoteAutoresearchRun(runId: string): Promise<{ ok: boolean; detail?: string }> {
+  const res = await apiFetch(`/api/v1/autoresearch/promote/${encodeURIComponent(runId)}`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    let detail = `Failed to promote run ${runId} (${res.status})`;
+    try {
+      const body = (await res.json()) as { detail?: unknown };
+      if (typeof body?.detail === "string" && body.detail.trim()) {
+        detail = body.detail.trim();
+      }
+    } catch {
+      // swallow
+    }
+    return { ok: false, detail };
+  }
+  return { ok: true };
+}

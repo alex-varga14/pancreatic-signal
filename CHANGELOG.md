@@ -8,6 +8,22 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 
 ### Added
 
+- Pancreatic Signal v2 audit fixes:
+  - Sentence-bounded negation in [`apps/api/app/services/triage_engine.py`](apps/api/app/services/triage_engine.py) (replaces ad-hoc 60-char regex windows so negation cannot leak across sentences)
+  - Persisted structured `FindingRecord` rows from the triage engine in addition to the flattened evidence summary
+  - Externalized additive scoring into a `scoring` block in [`data/ontologies/pancreatic_signal_rules.json`](data/ontologies/pancreatic_signal_rules.json) backed by a new `OntologyConfig` schema (`extra="forbid"`)
+  - Store implementation moved to [`apps/api/app/store/case_store.py`](apps/api/app/store/case_store.py) with a thin re-export shim retained at `memory_store.py`
+  - [`docs/API_SPEC.md`](docs/API_SPEC.md) updated for CSV/JSON/JSONL imports and `/settings/rules` labelled future
+  - Playwright e2e smoke under [`apps/web/tests/e2e/`](apps/web/tests/e2e/) for `/proof`, `/cases`, case detail review, and `/imports`, wired into `make web-e2e` and CI
+- Pancreatic Signal v2 autoresearch lab subsystem inspired by [karpathy/autoresearch](https://github.com/karpathy/autoresearch):
+  - [`autoresearch/program.md`](autoresearch/program.md) — research org instructions, edit surface, guardrails, and proposal contract
+  - Frozen [`autoresearch/baseline/pancreatic_signal_rules.json`](autoresearch/baseline/pancreatic_signal_rules.json) used for diffing and rollback
+  - [`scripts/run_autoresearch_experiment.py`](scripts/run_autoresearch_experiment.py) — single-experiment driver: schema validation, demo eval (rules + hybrid), external sample snapshot lookup, determinism check, recall/threshold/regex-budget guardrails, structured `eval.json` and `decision.json` artifacts
+  - [`scripts/run_autoresearch_loop.py`](scripts/run_autoresearch_loop.py) — orchestrator with a pluggable agent CLI, append-only run log under [`autoresearch/runs/`](autoresearch/runs/), and human-gated `promote` and `rollback` actions
+  - `make autoresearch-once`, `make autoresearch-loop`, `make autoresearch-promote`, and `make autoresearch-rollback` targets
+  - Read-only API at `/api/v1/autoresearch/runs`, `/api/v1/autoresearch/runs/{id}`, and `/api/v1/autoresearch/leaderboard`, plus an admin-gated `POST /api/v1/autoresearch/promote/{id}` (see [`apps/api/app/api/routes/autoresearch.py`](apps/api/app/api/routes/autoresearch.py))
+  - [`/autoresearch`](apps/web/app/autoresearch/page.tsx) web surface with run history, leaderboard, diff/eval viewer, and capability-gated promote action
+  - [`docs/AUTORESEARCH.md`](docs/AUTORESEARCH.md) design notes and operating guide
 - Repo-level contributor, security, and community docs in [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - A release-facing runbook in [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md) plus a release notes scaffold in [docs/RELEASE_NOTES_TEMPLATE.md](docs/RELEASE_NOTES_TEMPLATE.md) so maintainers can move from validation to hosted smoke evidence capture without private context
 - A clearer public project narrative in [README.md](README.md) and [docs/OPEN_SOURCE_STRATEGY.md](docs/OPEN_SOURCE_STRATEGY.md)
