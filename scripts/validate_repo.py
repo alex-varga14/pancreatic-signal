@@ -54,6 +54,8 @@ def main() -> None:
         check_demo_eval_compare(),
         check_demo_eval_sweep(),
         check_published_external_benchmark_registry(),
+        check_research_intel_catalogs(),
+        check_research_intel_pipeline(),
         check_pytest(strict=args.strict),
         check_web_lint(strict=args.strict),
         check_web_build(strict=args.strict),
@@ -212,6 +214,99 @@ def check_published_external_benchmark_registry() -> CheckResult:
         (
             f"Validated {len(descriptors)} published external benchmark pack(s) from "
             f"{PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH.relative_to(ROOT)}."
+        ),
+    )
+
+
+def check_research_intel_catalogs() -> CheckResult:
+    process = run_command(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys, json; "
+                "from pathlib import Path; "
+                f"api_root = Path({str(API_ROOT)!r}); "
+                "sys.path.insert(0, str(api_root)); "
+                "from app.services.research_intel import validate_research_intel_catalogs; "
+                "print(json.dumps(validate_research_intel_catalogs()))"
+            ),
+        ]
+    )
+    if process.returncode != 0:
+        return CheckResult("research-intel-catalogs", FAIL, summarize_process(process))
+
+    payload = json.loads(process.stdout)
+    return CheckResult(
+        "research-intel-catalogs",
+        PASS,
+        (
+            f"Validated {payload['sources']} source(s), {payload['topics']} topic(s), "
+            f"{payload['graph_nodes']} graph node(s), {payload['documents']} seed document(s), "
+            f"{payload['fixtures']} discovery fixture(s), and {payload['live_ready_sources']} live-ready source(s)."
+        ),
+    )
+
+
+def check_research_intel_pipeline() -> CheckResult:
+    with tempfile.TemporaryDirectory(prefix="pancreatic-signal-research-intel-") as temp_dir:
+        db_path = Path(temp_dir) / "research-intel.db"
+        env = {"DATABASE_URL": f"sqlite:///{db_path}"}
+
+        watchtower = run_command(
+            [
+                sys.executable,
+                "scripts/run_research_intel_watchtower.py",
+                "--mode",
+                "fixture",
+                "--json",
+                "--no-artifacts",
+            ],
+            extra_env=env,
+        )
+        if watchtower.returncode != 0:
+            return CheckResult("research-intel-pipeline", FAIL, summarize_process(watchtower))
+
+        schedule = run_command(
+            [
+                sys.executable,
+                "scripts/run_research_intel_schedule.py",
+                "--json",
+            ],
+            extra_env=env,
+        )
+        if schedule.returncode != 0:
+            return CheckResult("research-intel-pipeline", FAIL, summarize_process(schedule))
+
+        experiment = run_command(
+            [
+                sys.executable,
+                "scripts/run_research_intel_experiment.py",
+                "--json",
+                "--no-artifacts",
+            ],
+            extra_env=env,
+        )
+        if experiment.returncode != 0:
+            return CheckResult("research-intel-pipeline", FAIL, summarize_process(experiment))
+
+    watchtower_payload = json.loads(watchtower.stdout)
+    schedule_payload = json.loads(schedule.stdout)
+    experiment_payload = json.loads(experiment.stdout)
+    watchtower_metadata = watchtower_payload.get("metadata", {})
+    schedule_before = watchtower_metadata.get("schedule_before", {})
+    digest_decision = watchtower_metadata.get("digest_decision", {})
+    digest_run = watchtower_metadata.get("digest_run")
+    return CheckResult(
+        "research-intel-pipeline",
+        PASS,
+        (
+            f"Watchtower processed {watchtower_payload['processed']} discovery document(s); "
+            f"pre-run schedule showed {schedule_before.get('scoped_due_count', schedule_before.get('due_count', 0))} due source(s); "
+            f"schedule shows {schedule_payload['due_count']} due source(s) out of {schedule_payload['total_sources']}; "
+            f"digest {'created ' + str(digest_run.get('created', 0)) + ' record(s)' if isinstance(digest_run, dict) else 'was skipped'} "
+            f"with decision {digest_decision.get('reason', 'unknown')}; "
+            f"experiment ratchet outcome {experiment_payload['metadata'].get('ratchet_outcome', 'unknown')}."
         ),
     )
 

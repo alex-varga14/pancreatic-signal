@@ -1,0 +1,88 @@
+{
+  "topics": [
+    {
+      "topic_id": "early_detection",
+      "label": "Early detection",
+      "description": "High-risk cohort screening, surveillance, and early PDAC detection strategy updates.",
+      "keywords": ["early detection", "screening", "surveillance", "high-risk cohort", "risk stratification"],
+      "entity_tags": ["screening", "surveillance", "risk"],
+      "claim_type": "screening_update",
+      "related_rationale_codes": ["FOLLOWUP_RECOMMENDED", "PDAC_EXPLICIT_SUSPICION"],
+      "related_trial_tags": ["PDAC-DIAG-001"],
+      "opportunity_types": ["benchmark_gap", "case_brief"],
+      "status": "active"
+    },
+    {
+      "topic_id": "cyst_surveillance",
+      "label": "Cyst surveillance",
+      "description": "Pancreatic cyst, IPMN, and surveillance workflow evidence that can shape review and benchmark policy.",
+      "keywords": ["cyst surveillance", "ipmn", "pancreatic cyst", "surveillance interval", "side-branch"],
+      "entity_tags": ["cyst", "ipmn", "follow_up"],
+      "claim_type": "surveillance_update",
+      "related_rationale_codes": ["FOLLOWUP_RECOMMENDED"],
+      "related_trial_tags": [],
+      "opportunity_types": ["benchmark_gap", "rule_gap"],
+      "status": "active"
+    },
+    {
+      "topic_id": "liquid_biopsy",
+      "label": "Liquid biopsy",
+      "description": "ctDNA, circulating biomarkers, and blood-based pancreatic detection signals.",
+      "keywords": ["liquid biopsy", "ctdna", "circulating tumor dna", "blood biomarker", "multi-omics"],
+      "entity_tags": ["biomarker", "ctdna", "assay"],
+      "claim_type": "biomarker_update",
+      "related_rationale_codes": ["PDAC_EXPLICIT_SUSPICION"],
+      "related_trial_tags": ["PDAC-DIAG-001"],
+      "opportunity_types": ["community_project", "benchmark_gap"],
+      "status": "active"
+    },
+    {
+      "topic_id": "ai_imaging",
+      "label": "AI imaging",
+      "description": "Imaging, radiomics, and foundation-model work relevant to pancreatic detection and review support.",
+      "keywords": ["radiomics", "foundation model", "pancreatic mri", "ct imaging", "lesion detection", "segmentation"],
+      "entity_tags": ["imaging", "radiomics", "ai"],
+      "claim_type": "imaging_update",
+      "related_rationale_codes": ["PANCREATIC_MASS", "DUCT_CUTOFF", "DUCT_DILATION"],
+      "related_trial_tags": [],
+      "opportunity_types": ["external_tooling", "benchmark_gap"],
+      "status": "active"
+    },
+    {
+      "topic_id": "pdac_trials",
+      "label": "PDAC trials",
+      "description": "Treatment, diagnostic, and neoadjuvant trials that can inform explainable pre-screening surfaces.",
+      "keywords": ["trial", "phase ii", "phase iii", "neoadjuvant", "trial registry", "eligibility"],
+      "entity_tags": ["trial", "eligibility", "neoadjuvant"],
+      "claim_type": "trial_update",
+      "related_rationale_codes": ["PDAC_EXPLICIT_SUSPICION", "PANCREATIC_MASS"],
+      "related_trial_tags": ["PDAC-DIAG-001", "PDAC-HEAD-002", "PDAC-SIGN-003"],
+      "opportunity_types": ["trial_catalog_gap", "case_brief"],
+      "status": "active"
+    },
+    {
+      "topic_id": "radiology_workflow",
+      "label": "Radiology workflow",
+      "description": "Operational follow-up, navigator support, and explainable workflow software for pancreatic findings.",
+      "keywords": ["navigator", "radiology workflow", "follow-up pathway", "human review", "escalation workflow"],
+      "entity_tags": ["workflow", "navigation", "follow_up"],
+      "claim_type": "workflow_update",
+      "related_rationale_codes": ["FOLLOWUP_RECOMMENDED", "DOUBLE_DUCT_SIGN", "FOCAL_ATROPHY"],
+      "related_trial_tags": [],
+      "opportunity_types": ["rule_gap", "community_project"],
+      "status": "active"
+    },
+    {
+      "topic_id": "oss_opportunities",
+      "label": "Open-source opportunities",
+      "description": "Datasets, tooling, APIs, and evaluation work that could help the broader pancreatic oncology OSS community.",
+      "keywords": ["open-source", "github", "dataset release", "benchmark pack", "tooling", "workflow stack"],
+      "entity_tags": ["open_source", "benchmark", "tooling"],
+      "claim_type": "oss_update",
+      "related_rationale_codes": [],
+      "related_trial_tags": [],
+      "opportunity_types": ["community_project", "external_tooling"],
+      "status": "active"
+    }
+  ]
+}

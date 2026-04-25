@@ -1,13 +1,34 @@
 # Codex Handoff
 
-Updated: 2026-03-27
+Updated: 2026-04-04
 
-This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, Phase 6 hosted smoke evidence capture is now complete, and the first post-Phase-6 benchmark-realism slices are also in place. The best next work should now move from the expanded synthetic proof set, stronger external starter pack, and checked-in multi-cohort retrospective-style sample toward broader de-identified or externally supplied benchmark inputs on top of the existing pilot packaging, proof surfaces, public benchmark pack, and external evaluation bundle writer.
+This repository is no longer in early MVP scaffolding. The core research prototype is implemented and validated, Phase 6
+hosted smoke evidence capture is now complete, and the codebase now also carries the research-intel branch-wrap work that
+adds watchtower scheduling, audited watchtower automation, multi-run council comparison, longer-horizon council
+calibration, contributor packets plus collaborator bundles, richer stress-test experiments, and explicit governance for
+paid-source or donation-funded expansion. The best next work should now move from the expanded proof set and automated
+research-intel watchtower toward broader de-identified or externally supplied benchmark inputs and deeper live corpus
+quality built on top of the existing pilot packaging, proof surfaces, public benchmark pack, external evaluation bundle
+writer, and cited pancreatic oncology watchtower.
 
 ## Current State
 
 - Deterministic pancreatic triage is implemented with section-aware sentence evidence, rationale codes, persistence, exports, and evaluation.
 - Reviewer workflow is implemented end to end with worklist filters, case detail, review actions, feedback capture, hybrid prioritization, and trial matching.
+- A second primary pillar, Research Intelligence, is now implemented with a sibling `/research-intel` workspace, a `/api/v1/research-intel/*` namespace, seeded pancreatic oncology source and topic catalogs, a lightweight domain graph, persisted run audits, normalized research documents, cited evidence spans, topic watchlists, council digests, opportunity proposals, and case-level research briefs.
+- Landing, about, quickstart, README, and handoff surfaces now frame Research Intelligence as the primary entry point, with triage, imports, benchmark proof, and case briefs positioned as explainable downstream applications of the discovery engine.
+- The discovery layer now also includes watchtower scheduling and automation: broader curated literature and trial watches, due-only ingest support, schedule snapshots, consecutive-failure tracking, a `make research-intel-ingest-due` path, a `make research-intel-watchtower` path, an audited `/api/v1/research-intel/runs/watchtower` trigger, and a dedicated `/research-intel/schedule` workspace.
+- Research-intel digests now compare themselves against recent runs, preserving confidence trend, disagreement deltas, recurring open questions, recurring disagreement points, resolved items, and a longer-horizon calibration snapshot instead of treating each digest as a sealed one-off summary.
+- Research-intel opportunities now carry contributor packets for issue, benchmark, dataset, rule, trial, case-brief, and tooling follow-through, with packet artifacts written under `artifacts/research-intel/packets/` and collaborator bundle artifacts under `artifacts/research-intel/collaborator-bundles/`.
+- Safe experiment support is stronger too: benchmark and rule opportunities now expose both readiness and stress-test modes with dimension-level scoring, while still staying proposal-only and human-gated.
+- Governance for paid-source access and donation-funded operations is now documented in `docs/RESEARCH_INTELLIGENCE_GOVERNANCE.md`, and autonomous payment or procurement remains explicitly out of scope.
+- The research-intel watchtower is still fixture-first and operator-triggered for reproducibility, but it now also carries selectively live-ready curated connectors with pancreas-aware filtering and source-health tracking instead of remaining purely seeded.
+- The watchtower can now run as one audited automation tick: schedule state is captured before and after each tick, digest generation is policy-gated to avoid synthetic churn, and a cache-backed GitHub Actions workflow under `.github/workflows/research-watchtower.yml` can preserve state across hosted runs.
+- Phase 1 of the scientific-discovery pivot is now implemented: discovery ingest supports fixture-backed connector runs, selectively live-ready Europe PMC, ClinicalTrials.gov, NCI, FDA, and GitHub-backed open-source discovery connectors, source-health tracking, and per-document provenance plus novelty metadata.
+- Phase 2 is now underway as well: the pancreatic oncology graph is richer, typed, family-aware, and exposed through graph-backed entity resolution plus a dedicated `/research-intel/graph` surface.
+- Phase 3 is now underway as well: the research council persists independent opinions, peer critique, explicit confidence, open questions, evidence gaps, and next experiments.
+- Phase 4 is now underway too: opportunities are now typed discovery-to-action specs with evidence bundles, measurable outcomes, downstream artifact hints, and artifact-backed promotion flows.
+- Phase 5 is now underway too: benchmark and rule opportunities support safe experiment runs with keep-or-discard ratchet outcomes, experiment artifacts, and persisted last-result summaries on each opportunity.
 - Phase 6 pilot work is materially in place: observability, readiness probes, trusted-proxy auth, site scoping, pilot Docker overlays, checked-in env bundles, de-identified research views, FHIR ingestion, HL7 ORU ingestion, structured import metadata persistence, persisted import-run audit records, env-driven field-preference overrides for upstream variability, a dedicated web import workspace with recent-run audit visibility, and live report/FHIR/HL7 success, successful shared-visibility, report-path failed shared-visibility for `validation_error`, structured failed shared-visibility for FHIR `unsupported_payload` plus HL7 `parse_error`, report-path and structured-adapter site-scope rejection, report-path parse/validation, adapter-specific malformed-import, and generic plus structured cross-actor audit denial smoke coverage in both the header-auth and trusted-proxy pilot paths.
 - The web app now has clearer outside-collaborator surfaces: the home and about pages frame the product as an explainable, benchmarkable workflow stack, and `/proof` now publishes the checked-in demo benchmark snapshot plus a registry of published external benchmark packs as a public proof surface with side-by-side cross-pack comparison, anchored navigation, dataset coverage, queue previews, and reviewer-facing casebooks.
 - The repo now includes an adoption-facing quickstart, checked-in benchmark snapshots in `docs/examples/demo-benchmark-current.json` and `docs/examples/demo-benchmark-current.md`, and a refresh path through `make benchmark-demo` plus `make refresh-demo-proof`; that published proof now carries benchmark buckets, reviewer cues, expected rationale codes, per-case rules-versus-hybrid outcomes, and an expanded 10-report casebook spanning 5 recurring benchmark buckets.
@@ -22,12 +43,24 @@ This repository is no longer in early MVP scaffolding. The core research prototy
 - HL7 ORU imports now decode base64 `ED` report text, normalize repeated `OBX-5` values, respect custom `MSH-2` component plus repetition separators, normalize common HL7 escape sequences, and clean composite metadata fields with subcomponent-aware extraction before the existing report-text assembly flows into triage and audit persistence.
 - Top-level repo docs now reflect the implemented platform instead of the earlier scaffold framing, and the repository includes checked-in contributor, security, and code-of-conduct docs appropriate for a near-1.0 open-source handoff.
 - The repo still includes checked-in GitHub Actions workflows for strict validation plus hosted base, attachment-backed FHIR success-path, report-path site-rejection, and structured adapter site-rejection pilot smoke coverage, and the hosted pilot workflow now supports narrower manual FHIR-only plus HL7-only dispatches with per-job raw-log and structured-summary artifacts. Those hosted slices are now verified with green March 25, 2026 runs for FHIR and HL7, while HL7 remains manual-only in the default weekly matrix by explicit decision.
-- The highest-value remaining work is no longer bootstrapping or late-Phase-6 smoke capture. The repo-side Phase 6D release polish is already in place, the first benchmark-realism proof expansion is complete, the external starter pack matches that reviewer-facing proof shape, the repo now includes two checked-in external proof packs, and `/proof` now compares them directly, so the next work should move toward broader collaborator-supplied or deidentified benchmark inputs plus deeper reviewer-evaluation analysis instead of reopening parser or smoke-baseline work.
+- The highest-value remaining work is no longer bootstrapping or late-Phase-6 smoke capture. The repo-side Phase 6D release polish is already in place, the research-first repositioning is visible across product and docs surfaces, the watchtower and council history loop are in place, the external starter pack matches the reviewer-facing proof shape, `/proof` compares the checked-in packs directly, recurring watchtower automation is in place, and digests now carry longer-horizon calibration plus collaborator bundle output, so the next work should move toward broader collaborator-supplied or deidentified benchmark inputs and deeper live discovery quality instead of reopening parser or smoke-baseline work.
 - The next benchmark-proof slice should focus on either a larger collaborator-supplied benchmark drop through the registry flow or deeper cross-pack analysis features such as bucket-level comparisons or reviewer-focused filtering, rather than just adding another static pack section.
 
 ## Fresh Validation Status
 
-Confirmed on 2026-03-27:
+Confirmed on 2026-04-04:
+
+- `make validate-strict` passes
+- Summary: `12 pass, 0 warn, 0 fail`
+- Research-intel validation now covers seeded catalogs plus a temp-database ingest and digest run, reporting `9` sources, `7` topics, `25` graph nodes, `7` seeded documents, and a passing artifact-backed digest pipeline
+- Discovery ingest now also validates `9` discovery fixtures and `8` live-ready sources through the same catalog check, runs the watchtower pipeline in fixture mode for reproducible validation, and verifies both pre-run and post-run schedule state
+- Opportunity generation now also emits structured JSON and Markdown action specs under `artifacts/research-intel/opportunities/`, plus contributor packet artifacts under `artifacts/research-intel/packets/`
+- Research-intel validation now also runs one safe experiment and records a ratchet outcome in the strict pipeline summary
+- `pytest` now passes with `155 passed`
+- `cd apps/api && .venv/bin/python -m pytest tests/test_research_intel.py tests/test_research_intel_connectors.py -q` passed with `11 passed`
+- `npm run lint` and `npm run build` in `apps/web` both pass with the new `/research-intel` routes included in the build
+
+Previously confirmed during the broader post-Phase-6 slice:
 
 - `make validate-strict` passes
 - Summary: `10 pass, 0 warn, 0 fail`
@@ -246,6 +279,15 @@ Additional note from this slice:
 - The proxy-demo pilot path now also has a live structured shared-visibility smoke target that verifies owner visibility plus alternate-actor allow behavior for successful FHIR and HL7 imports
 - The proxy-demo pilot path now also has a live audit-visibility smoke target that verifies owner visibility plus alternate-actor denial for a persisted `site_scope_rejection` run
 - GitHub Actions now also has a hosted pilot smoke workflow for the base proxy and header success-path overlays plus report-path and structured adapter site rejection in both auth modes
+
+### Research Intelligence foundation
+
+- Shared persisted records now exist for research sources, runs, run items, documents, evidence, topics, digests, and opportunities
+- Seed catalogs now live under `data/research/` for sources, topics, a lightweight pancreatic oncology graph, and seeded documents
+- Manual ingest, due-only ingest, schedule, and digest scripts now exist through `make research-intel-ingest`, `make research-intel-ingest-due`, `make research-intel-schedule`, `make research-intel-digest`, and `make research-intel-refresh`
+- The Next.js app now exposes `/research-intel`, `/research-intel/schedule`, `/research-intel/documents`, `/research-intel/digests`, and `/research-intel/opportunities`
+- Case detail now links to a generated research brief that maps rationale or trial context to current research-intel topics and cited documents
+- Promotion stays human-gated, triage scores remain untouched, and payment or crypto execution is still intentionally out of scope
 
 ## Important Guardrails
 

@@ -1,0 +1,84 @@
+{
+  "documents": [
+    {
+      "source_id": "pubmed",
+      "source_identifier": "pmid-41000001",
+      "document_type": "paper",
+      "title": "Multi-omics blood biomarker panel improves early detection signal enrichment in high-risk pancreatic cohorts",
+      "abstract_text": "A multi-omics blood biomarker and circulating tumor DNA panel improved early detection signal enrichment in high-risk cohort screening for pancreatic ductal adenocarcinoma. The study argues for surveillance workflows that remain transparent about risk stratification.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41000001/",
+      "pmid": "41000001",
+      "doi": "10.1001/pancreas.2026.001",
+      "authors": ["A. Singh", "R. Patel"],
+      "organizations": ["Demo Academic Cancer Center"],
+      "published_at": "2026-03-29T14:00:00Z"
+    },
+    {
+      "source_id": "clinicaltrials",
+      "source_identifier": "NCT06001234",
+      "document_type": "trial",
+      "title": "Phase II neoadjuvant strategy for resectable pancreatic head adenocarcinoma with biomarker-linked eligibility",
+      "abstract_text": "This trial registry update highlights phase II neoadjuvant enrollment for pancreatic head adenocarcinoma and emphasizes explainable eligibility criteria, tissue confirmation, and biomarker-linked cohort assignment.",
+      "url": "https://clinicaltrials.gov/study/NCT06001234",
+      "nct_id": "NCT06001234",
+      "authors": ["ClinicalTrials.gov"],
+      "organizations": ["Cooperative Oncology Group"],
+      "published_at": "2026-03-26T12:00:00Z"
+    },
+    {
+      "source_id": "nci",
+      "source_identifier": "nci-cyst-guidance-2026",
+      "document_type": "guidance",
+      "title": "Updated surveillance framing for side-branch IPMN and pancreatic cyst follow-up pathways",
+      "abstract_text": "The update stresses cyst surveillance interval discipline, side-branch IPMN follow-up, and clear escalation workflow language so multidisciplinary teams can separate malignancy suspicion from routine surveillance actions.",
+      "url": "https://www.cancer.gov/demo/ipmn-surveillance-update",
+      "authors": ["National Cancer Institute"],
+      "organizations": ["NCI"],
+      "published_at": "2026-03-24T09:30:00Z"
+    },
+    {
+      "source_id": "medrxiv",
+      "source_identifier": "medrxiv-pancreas-foundation-model",
+      "document_type": "preprint",
+      "title": "Foundation model pretraining for pancreatic MRI lesion detection and radiomics benchmark transfer",
+      "abstract_text": "A pancreas-focused foundation model improved pancreatic MRI lesion detection and radiomics transfer learning across small cohorts, while the authors note the need for stronger benchmark packs and open evaluation bundles.",
+      "url": "https://www.medrxiv.org/content/10.1101/2026.03.22.demo",
+      "authors": ["J. Moreno", "L. Chen"],
+      "organizations": ["Open Imaging Lab"],
+      "published_at": "2026-03-22T18:45:00Z"
+    },
+    {
+      "source_id": "open_source_watch",
+      "source_identifier": "oss-pancreas-dataset-release",
+      "document_type": "news",
+      "title": "Open pancreatic MRI benchmark pack released with segmentation labels and workflow notes",
+      "abstract_text": "A new open-source benchmark pack pairs pancreatic MRI segmentation labels with workflow notes, benchmark documentation, and GitHub issue templates intended to accelerate reproducible pancreatic tooling.",
+      "url": "https://github.com/example/pancreas-benchmark-release",
+      "authors": ["Open Pancreas Collective"],
+      "organizations": ["Open Pancreas Collective"],
+      "published_at": "2026-03-20T16:00:00Z"
+    },
+    {
+      "source_id": "fda",
+      "source_identifier": "fda-ctdna-pancreas-demo",
+      "document_type": "regulatory_update",
+      "title": "Regulatory communication on blood biomarker assay evidence for pancreatic oncology studies",
+      "abstract_text": "The communication summarizes assay validation expectations for blood biomarker and ctDNA evidence in pancreatic oncology studies, reinforcing the need for cited evidence and transparent workflow claims.",
+      "url": "https://www.fda.gov/demo/pancreatic-biomarker-assay-update",
+      "authors": ["FDA Oncology Center of Excellence"],
+      "organizations": ["FDA"],
+      "published_at": "2026-03-18T11:00:00Z"
+    },
+    {
+      "source_id": "open_source_watch",
+      "source_identifier": "workflow-watch-radiology-navigator-demo",
+      "document_type": "news",
+      "title": "Navigator-focused radiology workflow stack surfaces explainable pancreatic follow-up opportunities",
+      "abstract_text": "A new workflow stack report describes navigator dashboards, human review, and escalation workflow design for pancreatic radiology findings, arguing that open-source contributors should prioritize explainable case briefs and benchmark growth over opaque automation.",
+      "url": "https://github.com/example/pancreatic-workflow-stack",
+      "authors": ["Community Workflow Lab"],
+      "organizations": ["Community Workflow Lab"],
+      "published_at": "2026-03-17T08:15:00Z"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "fetched_at": "2026-04-03T09:02:00Z",
+  "source_url": "https://www.cancer.gov/",
+  "documents": [
+    {
+      "source_id": "nci",
+      "source_identifier": "nci-cyst-guidance-2026",
+      "document_type": "guidance",
+      "title": "Updated surveillance framing for side-branch IPMN and pancreatic cyst follow-up pathways",
+      "abstract_text": "The update stresses cyst surveillance interval discipline, side-branch IPMN follow-up, and clear escalation workflow language so multidisciplinary teams can separate malignancy suspicion from routine surveillance actions.",
+      "url": "https://www.cancer.gov/demo/ipmn-surveillance-update",
+      "authors": ["National Cancer Institute"],
+      "organizations": ["NCI"],
+      "published_at": "2026-03-24T09:30:00Z"
+    }
+  ]
+}

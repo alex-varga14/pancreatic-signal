@@ -2,13 +2,18 @@
 
 ## 1. Product summary
 
-Pancreatic Signal is an open-source, research-first triage platform for identifying radiology reports that may contain pancreatic malignancy signals, high-risk pancreatic abnormalities, or important follow-up recommendations, then routing those cases into a human-reviewed worklist.
+Pancreatic Signal is an open-source, research-first pancreatic oncology platform with two primary pillars:
+
+- a cited research-intelligence system for organizing pancreatic oncology literature, trial, guidance, and open-source signals into digest, opportunity, and case-brief workflows
+- an explainable triage system for identifying radiology reports that may contain pancreatic malignancy signals, high-risk pancreatic abnormalities, or important follow-up recommendations, then routing those cases into a human-reviewed worklist
 
 The current product is no longer an early prototype. It now includes reviewer workflow, explainable trial matching, hybrid prioritization, structured FHIR and HL7 ingestion, import-run auditing, and pilot deployment/auth packaging on top of the deterministic rule engine.
 
 ## 2. Product problem
 
-Important pancreatic findings are often delayed operationally, not only diagnostically. Suspicious language can be:
+Pancreatic oncology work is fragmented across literature, trials, guidelines, research tooling, and operational follow-up
+queues. At the same time, important pancreatic findings are often delayed operationally, not only diagnostically.
+Suspicious language can be:
 
 - subtle or indirect
 - buried in long report text
@@ -16,13 +21,16 @@ Important pancreatic findings are often delayed operationally, not only diagnost
 - surfaced in broad abdominal workflows instead of dedicated pancreatic review queues
 - hard to audit consistently across retrospective or pilot environments
 
-The product exists to reduce those workflow misses by surfacing high-value reports for faster human review without obscuring why they were flagged.
+The product exists to turn those fragmented signals into cited, inspectable discovery artifacts and then use those artifacts
+to reduce workflow misses through explainable downstream tools.
 
 ## 3. Goals
 
 ### Primary goals
 
 - detect suspicious pancreatic report text with transparent evidence and rationale codes
+- organize pancreatic oncology movement into cited digests, graph-backed topics, and open questions
+- turn discovery output into concrete benchmark, rule, trial-catalog, and tooling proposals
 - prioritize a reviewer worklist around risk, confidence, and operational review value
 - preserve auditability for imports, reviewer actions, and pilot access controls
 - support research, retrospective evaluation, and controlled pilot demonstrations
@@ -34,6 +42,8 @@ The product exists to reduce those workflow misses by surfacing high-value repor
 - support explainable downstream trial pre-screening from current case evidence
 - preserve enough metadata to support interoperability audits and site-scoped pilots
 - expose hybrid ranking improvements without replacing the deterministic baseline
+- create public, citation-backed pancreatic oncology digests and opportunity proposals for open-source contributors
+- keep triage as an explainable applied surface rather than the only product narrative
 
 ## 4. Non-goals
 
@@ -46,6 +56,7 @@ The product exists to reduce those workflow misses by surfacing high-value repor
 
 ## 5. Primary users
 
+- open-source contributors, benchmark curators, and research operators following pancreatic oncology signals
 - nurse navigators and oncology coordinators
 - radiology quality or safety teams
 - research coordinators running retrospective datasets
@@ -54,23 +65,29 @@ The product exists to reduce those workflow misses by surfacing high-value repor
 
 ## 6. Current supported workflows
 
-### Workflow 1 — Direct report triage
+### Workflow 1 — Research intelligence monitoring and case briefs
+
+A contributor or operator runs discovery ingest and digest workflows, explores cited documents and graph activity, reviews
+council output and opportunities, and links that context back to benchmarks, rules, trial upkeep, or individual cases
+through generated briefs.
+
+### Workflow 2 — Direct report triage
 
 A user submits report-text payloads through the API and receives structured triage outputs with score, urgency, rationale codes, evidence spans, and optional hybrid analysis.
 
-### Workflow 2 — Structured adapter imports
+### Workflow 3 — Structured adapter imports
 
 A user imports FHIR `DiagnosticReport` or HL7 ORU content. The system extracts report text and metadata, triages the result, persists cases and reports, and records import-run summaries plus item-level audit detail.
 
-### Workflow 3 — Reviewer worklist and case review
+### Workflow 4 — Reviewer worklist and case review
 
 A reviewer opens the web worklist, filters or sorts cases, inspects full report text, reviews evidence and rationale, checks hybrid guidance, and records review actions or feedback.
 
-### Workflow 4 — Explainable trial matching
+### Workflow 5 — Explainable trial matching
 
 A reviewer or coordinator requests case-level trial matching and sees structured pancreatic abstractions plus explainable PDAC trial candidates.
 
-### Workflow 5 — Retrospective evaluation and public benchmarking
+### Workflow 6 — Retrospective evaluation and public benchmarking
 
 A contributor runs the demo evaluation or external benchmark workflow, generates comparable benchmark artifacts, and publishes results with consistent labels and validation.
 
@@ -111,6 +128,7 @@ The system must:
 
 The web experience must:
 
+- expose the research-intel workspace as a first-class discovery surface
 - expose a prioritized case list
 - allow filtering and sorting by workflow-relevant fields
 - show full report text, import metadata, evidence, review history, and feedback on case detail
@@ -136,6 +154,16 @@ The repository must:
 - validate public submission JSON against the shared schema
 - keep documentation aligned with the actual implementation state
 
+### FR7 — Research intelligence
+
+The system must:
+
+- maintain a configurable pancreatic oncology source catalog and topic watchlist registry
+- normalize research documents into persisted cited records with evidence spans, topic tags, and audit-backed run history
+- expose public-read dashboard, document, digest, and opportunity surfaces while restricting run execution and promotion actions to authenticated operators
+- generate case-level research briefs that inform benchmark, rule, or trial-catalog follow-up without mutating case scores
+- keep opportunity promotion human-gated and citation-backed
+
 ## 8. Current product boundaries
 
 The current release intentionally stops short of:
@@ -145,6 +173,7 @@ The current release intentionally stops short of:
 - automated follow-up closure detection from downstream EHR state
 - image-derived features or PACS-native workflows
 - a closed-loop active learning queue that retrains or rewrites thresholds automatically
+- autonomous live internet agent fleets or autonomous payment execution for paid research sources
 
 ## 9. Success measures
 
@@ -178,13 +207,13 @@ The current release intentionally stops short of:
 
 ## 11. Near-term roadmap
 
-The next requirements focus on late-Phase-6 hardening rather than new foundation work:
+The next requirements focus on turning the research watchtower into a steadier operating loop rather than adding another new foundation layer:
 
-1. deepen benchmark coverage with more realistic labeled datasets
-2. strengthen reviewer ergonomics and feedback utilization without weakening explainability
-3. keep release-facing docs and onboarding surfaces aligned with the recorded hosted smoke evidence
-4. preserve the intentional hosted/manual smoke boundary as release cadence evolves
-5. continue interoperability hardening only where new pilot fixtures expose concrete gaps
+1. exercise collaborator bundles against larger benchmark and dataset contributions
+2. keep triage and interoperability surfaces aligned with the discovery-first product framing without weakening explainability
+3. expand connector quality and trust coverage where the current watchtower still leans on fixtures
+4. preserve hosted watchtower trust with clear artifact outputs, digest gating, and human review boundaries
+5. deepen graph and live-corpus quality so longer-horizon calibration remains meaningful at higher source volume
 
 ## 12. Release-readiness criteria for the current phase
 

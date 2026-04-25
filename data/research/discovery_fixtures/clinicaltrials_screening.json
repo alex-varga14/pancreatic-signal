@@ -1,0 +1,19 @@
+{
+  "fetched_at": "2026-04-03T09:08:00Z",
+  "query": "pancreatic cancer screening biomarker surveillance",
+  "source_url": "https://clinicaltrials.gov/api/v2/studies?query.term=pancreatic%20cancer%20screening%20biomarker%20surveillance&pageSize=5",
+  "documents": [
+    {
+      "source_id": "clinicaltrials_screening",
+      "source_identifier": "NCT06004567",
+      "document_type": "trial",
+      "title": "Prospective surveillance study of ctDNA and MRI triggers in high-risk pancreatic screening cohorts",
+      "abstract_text": "This screening study evaluates ctDNA, MRI triggers, and structured surveillance intervals in high-risk pancreatic cohorts. The registry update highlights transparent escalation criteria and workflow-compatible case review for precursor-lesion and early detection follow-up.",
+      "url": "https://clinicaltrials.gov/study/NCT06004567",
+      "nct_id": "NCT06004567",
+      "authors": ["ClinicalTrials.gov"],
+      "organizations": ["High-Risk Pancreas Surveillance Consortium"],
+      "published_at": "2026-03-27T10:10:00Z"
+    }
+  ]
+}

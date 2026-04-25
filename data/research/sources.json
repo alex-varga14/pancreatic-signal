@@ -1,0 +1,214 @@
+{
+  "sources": [
+    {
+      "source_id": "pubmed",
+      "label": "PubMed pancreatic oncology watch",
+      "source_kind": "literature",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://pubmed.ncbi.nlm.nih.gov/",
+      "description": "Curated pancreatic oncology papers and reviews for the research intelligence demo feed.",
+      "polling_config": {
+        "interval_hours": 12,
+        "priority": "high",
+        "connector_id": "europe_pmc_search",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/pubmed.json",
+        "max_documents_per_run": 5,
+        "query": "\"pancreatic cancer\" AND (biomarker OR ctDNA OR screening) sort_date:y"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "clinicaltrials",
+      "label": "ClinicalTrials.gov pancreatic trials",
+      "source_kind": "trial_registry",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://clinicaltrials.gov/",
+      "description": "Pancreatic cancer and precursor-lesion trial updates for explainable trial-catalog maintenance.",
+      "polling_config": {
+        "interval_hours": 24,
+        "priority": "high",
+        "connector_id": "clinicaltrials_v2",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/clinicaltrials.json",
+        "max_documents_per_run": 5,
+        "query": "pancreatic cancer biomarker trial"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "pubmed_early_detection",
+      "label": "PubMed early detection and surveillance watch",
+      "source_kind": "literature",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://pubmed.ncbi.nlm.nih.gov/",
+      "description": "High-risk screening, precursor-lesion surveillance, and early detection papers curated for pancreatic oncology discovery.",
+      "polling_config": {
+        "interval_hours": 8,
+        "priority": "high",
+        "connector_id": "europe_pmc_search",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/pubmed_early_detection.json",
+        "max_documents_per_run": 5,
+        "query": "\"pancreatic cancer\" AND ((early detection) OR screening OR surveillance OR IPMN) sort_date:y"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "pubmed_ai_imaging",
+      "label": "PubMed pancreas imaging and radiomics watch",
+      "source_kind": "literature",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://pubmed.ncbi.nlm.nih.gov/",
+      "description": "Pancreatic CT, MRI, radiomics, and imaging-AI papers curated for discovery, benchmark growth, and tooling review.",
+      "polling_config": {
+        "interval_hours": 12,
+        "priority": "medium",
+        "connector_id": "europe_pmc_search",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/pubmed_ai_imaging.json",
+        "max_documents_per_run": 5,
+        "query": "\"pancreatic cancer\" AND ((radiomics) OR (imaging AI) OR MRI OR CT) sort_date:y"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "clinicaltrials_screening",
+      "label": "ClinicalTrials.gov pancreatic screening studies",
+      "source_kind": "trial_registry",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://clinicaltrials.gov/",
+      "description": "Pancreatic screening, surveillance, and biomarker-driven study updates for early-detection and case-brief work.",
+      "polling_config": {
+        "interval_hours": 12,
+        "priority": "high",
+        "connector_id": "clinicaltrials_v2",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/clinicaltrials_screening.json",
+        "max_documents_per_run": 5,
+        "query": "pancreatic cancer screening biomarker surveillance"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "nci",
+      "label": "NCI pancreatic guidance and news",
+      "source_kind": "guideline",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://www.cancer.gov/",
+      "description": "Trusted cancer-center and guidance updates relevant to pancreatic oncology workflows.",
+      "polling_config": {
+        "interval_hours": 24,
+        "priority": "medium",
+        "connector_id": "rss_feed",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/nci.json",
+        "feed_url": "https://www.cancer.gov/publishedcontent/rss/news-events/cancer-currents-blog.rss",
+        "include_terms": [
+          "pancreatic",
+          "pancreas",
+          "pdac",
+          "ipmn",
+          "kras",
+          "liquid biopsy",
+          "screening",
+          "radiomics"
+        ],
+        "fetch_multiplier": 4,
+        "document_type": "guidance"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "fda",
+      "label": "FDA oncology device and assay updates",
+      "source_kind": "regulatory",
+      "trust_level": "high",
+      "access_class": "public",
+      "base_url": "https://www.fda.gov/",
+      "description": "Regulatory signals that could affect biomarker or workflow tooling for pancreatic oncology.",
+      "polling_config": {
+        "interval_hours": 48,
+        "priority": "medium",
+        "connector_id": "rss_feed",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/fda.json",
+        "feed_url": "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/drugs/rss.xml",
+        "include_terms": [
+          "pancreatic",
+          "pancreas",
+          "pdac",
+          "biomarker",
+          "companion diagnostic",
+          "oncology"
+        ],
+        "fetch_multiplier": 4,
+        "document_type": "regulatory_update"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "medrxiv",
+      "label": "medRxiv and bioRxiv pancreas AI watch",
+      "source_kind": "preprint",
+      "trust_level": "emerging",
+      "access_class": "public",
+      "base_url": "https://www.medrxiv.org/",
+      "description": "Preprint monitoring for imaging, biomarker, and workflow experiments that may inform benchmarks.",
+      "polling_config": {
+        "interval_hours": 12,
+        "priority": "medium",
+        "connector_id": "rss_feed",
+        "default_mode": "fixture",
+        "live_enabled": false,
+        "fixture_path": "discovery_fixtures/medrxiv.json",
+        "document_type": "preprint"
+      },
+      "enabled": true
+    },
+    {
+      "source_id": "open_source_watch",
+      "label": "Open-source pancreatic oncology watch",
+      "source_kind": "news",
+      "trust_level": "medium",
+      "access_class": "public",
+      "base_url": "https://github.com/",
+      "description": "Software, dataset, and community updates that could turn into open-source opportunities.",
+      "polling_config": {
+        "interval_hours": 24,
+        "priority": "medium",
+        "connector_id": "github_repository_search",
+        "default_mode": "fixture",
+        "live_enabled": true,
+        "fixture_path": "discovery_fixtures/open_source_watch.json",
+        "max_documents_per_run": 5,
+        "query": "\"pancreatic cancer\"",
+        "sort": "updated",
+        "order": "desc",
+        "auth_env_var": "GITHUB_TOKEN",
+        "include_terms": [
+          "pancreatic",
+          "pancreas",
+          "pdac"
+        ],
+        "min_stars": 1,
+        "fetch_multiplier": 4,
+        "document_type": "news"
+      },
+      "enabled": true
+    }
+  ]
+}

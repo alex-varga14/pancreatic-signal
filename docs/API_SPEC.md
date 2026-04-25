@@ -64,7 +64,9 @@ Response:
     "can_submit_feedback": true,
     "can_import_reports": true,
     "can_export_data": true,
-    "can_view_feedback_summary": true
+    "can_view_feedback_summary": true,
+    "can_manage_research_intel": true,
+    "can_promote_research_intel": true
   }
 }
 ```
@@ -75,6 +77,7 @@ Auth behavior:
 - Trusted identity payloads default to `sub`, `name`, `role`, `sites`, and `groups` fields.
 - Trusted identity provider presets currently include `generic`, `authentik`, `keycloak`, and `oauth2-proxy`.
 - `provider` identifies the resolved auth provider profile, while `capabilities` exposes server-authoritative permissions for UI gating.
+- `can_manage_research_intel` and `can_promote_research_intel` describe authenticated research-intel run and promotion permissions; public read endpoints in the research-intel namespace remain open for local and open-source exploration.
 - When `role` is absent, the API can derive a role from configured group-to-role mappings, otherwise it falls back to `viewer`.
 - Header-based override is also supported with `X-User-ID`, `X-User-Name`, `X-User-Role`, and `X-User-Sites`.
 - `X-User-Sites` accepts a comma-separated site scope such as `North Clinic, Demo Hospital`.
@@ -396,6 +399,205 @@ Return reviewer-feedback coverage, label distribution, and unlabeled active-lear
 
 Visibility:
 - Summary counts are restricted to the actor's site scope when one is present.
+
+## Research Intelligence
+
+General behavior:
+- Read-oriented research-intel endpoints are intentionally public so contributors can inspect seeded documents, topics, digests, and opportunity proposals without authenticated setup.
+- The current implementation supports discovery-ingest modes with reproducible fixture-backed connectors plus opt-in live connector scaffolding for selected sources.
+
+### `GET /research-intel/sources`
+Return the configured pancreatic oncology source catalog.
+
+Behavior:
+- Includes connector mode, source health, last-success timing, schedule summary, schedule state, next-run timing, and consecutive failure counts derived from the source registry state.
+
+### `GET /research-intel/schedule`
+Return the current research-intel watchtower schedule snapshot.
+
+Behavior:
+- Includes due, overdue, scheduled, disabled, live-ready, and fixture-only counts.
+- Returns per-source schedule state, next-run timing, effective interval, and failure-aware cadence details.
+
+### `GET /research-intel/documents`
+Return normalized pancreatic oncology documents with citations, topic labels, evidence spans, and relevance scores.
+
+Behavior:
+- Includes `novelty_score`, `ingest_mode`, graph entities, and provenance metadata describing connector, source URL, fetch context, and connector-side filtering details such as fetched-versus-retained counts and applied include or exclude terms.
+- Graph entities now include concept-family metadata, match strategy, and related-match counts to support richer cross-document reasoning.
+
+Query params:
+- `source_kind`
+- `topic`
+- `q`
+- `limit`
+- `offset`
+
+### `GET /research-intel/topics`
+Return rolling topic watchlists with topic heat, document counts, and related rationale or trial tags.
+
+### `GET /research-intel/graph`
+Return the active pancreatic oncology knowledge graph.
+
+Behavior:
+- Includes typed nodes, graph edges, active node ids, concept-family metadata, and document-backed entity heat aggregated from normalized documents.
+
+### `GET /research-intel/digests`
+Return cited digest summaries with publication status, disagreement score, and citation counts.
+
+Behavior:
+- Digest list items now also include a trend snapshot showing the previous digest, confidence movement, disagreement delta, citation delta, topic churn, and a lightweight calibration summary.
+
+### `GET /research-intel/digests/{digest_id}`
+Return a digest detail view with supporting documents plus persisted council stages:
+- stage 1 independent opinions
+- stage 1 confidence, open questions, and evidence gaps
+- stage 2 peer ranking, critique, requested evidence, and confidence adjustment
+- stage 3 chairman synthesis, overall confidence, next experiments, and promotion guardrails
+- a multi-run history snapshot with recent digest window, recurring open questions, recurring disagreement points, resolved items, and a longer-horizon calibration snapshot covering confidence distribution, recurring themes, and backlog persistence
+
+### `GET /research-intel/opportunities`
+Return human-gated research opportunities generated from the digest flow.
+
+Behavior:
+- Each opportunity includes a typed action payload with objective, why-now rationale, discovery question, evidence bundle, proposed steps, measurable outcomes, and promotion guardrails.
+- Each opportunity now also includes contributor packets for issue-ready, benchmark-ready, dataset-ready, rule, trial, case-brief, or tooling follow-through depending on type.
+- Benchmark and dataset packets now also include collaborator bundle specs with template paths, starter commands, validation commands, and generated bundle artifacts under `artifacts/research-intel/collaborator-bundles/`.
+- When available, the action payload also includes the latest experiment result with ratchet outcome, score deltas, dimension-level scoring, and artifact paths.
+
+Query params:
+- `opportunity_type`
+- `status`
+- `topic`
+
+### `GET /research-intel/runs`
+Return recent ingest, digest, experiment, and watchtower audit summaries.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `GET /research-intel/runs/{run_id}`
+Return one ingest, digest, experiment, or watchtower run with per-item audit entries.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `POST /research-intel/runs/ingest`
+Trigger the seeded collect-and-structure workflow.
+
+Request:
+```json
+{
+  "source_ids": ["pubmed", "clinicaltrials"],
+  "include_disabled": false,
+  "only_due": false,
+  "write_artifacts": true,
+  "mode": "fixture",
+  "max_documents_per_source": 5
+}
+```
+
+Behavior:
+- Normalizes documents into the shared database.
+- Deduplicates by source identifiers such as DOI, PMID, NCT id, and canonical URL hashes where available.
+- Records source-level fetch health, effective connector mode, novelty metadata, and provenance.
+- When `only_due=true`, limits the run to sources whose current watchtower state is `due` and records skipped sources in run metadata.
+- Refreshes topic heat, evidence records, and run-audit items.
+- Writes JSON and Markdown artifacts under `artifacts/research-intel/` when `write_artifacts=true`.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `POST /research-intel/runs/digest`
+Trigger the cited digest and opportunity-generation workflow.
+
+Request:
+```json
+{
+  "publish": true,
+  "write_artifacts": true
+}
+```
+
+Behavior:
+- Builds council outputs, disagreement tracking, digest summaries, and research opportunities from the current document store.
+- Writes JSON and Markdown artifacts under `artifacts/research-intel/` when `write_artifacts=true`.
+- Opportunity artifacts are also written under `artifacts/research-intel/opportunities/` when enabled.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `POST /research-intel/runs/watchtower`
+Trigger one audited watchtower automation tick.
+
+Request:
+```json
+{
+  "only_due": true,
+  "write_artifacts": true,
+  "mode": "auto",
+  "publish_digest": true,
+  "digest_policy": "new_documents"
+}
+```
+
+Behavior:
+- Captures schedule state before and after the tick.
+- Runs due-only ingest unless no scoped sources are currently due.
+- Gates digest generation by policy: `new_documents`, `always`, or `never`.
+- Records child ingest and digest run summaries in watchtower run metadata.
+- Writes watchtower summary artifacts under `artifacts/research-intel/watchtower/` when `write_artifacts=true`.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `POST /research-intel/opportunities/{opportunity_id}/promote`
+Promote a research opportunity into a contributor-facing artifact.
+
+Request:
+```json
+{
+  "target": "docs_draft"
+}
+```
+
+Behavior:
+- Marks the opportunity as promoted.
+- Persists the promotion target and timestamp.
+- Writes a promotion artifact for downstream contributor workflows, including the structured action payload and cited evidence bundle.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `POST /research-intel/opportunities/{opportunity_id}/experiment`
+Run a safe experiment for a supported opportunity.
+
+Request:
+```json
+{
+  "write_artifacts": true,
+  "experiment_kind": "benchmark_stress_test"
+}
+```
+
+Behavior:
+- Supports benchmark-gap and rule-gap opportunities only.
+- Evaluates proposal readiness or stress-test resilience through deterministic scoring rather than code mutation.
+- Records baseline, candidate score, delta, threshold, evidence coverage, scored dimensions, and keep-or-discard ratchet outcome.
+- Writes experiment artifacts under `artifacts/research-intel/experiments/` when enabled.
+
+Access:
+- Allowed roles: `analyst`, `navigator`, `admin`
+
+### `GET /research-intel/cases/{case_id}/brief`
+Return a case-facing research brief linking the current triage or trial context to relevant research-intel topics and recent cited documents.
+
+Visibility:
+- Returns `404` when the case does not exist.
+- Applies the same site-scope restrictions as `GET /cases/{case_id}`.
+
+Behavior:
+- Suggests benchmark, rule, and trial-catalog follow-up ideas without mutating the case score or review state.
 
 ## Future endpoints
 - `/settings/rules`

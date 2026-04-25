@@ -1,0 +1,398 @@
+{
+  "nodes": [
+    {
+      "node_id": "pdac",
+      "label": "PDAC",
+      "node_type": "disease",
+      "family_id": "pdac_disease_course",
+      "family_label": "PDAC disease course",
+      "description": "Pancreatic ductal adenocarcinoma and closely related disease references.",
+      "aliases": [
+        "pancreatic ductal adenocarcinoma",
+        "pancreatic adenocarcinoma",
+        "pancreatic cancer"
+      ],
+      "keywords": ["pdac", "adenocarcinoma"],
+      "tags": ["pdac", "oncology", "adenocarcinoma"],
+      "topic_ids": ["early_detection", "pdac_trials"]
+    },
+    {
+      "node_id": "high_risk_screening",
+      "label": "High-risk screening",
+      "node_type": "strategy",
+      "family_id": "surveillance_programs",
+      "family_label": "Surveillance programs",
+      "description": "Structured early-detection and surveillance programs for elevated-risk cohorts.",
+      "aliases": ["high-risk cohort", "high risk cohort", "risk stratification"],
+      "keywords": ["screening", "surveillance workflow"],
+      "tags": ["screening", "surveillance", "risk"],
+      "topic_ids": ["early_detection"]
+    },
+    {
+      "node_id": "ipmn",
+      "label": "IPMN",
+      "node_type": "precursor_lesion",
+      "family_id": "surveillance_programs",
+      "family_label": "Surveillance programs",
+      "description": "Intraductal papillary mucinous neoplasm and related pancreatic cyst surveillance concepts.",
+      "aliases": [
+        "intraductal papillary mucinous neoplasm",
+        "pancreatic cyst",
+        "side-branch ipmn",
+        "side branch ipmn"
+      ],
+      "keywords": ["cyst surveillance", "surveillance interval"],
+      "tags": ["ipmn", "cyst", "surveillance"],
+      "topic_ids": ["cyst_surveillance", "radiology_workflow"]
+    },
+    {
+      "node_id": "liquid_biopsy",
+      "label": "Liquid biopsy",
+      "node_type": "biomarker",
+      "family_id": "molecular_detection",
+      "family_label": "Molecular detection",
+      "description": "Blood-based biomarker and circulating DNA concepts for pancreatic detection and monitoring.",
+      "aliases": [
+        "liquid biopsy",
+        "circulating tumor dna",
+        "blood biomarker",
+        "multi-omics blood biomarker",
+        "multi-omics"
+      ],
+      "keywords": ["ctdna", "assay validation"],
+      "tags": ["biomarker", "ctdna", "assay"],
+      "topic_ids": ["liquid_biopsy", "early_detection"]
+    },
+    {
+      "node_id": "ca19_9",
+      "label": "CA 19-9",
+      "node_type": "biomarker",
+      "family_id": "molecular_detection",
+      "family_label": "Molecular detection",
+      "description": "Conventional biomarker tracking in pancreatic oncology evidence and trial design.",
+      "aliases": ["ca 19-9", "ca19-9"],
+      "keywords": ["serum marker"],
+      "tags": ["biomarker", "serology"],
+      "topic_ids": ["liquid_biopsy", "pdac_trials"]
+    },
+    {
+      "node_id": "kras",
+      "label": "KRAS",
+      "node_type": "biomarker",
+      "family_id": "molecular_detection",
+      "family_label": "Molecular detection",
+      "description": "Common molecular marker used in pancreatic oncology biomarker and translational literature.",
+      "aliases": ["kras mutation", "mutant kras"],
+      "keywords": ["kras"],
+      "tags": ["genomics", "biomarker"],
+      "topic_ids": ["liquid_biopsy", "pdac_trials"]
+    },
+    {
+      "node_id": "radiomics_foundation_models",
+      "label": "Radiomics and foundation models",
+      "node_type": "model_family",
+      "family_id": "imaging_validation",
+      "family_label": "Imaging validation",
+      "description": "Imaging-model, radiomics, and foundation-model methods applied to pancreas workflows.",
+      "aliases": [
+        "radiomics",
+        "foundation model",
+        "foundation model pretraining",
+        "transfer learning"
+      ],
+      "keywords": ["segmentation", "lesion detection"],
+      "tags": ["radiomics", "imaging", "ai"],
+      "topic_ids": ["ai_imaging", "oss_opportunities"]
+    },
+    {
+      "node_id": "pancreatic_mri",
+      "label": "Pancreatic MRI",
+      "node_type": "modality",
+      "family_id": "imaging_validation",
+      "family_label": "Imaging validation",
+      "description": "Pancreatic MRI as a modality in detection, segmentation, and imaging studies.",
+      "aliases": ["pancreatic mri", "mri lesion detection"],
+      "keywords": ["mri", "lesion detection"],
+      "tags": ["mri", "imaging"],
+      "topic_ids": ["ai_imaging"]
+    },
+    {
+      "node_id": "pancreatic_ct",
+      "label": "Pancreatic CT",
+      "node_type": "modality",
+      "family_id": "imaging_validation",
+      "family_label": "Imaging validation",
+      "description": "Pancreas-protocol CT and multi-site CT imaging concepts used in radiomics and benchmark validation.",
+      "aliases": ["pancreatic ct", "pancreas protocol ct", "multi-site ct", "ct imaging"],
+      "keywords": ["ct", "computed tomography"],
+      "tags": ["ct", "imaging"],
+      "topic_ids": ["ai_imaging"]
+    },
+    {
+      "node_id": "eus_fna",
+      "label": "EUS and biopsy",
+      "node_type": "procedure",
+      "family_id": "trial_workflows",
+      "family_label": "Trial workflows",
+      "description": "Endoscopic ultrasound, FNA, and tissue-confirmation workflow steps.",
+      "aliases": [
+        "endoscopic ultrasound",
+        "eus",
+        "eus-fna",
+        "tissue confirmation"
+      ],
+      "keywords": ["biopsy"],
+      "tags": ["eus", "biopsy", "follow_up"],
+      "topic_ids": ["radiology_workflow", "pdac_trials"]
+    },
+    {
+      "node_id": "resectable_pdac",
+      "label": "Resectable PDAC cohort",
+      "node_type": "cohort",
+      "family_id": "pdac_disease_course",
+      "family_label": "PDAC disease course",
+      "description": "References to resectable pancreatic head disease and related trial cohorts.",
+      "aliases": [
+        "resectable pancreatic head adenocarcinoma",
+        "resectable pancreatic cancer",
+        "resectable pancreatic head"
+      ],
+      "keywords": ["resectable"],
+      "tags": ["cohort", "resectable"],
+      "topic_ids": ["pdac_trials"]
+    },
+    {
+      "node_id": "neoadjuvant_therapy",
+      "label": "Neoadjuvant therapy",
+      "node_type": "therapy_strategy",
+      "family_id": "trial_workflows",
+      "family_label": "Trial workflows",
+      "description": "Neoadjuvant and perioperative treatment strategy concepts in PDAC trials.",
+      "aliases": ["neoadjuvant strategy", "neoadjuvant enrollment"],
+      "keywords": ["neoadjuvant"],
+      "tags": ["therapy", "neoadjuvant"],
+      "topic_ids": ["pdac_trials"]
+    },
+    {
+      "node_id": "adjuvant_therapy",
+      "label": "Adjuvant therapy",
+      "node_type": "therapy_strategy",
+      "family_id": "trial_workflows",
+      "family_label": "Trial workflows",
+      "description": "Postoperative therapy strategies and recurrence-risk treatment planning in PDAC cohorts.",
+      "aliases": ["adjuvant therapy", "postoperative therapy", "post-operative therapy"],
+      "keywords": ["adjuvant", "postoperative"],
+      "tags": ["therapy", "adjuvant"],
+      "topic_ids": ["pdac_trials"]
+    },
+    {
+      "node_id": "borderline_resectable_pdac",
+      "label": "Borderline resectable PDAC cohort",
+      "node_type": "cohort",
+      "family_id": "pdac_disease_course",
+      "family_label": "PDAC disease course",
+      "description": "Borderline resectable pancreatic cancer cohorts used in modern biomarker and perioperative trial designs.",
+      "aliases": ["borderline resectable pancreatic cancer", "borderline resectable pdac"],
+      "keywords": ["borderline resectable"],
+      "tags": ["cohort", "borderline_resectable"],
+      "topic_ids": ["pdac_trials"]
+    },
+    {
+      "node_id": "trial_eligibility",
+      "label": "Trial eligibility",
+      "node_type": "trial_concept",
+      "family_id": "trial_workflows",
+      "family_label": "Trial workflows",
+      "description": "Eligibility, cohort assignment, and explainable trial abstraction concepts.",
+      "aliases": ["eligibility criteria", "cohort assignment", "trial registry update"],
+      "keywords": ["eligibility", "trial registry"],
+      "tags": ["trial", "eligibility"],
+      "topic_ids": ["pdac_trials", "radiology_workflow"]
+    },
+    {
+      "node_id": "biomarker_stratification",
+      "label": "Biomarker stratification",
+      "node_type": "trial_concept",
+      "family_id": "molecular_detection",
+      "family_label": "Molecular detection",
+      "description": "Biomarker-linked eligibility, molecular stratification, and cohort-assignment concepts in pancreatic trials.",
+      "aliases": [
+        "biomarker-linked eligibility",
+        "biomarker-linked cohort assignment",
+        "biomarker stratification",
+        "molecular stratification"
+      ],
+      "keywords": ["linked eligibility", "cohort assignment"],
+      "tags": ["trial", "biomarker", "eligibility"],
+      "topic_ids": ["pdac_trials", "liquid_biopsy"]
+    },
+    {
+      "node_id": "tissue_confirmation",
+      "label": "Tissue confirmation",
+      "node_type": "trial_concept",
+      "family_id": "trial_workflows",
+      "family_label": "Trial workflows",
+      "description": "Histologic and pathologic confirmation concepts that bridge radiology findings and enrollment-ready trial abstractions.",
+      "aliases": ["tissue confirmation", "histologic confirmation", "pathologic confirmation"],
+      "keywords": ["tissue", "histology"],
+      "tags": ["trial", "pathology", "follow_up"],
+      "topic_ids": ["pdac_trials", "radiology_workflow"]
+    },
+    {
+      "node_id": "navigator_workflow",
+      "label": "Navigator workflow",
+      "node_type": "workflow",
+      "family_id": "workflow_ops",
+      "family_label": "Workflow operations",
+      "description": "Human review, navigation, and escalation workflow concepts.",
+      "aliases": [
+        "navigator dashboards",
+        "follow-up pathway",
+        "escalation workflow",
+        "human review"
+      ],
+      "keywords": ["navigator", "workflow stack"],
+      "tags": ["workflow", "navigation", "follow_up"],
+      "topic_ids": ["radiology_workflow", "oss_opportunities"]
+    },
+    {
+      "node_id": "surveillance_interval",
+      "label": "Surveillance interval",
+      "node_type": "workflow_rule",
+      "family_id": "surveillance_programs",
+      "family_label": "Surveillance programs",
+      "description": "Explicit interval-discipline and follow-up timing concepts in cyst surveillance and high-risk screening workflows.",
+      "aliases": [
+        "surveillance interval",
+        "structured surveillance interval",
+        "interval discipline",
+        "follow-up interval"
+      ],
+      "keywords": ["surveillance timing", "follow-up timing"],
+      "tags": ["surveillance", "workflow", "follow_up"],
+      "topic_ids": ["early_detection", "cyst_surveillance", "radiology_workflow"]
+    },
+    {
+      "node_id": "familial_risk_program",
+      "label": "Familial-risk program",
+      "node_type": "cohort",
+      "family_id": "surveillance_programs",
+      "family_label": "Surveillance programs",
+      "description": "Inherited-risk, germline, and family-history pancreatic surveillance cohorts used in early-detection programs.",
+      "aliases": [
+        "familial pancreas risk",
+        "familial pancreatic cancer",
+        "family history",
+        "germline brca",
+        "inherited risk"
+      ],
+      "keywords": ["surveillance cohort", "familial risk"],
+      "tags": ["cohort", "germline", "screening"],
+      "topic_ids": ["early_detection", "liquid_biopsy"]
+    },
+    {
+      "node_id": "guideline_pathway",
+      "label": "Guideline pathway",
+      "node_type": "workflow",
+      "family_id": "workflow_ops",
+      "family_label": "Workflow operations",
+      "description": "Guidance updates and pathway framing that shape surveillance and escalation operations.",
+      "aliases": ["guidance update", "surveillance framing", "guideline pathway"],
+      "keywords": ["guidance", "pathway"],
+      "tags": ["workflow", "guidance", "follow_up"],
+      "topic_ids": ["cyst_surveillance", "radiology_workflow"]
+    },
+    {
+      "node_id": "benchmark_dataset",
+      "label": "Benchmark dataset",
+      "node_type": "research_artifact",
+      "family_id": "imaging_validation",
+      "family_label": "Imaging validation",
+      "description": "Open benchmark packs, evaluation bundles, and reproducible dataset assets.",
+      "aliases": [
+        "benchmark pack",
+        "dataset release",
+        "evaluation bundle",
+        "open evaluation bundles"
+      ],
+      "keywords": ["workflow notes", "issue templates"],
+      "tags": ["benchmark", "open_source", "tooling"],
+      "topic_ids": ["oss_opportunities", "ai_imaging"]
+    },
+    {
+      "node_id": "segmentation_labels",
+      "label": "Segmentation labels",
+      "node_type": "research_artifact",
+      "family_id": "imaging_validation",
+      "family_label": "Imaging validation",
+      "description": "Segmentation-label assets used in pancreatic imaging benchmarks, external validation, and reproducible tooling.",
+      "aliases": ["segmentation labels", "segmentation label", "segmentation dataset"],
+      "keywords": ["labels", "segmentation"],
+      "tags": ["benchmark", "segmentation", "open_source"],
+      "topic_ids": ["ai_imaging", "oss_opportunities"]
+    },
+    {
+      "node_id": "multisite_validation",
+      "label": "Multi-site validation",
+      "node_type": "research_artifact",
+      "family_id": "imaging_validation",
+      "family_label": "Imaging validation",
+      "description": "Cross-site validation cohorts and benchmark settings used to test generalization in pancreatic imaging and workflow studies.",
+      "aliases": ["multi-site validation", "multi-site benchmark", "external validation cohort"],
+      "keywords": ["multi-site", "external validation"],
+      "tags": ["benchmark", "validation", "generalization"],
+      "topic_ids": ["ai_imaging", "oss_opportunities"]
+    },
+    {
+      "node_id": "prospective_registry",
+      "label": "Prospective registry",
+      "node_type": "research_artifact",
+      "family_id": "workflow_ops",
+      "family_label": "Workflow operations",
+      "description": "Prospective registry and casebook-style data collection concepts that connect discovery findings to reusable evidence infrastructure.",
+      "aliases": ["prospective registry", "registry cohort", "registry study"],
+      "keywords": ["registry", "prospective"],
+      "tags": ["registry", "casebook", "evaluation"],
+      "topic_ids": ["pdac_trials", "oss_opportunities"]
+    }
+  ],
+  "edges": [
+    { "source": "pdac", "target": "high_risk_screening", "relation": "motivates", "weight": 0.82 },
+    { "source": "pdac", "target": "trial_eligibility", "relation": "requires_abstraction", "weight": 0.78 },
+    { "source": "pdac", "target": "familial_risk_program", "relation": "drives_surveillance", "weight": 0.69 },
+    { "source": "ipmn", "target": "high_risk_screening", "relation": "extends_surveillance", "weight": 0.72 },
+    { "source": "ipmn", "target": "navigator_workflow", "relation": "requires_follow_up", "weight": 0.76 },
+    { "source": "ipmn", "target": "surveillance_interval", "relation": "governed_by", "weight": 0.83 },
+    { "source": "liquid_biopsy", "target": "high_risk_screening", "relation": "supports_detection", "weight": 0.84 },
+    { "source": "liquid_biopsy", "target": "trial_eligibility", "relation": "stratifies_cohorts", "weight": 0.66 },
+    { "source": "liquid_biopsy", "target": "biomarker_stratification", "relation": "feeds_assignment", "weight": 0.81 },
+    { "source": "liquid_biopsy", "target": "familial_risk_program", "relation": "evaluated_in", "weight": 0.64 },
+    { "source": "ca19_9", "target": "liquid_biopsy", "relation": "complements", "weight": 0.61 },
+    { "source": "kras", "target": "liquid_biopsy", "relation": "strengthens_signal", "weight": 0.63 },
+    { "source": "radiomics_foundation_models", "target": "pancreatic_mri", "relation": "applies_to", "weight": 0.8 },
+    { "source": "radiomics_foundation_models", "target": "pancreatic_ct", "relation": "applies_to", "weight": 0.77 },
+    { "source": "radiomics_foundation_models", "target": "benchmark_dataset", "relation": "needs_validation", "weight": 0.88 },
+    { "source": "radiomics_foundation_models", "target": "multisite_validation", "relation": "validated_by", "weight": 0.81 },
+    { "source": "pancreatic_ct", "target": "benchmark_dataset", "relation": "feeds_benchmark", "weight": 0.72 },
+    { "source": "pancreatic_mri", "target": "segmentation_labels", "relation": "annotated_with", "weight": 0.67 },
+    { "source": "eus_fna", "target": "trial_eligibility", "relation": "confirms_entry", "weight": 0.69 },
+    { "source": "eus_fna", "target": "tissue_confirmation", "relation": "performs", "weight": 0.84 },
+    { "source": "resectable_pdac", "target": "neoadjuvant_therapy", "relation": "treated_with", "weight": 0.74 },
+    { "source": "resectable_pdac", "target": "trial_eligibility", "relation": "defines_cohort", "weight": 0.71 },
+    { "source": "resectable_pdac", "target": "adjuvant_therapy", "relation": "may_progress_to", "weight": 0.62 },
+    { "source": "borderline_resectable_pdac", "target": "neoadjuvant_therapy", "relation": "treated_with", "weight": 0.8 },
+    { "source": "borderline_resectable_pdac", "target": "trial_eligibility", "relation": "defines_cohort", "weight": 0.74 },
+    { "source": "neoadjuvant_therapy", "target": "trial_eligibility", "relation": "depends_on", "weight": 0.67 },
+    { "source": "biomarker_stratification", "target": "trial_eligibility", "relation": "specializes", "weight": 0.86 },
+    { "source": "tissue_confirmation", "target": "trial_eligibility", "relation": "unlocks_entry", "weight": 0.79 },
+    { "source": "navigator_workflow", "target": "benchmark_dataset", "relation": "benefits_from", "weight": 0.75 },
+    { "source": "navigator_workflow", "target": "surveillance_interval", "relation": "operationalizes", "weight": 0.73 },
+    { "source": "benchmark_dataset", "target": "trial_eligibility", "relation": "tests_abstraction", "weight": 0.58 }
+    ,{ "source": "benchmark_dataset", "target": "segmentation_labels", "relation": "includes", "weight": 0.84 }
+    ,{ "source": "benchmark_dataset", "target": "multisite_validation", "relation": "stress_tests", "weight": 0.82 }
+    ,{ "source": "prospective_registry", "target": "benchmark_dataset", "relation": "feeds_evaluation", "weight": 0.71 }
+    ,{ "source": "prospective_registry", "target": "trial_eligibility", "relation": "captures_real_world", "weight": 0.64 }
+    ,{ "source": "guideline_pathway", "target": "surveillance_interval", "relation": "defines", "weight": 0.79 }
+    ,{ "source": "guideline_pathway", "target": "navigator_workflow", "relation": "shapes_ops", "weight": 0.7 }
+  ]
+}

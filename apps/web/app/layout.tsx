@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Pancreatic Signal",
-  description: "Explainable pancreatic report triage with reviewer workflow and benchmark proof.",
+  description: "Open pancreatic oncology discovery software with cited research intelligence and explainable workflow surfaces.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

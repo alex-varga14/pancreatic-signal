@@ -1,6 +1,9 @@
 # Phase status and next slices
 
-This repository has already completed the early foundation and MVP-oriented phases. Late Phase 6 hosted smoke evidence capture and pilot closeout are now complete, so the next work should move beyond smoke-baseline capture rather than back toward initial product construction.
+This repository has already completed the early foundation and MVP-oriented phases. Late Phase 6 hosted smoke evidence
+capture and pilot closeout are now complete, and the codebase now also carries the research-first repositioning work that
+makes pancreatic oncology discovery the lead product narrative. The next work should deepen the live discovery system rather
+than drift back toward initial product construction.
 
 ## Completed phases
 
@@ -53,9 +56,9 @@ Completed outcomes:
 - confidence and review-priority outputs
 - reviewer feedback capture and recommendation scaffolding
 
-## Active phase
+## Completed current phase
 
-### Phase 6 — Interoperability, pilot auth, and deployment hardening
+### Phase 6 — Interoperability, pilot auth, deployment hardening, and research-first repositioning
 
 Already completed in this phase:
 
@@ -73,14 +76,44 @@ Already completed in this phase:
 - hosted GitHub HL7 trial recorded on 2026-03-25 in run `#23564057337`
 - an explicit decision to keep HL7 manual-only in the default hosted matrix to control recurring runtime and maintenance cost
 - repo-side Phase 6D release-facing polish across quickstart, deployment, release-readiness, and handoff docs
+- homepage, about, README, and research-intel docs now frame the project as a pancreatic oncology discovery system first
+- explainable triage, benchmark proof, imports, and case briefs are now documented as downstream surfaces of the discovery engine
 
 ## Current next slices
 
-### Post-Phase-6 follow-through
+### Post-Phase-6 research-first follow-through
 
 Goal:
 
-- move from the checked-in deidentified multi-cohort retrospective sample toward broader real-world or collaborator-supplied benchmark inputs while preserving the reviewer-facing proof shape
+- deepen the live discovery system, contributor workflows, and research artifacts while preserving the reviewer-facing proof shape and explainability boundaries
+
+### Research Intelligence track
+
+Implemented outcomes:
+
+- a sibling `/research-intel` workspace and `/api/v1/research-intel/*` namespace
+- seeded source, topic, graph, and document catalogs under `data/research/`
+- persisted research-intel sources, runs, documents, evidence, topics, digests, and opportunities
+- manual ingest and digest scripts plus validation coverage
+- case-level research briefs that inform review without changing scores
+- research-intel is now the lead product narrative across landing and onboarding surfaces
+- research-intel now also exposes watchtower scheduling, due-only ingest, and a dedicated schedule workspace
+- research-intel now also carries broader graph families and stronger relation-aware entity resolution across biomarkers, therapies, cohorts, modalities, and datasets
+- research-intel now compares digests across runs with recurring open-question and disagreement tracking
+- opportunities now carry contributor packets for issue-ready, benchmark-ready, dataset-ready, rule, trial, case-brief, and tooling follow-through
+- research-intel experiments now include richer benchmark and rule stress-test modes with dimension-level scoring
+- governance for paid-source access and donation-funded operations is now documented without introducing autonomous spending
+- the live watchtower now covers `8` live-ready sources, including official NCI and FDA feeds plus GitHub-backed open-source discovery with pancreas-aware filtering
+- the watchtower can now run as one audited automation tick through API, CLI, Make, and a hosted GitHub Actions workflow with digest gating
+- digests now also include longer-horizon calibration snapshots, and benchmark or dataset packets now emit collaborator bundle artifacts
+
+Next slices:
+
+1. exercise the new collaborator bundles against larger collaborator benchmark and dataset drops
+2. deepen graph and topic quality against a larger live corpus
+3. keep governance and procurement notes current before any paid-source expansion is activated
+4. continue broadening trusted live connector coverage where the watchtower still leans on fixtures
+5. deepen proof and cross-pack comparison once larger external bundles start landing
 
 ## What is not a current phase target
 
@@ -99,3 +132,4 @@ Phase 6 is in a good state when:
 - the structured import paths behave consistently across report, FHIR, and HL7 inputs
 - pilot auth modes remain documented, tested, and auditable
 - release-facing docs match the actual product state
+- new contributors understand the product as an open pancreatic oncology discovery system first

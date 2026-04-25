@@ -205,6 +205,8 @@ export type CurrentUser = {
     can_import_reports: boolean;
     can_export_data: boolean;
     can_view_feedback_summary: boolean;
+    can_manage_research_intel: boolean;
+    can_promote_research_intel: boolean;
   };
 };
 
@@ -427,6 +429,476 @@ export type FeedbackSummary = {
   label_distribution: Record<string, number>;
   disposition_distribution: Record<string, number>;
   error_bucket_distribution: Record<string, number>;
+};
+
+export type ResearchSource = {
+  source_id: string;
+  label: string;
+  source_kind: string;
+  trust_level: string;
+  access_class: string;
+  base_url?: string | null;
+  description?: string | null;
+  polling_config: Record<string, unknown>;
+  enabled: boolean;
+  connector_id?: string | null;
+  default_mode?: "auto" | "seeded" | "fixture" | "live" | null;
+  live_ready: boolean;
+  priority?: string | null;
+  schedule_summary?: string | null;
+  schedule_state: "due" | "scheduled" | "unscheduled" | "disabled";
+  interval_hours?: number | null;
+  effective_interval_hours?: number | null;
+  next_run_at?: string | null;
+  overdue_by_hours?: number | null;
+  consecutive_failures: number;
+  health_status: string;
+  last_run_at?: string | null;
+  last_success_at?: string | null;
+  last_error_at?: string | null;
+  last_error_detail?: string | null;
+  last_document_count?: number | null;
+};
+
+export type ResearchScheduleSnapshot = {
+  generated_at: string;
+  total_sources: number;
+  due_count: number;
+  overdue_count: number;
+  scheduled_count: number;
+  disabled_count: number;
+  live_ready_count: number;
+  fixture_only_count: number;
+  sources: ResearchSource[];
+};
+
+export type ResearchRunItem = {
+  item_index: number;
+  stage: string;
+  status: string;
+  source_identifier?: string | null;
+  document_id?: string | null;
+  error_bucket?: string | null;
+  error_detail?: string | null;
+  created_at: string;
+};
+
+export type ResearchRunSummary = {
+  run_id: number;
+  run_type: string;
+  status: string;
+  actor_user_id: string;
+  source_scope: string[];
+  processed: number;
+  created: number;
+  updated: number;
+  failed: number;
+  failure_counts: Record<string, number>;
+  artifact_paths: string[];
+  metadata: Record<string, unknown>;
+  started_at: string;
+  completed_at: string;
+};
+
+export type ResearchRunDetail = ResearchRunSummary & {
+  items: ResearchRunItem[];
+};
+
+export type ResearchEvidence = {
+  evidence_text: string;
+  char_start: number;
+  char_end: number;
+  claim_text: string;
+  claim_type: string;
+  entity_tags: string[];
+  citation_label?: string | null;
+  confidence?: number | null;
+};
+
+export type ResearchGraphEntity = {
+  node_id: string;
+  label: string;
+  node_type: string;
+  description?: string | null;
+  family_id?: string | null;
+  family_label?: string | null;
+  tags: string[];
+  topic_ids: string[];
+  match_terms: string[];
+  match_strategy?: string | null;
+  related_match_count: number;
+  related_node_ids: string[];
+  confidence?: number | null;
+};
+
+export type ResearchDocument = {
+  document_id: string;
+  source_id: string;
+  source_label: string;
+  source_kind: string;
+  document_type: string;
+  title: string;
+  abstract_text: string;
+  url?: string | null;
+  canonical_url?: string | null;
+  doi?: string | null;
+  pmid?: string | null;
+  nct_id?: string | null;
+  citation_key: string;
+  published_at?: string | null;
+  authors: string[];
+  organizations: string[];
+  topic_ids: string[];
+  topic_labels: string[];
+  entity_tags: string[];
+  relevance_scores: Record<string, number>;
+  novelty_score?: number | null;
+  ingest_mode?: string | null;
+  provenance: Record<string, unknown>;
+  graph_entities: ResearchGraphEntity[];
+  evidence: ResearchEvidence[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type ResearchTopic = {
+  topic_id: string;
+  label: string;
+  description?: string | null;
+  keywords: string[];
+  related_rationale_codes: string[];
+  related_trial_tags: string[];
+  opportunity_types: string[];
+  topic_heat: number;
+  document_count: number;
+  last_document_at?: string | null;
+  status: string;
+};
+
+export type ResearchCouncilStage1Opinion = {
+  persona: string;
+  focus: string;
+  summary: string;
+  citations: string[];
+  proposed_opportunity_types: string[];
+  primary_topics: string[];
+  confidence_label: string;
+  key_claims: string[];
+  open_questions: string[];
+  evidence_gaps: string[];
+};
+
+export type ResearchCouncilPeerCritique = {
+  reviewer_persona: string;
+  target_persona: string;
+  alignment: string;
+  strengths: string[];
+  concerns: string[];
+  requested_evidence: string[];
+};
+
+export type ResearchCouncilStage2Ranking = {
+  persona: string;
+  ranked_topics: string[];
+  ranked_opportunity_types: string[];
+  critique: string;
+  challenge_target_persona?: string | null;
+  peer_critiques: ResearchCouncilPeerCritique[];
+  preferred_actions: string[];
+  confidence_adjustment: string;
+};
+
+export type ResearchCouncilStage3Synthesis = {
+  chairman_summary: string;
+  overall_confidence: string;
+  consensus_points: string[];
+  disagreement_points: string[];
+  evidence_gaps: string[];
+  open_questions: string[];
+  recommended_actions: string[];
+  next_experiments: string[];
+  promotion_guardrails: string[];
+};
+
+export type ResearchCouncilPayload = {
+  stage_1: ResearchCouncilStage1Opinion[];
+  stage_2: ResearchCouncilStage2Ranking[];
+  stage_3: ResearchCouncilStage3Synthesis;
+};
+
+export type ResearchDigestDocumentRef = {
+  document_id: string;
+  title: string;
+  citation_key: string;
+  url?: string | null;
+  topic_labels: string[];
+};
+
+export type ResearchDigestTrend = {
+  previous_digest_id?: string | null;
+  previous_generated_at?: string | null;
+  confidence_trend: string;
+  disagreement_delta?: number | null;
+  citation_delta?: number | null;
+  new_topic_labels: string[];
+  persistent_topic_labels: string[];
+  dropped_topic_labels: string[];
+};
+
+export type ResearchDigestRecurringItem = {
+  text: string;
+  occurrence_count: number;
+  digest_ids: string[];
+  last_seen_at?: string | null;
+};
+
+export type ResearchDigestHistoryItem = {
+  digest_id: string;
+  generated_at: string;
+  overall_confidence: string;
+  disagreement_score: number;
+  citation_count: number;
+  topic_labels: string[];
+};
+
+export type ResearchDigestCalibrationSnapshot = {
+  lookback_digest_count: number;
+  lookback_window_days: number;
+  confidence_distribution: Record<string, number>;
+  average_disagreement_score?: number | null;
+  average_citation_count?: number | null;
+  confidence_consistency_score?: number | null;
+  disagreement_volatility_score?: number | null;
+  status: string;
+  dominant_topic_labels: string[];
+  recurring_themes: ResearchDigestRecurringItem[];
+  long_horizon_open_questions: ResearchDigestRecurringItem[];
+  long_horizon_disagreement_points: ResearchDigestRecurringItem[];
+  notes: string[];
+};
+
+export type ResearchDigestHistorySnapshot = {
+  trend: ResearchDigestTrend;
+  recent_digests: ResearchDigestHistoryItem[];
+  recurring_open_questions: ResearchDigestRecurringItem[];
+  recurring_disagreement_points: ResearchDigestRecurringItem[];
+  resolved_open_questions: string[];
+  resolved_disagreement_points: string[];
+  calibration: ResearchDigestCalibrationSnapshot;
+};
+
+export type ResearchGraphEdge = {
+  source: string;
+  target: string;
+  relation: string;
+  weight?: number | null;
+};
+
+export type ResearchGraphNode = {
+  node_id: string;
+  label: string;
+  node_type: string;
+  description?: string | null;
+  family_id?: string | null;
+  family_label?: string | null;
+  tags: string[];
+  topic_ids: string[];
+  aliases: string[];
+  keywords: string[];
+  related_node_ids: string[];
+  document_count: number;
+  heat: number;
+  recent_document_ids: string[];
+};
+
+export type ResearchGraphSnapshot = {
+  generated_at: string;
+  active_node_ids: string[];
+  nodes: ResearchGraphNode[];
+  edges: ResearchGraphEdge[];
+};
+
+export type ResearchDigestListItem = {
+  digest_id: string;
+  title: string;
+  status: string;
+  publication_scope: string;
+  generated_at: string;
+  topic_ids: string[];
+  topic_labels: string[];
+  disagreement_score: number;
+  citation_count: number;
+  trend: ResearchDigestTrend;
+  calibration_status: string;
+  calibration_theme_labels: string[];
+};
+
+export type ResearchDigestDetail = ResearchDigestListItem & {
+  window_start?: string | null;
+  window_end?: string | null;
+  summary_markdown: string;
+  key_takeaways: string[];
+  supporting_documents: ResearchDigestDocumentRef[];
+  council: ResearchCouncilPayload;
+  history: ResearchDigestHistorySnapshot;
+};
+
+export type ResearchOpportunityEvidence = {
+  document_id: string;
+  citation_key: string;
+  title: string;
+  source_kind?: string | null;
+  topic_labels: string[];
+  why_it_matters: string;
+};
+
+export type ResearchOpportunityArtifactSpec = {
+  artifact_kind: string;
+  title: string;
+  summary: string;
+  suggested_path?: string | null;
+  target_hint?: "github_issue" | "docs_draft" | "benchmark_task" | null;
+};
+
+export type ResearchContributorPacket = {
+  packet_kind:
+    | "issue_packet"
+    | "benchmark_packet"
+    | "dataset_packet"
+    | "rule_packet"
+    | "trial_packet"
+    | "case_brief_packet"
+    | "tooling_packet";
+  title: string;
+  summary: string;
+  suggested_owner: string;
+  repo_targets: string[];
+  issue_labels: string[];
+  checklist: string[];
+  output_artifacts: string[];
+  validation_steps: string[];
+  handoff_notes: string[];
+  bundle?: ResearchContributorBundleSpec | null;
+};
+
+export type ResearchContributorBundleSpec = {
+  bundle_kind:
+    | "benchmark_submission_bundle"
+    | "dataset_submission_bundle"
+    | "issue_handoff_bundle"
+    | "rule_handoff_bundle"
+    | "trial_handoff_bundle"
+    | "case_brief_handoff_bundle"
+    | "tooling_handoff_bundle";
+  slug: string;
+  manifest_path?: string | null;
+  readme_path?: string | null;
+  template_paths: string[];
+  starter_command?: string | null;
+  validation_command?: string | null;
+  intake_fields: string[];
+};
+
+export type ResearchOpportunityExperimentResult = {
+  supported: boolean;
+  experiment_kind?:
+    | "benchmark_readiness"
+    | "benchmark_stress_test"
+    | "rule_explainability"
+    | "rule_stress_test"
+    | null;
+  ratchet_outcome: "keep" | "discard";
+  metric_name: string;
+  baseline_value?: number | null;
+  candidate_value?: number | null;
+  delta?: number | null;
+  threshold?: number | null;
+  min_delta?: number | null;
+  evidence_coverage_score?: number | null;
+  experiment_summary: string;
+  stress_dimensions: string[];
+  scored_dimensions: Record<string, number>;
+  notes: string[];
+  artifact_paths: string[];
+  run_id?: number | null;
+  completed_at?: string | null;
+};
+
+export type ResearchOpportunityActionPayload = {
+  human_gate: boolean;
+  digest_id?: string | null;
+  objective: string;
+  why_now: string;
+  discovery_question: string;
+  artifact_spec: ResearchOpportunityArtifactSpec;
+  evidence_bundle: ResearchOpportunityEvidence[];
+  proposed_steps: string[];
+  acceptance_gates: string[];
+  open_questions: string[];
+  evidence_gaps: string[];
+  next_experiments: string[];
+  measurable_outcomes: string[];
+  promotion_guardrails: string[];
+  contributor_packets: ResearchContributorPacket[];
+  suggested_target: "github_issue" | "docs_draft" | "benchmark_task";
+  council_confidence: string;
+  council_personas: string[];
+  theme_snapshot: string[];
+  promoted_by_user_id?: string | null;
+  last_promotion_target?: "github_issue" | "docs_draft" | "benchmark_task" | null;
+  promotion_artifact_path?: string | null;
+  last_experiment?: ResearchOpportunityExperimentResult | null;
+};
+
+export type ResearchOpportunity = {
+  opportunity_id: string;
+  opportunity_type: string;
+  title: string;
+  summary: string;
+  status: string;
+  confidence_score: number;
+  topic_ids: string[];
+  topic_labels: string[];
+  supporting_document_ids: string[];
+  related_rationale_codes: string[];
+  related_trial_ids: string[];
+  action_payload: ResearchOpportunityActionPayload;
+  promotion_target?: string | null;
+  promoted_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ResearchCaseBriefTopic = {
+  topic_id: string;
+  label: string;
+  rationale: string;
+};
+
+export type ResearchCaseBriefDocument = {
+  document_id: string;
+  title: string;
+  citation_key: string;
+  url?: string | null;
+  relevance_reason: string;
+};
+
+export type ResearchCaseBrief = {
+  case_id: string;
+  summary: string;
+  matched_topics: ResearchCaseBriefTopic[];
+  supporting_documents: ResearchCaseBriefDocument[];
+  suggested_benchmark_gaps: string[];
+  suggested_rule_updates: string[];
+  suggested_trial_updates: string[];
+};
+
+export type ResearchDocumentFilters = {
+  source_kind?: string;
+  topic?: string;
+  q?: string;
+  limit?: number;
+  offset?: number;
 };
 
 const API_BASE = process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -696,6 +1168,184 @@ export async function getImportRuns({
 
 export async function getImportRun(runId: number): Promise<ImportRunDetail | null> {
   const res = await apiFetch(`/api/v1/imports/runs/${runId}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function getResearchSources(): Promise<ResearchSource[]> {
+  const res = await apiFetch("/api/v1/research-intel/sources");
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getResearchSchedule(): Promise<ResearchScheduleSnapshot | null> {
+  const res = await apiFetch("/api/v1/research-intel/schedule");
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function getResearchRuns(limit = 12): Promise<ResearchRunSummary[]> {
+  const res = await apiFetch(`/api/v1/research-intel/runs?limit=${limit}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getResearchDocuments(filters: ResearchDocumentFilters = {}): Promise<ResearchDocument[]> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value === undefined || value === null || value === "") continue;
+    params.set(key, String(value));
+  }
+  const query = params.toString();
+  const res = await apiFetch(`/api/v1/research-intel/documents${query ? `?${query}` : ""}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getResearchTopics(): Promise<ResearchTopic[]> {
+  const res = await apiFetch("/api/v1/research-intel/topics");
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getResearchGraph(): Promise<ResearchGraphSnapshot | null> {
+  const res = await apiFetch("/api/v1/research-intel/graph");
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function getResearchDigests(): Promise<ResearchDigestListItem[]> {
+  const res = await apiFetch("/api/v1/research-intel/digests");
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getResearchDigest(digestId: string): Promise<ResearchDigestDetail | null> {
+  const res = await apiFetch(`/api/v1/research-intel/digests/${digestId}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function getResearchOpportunities(params?: {
+  opportunity_type?: string;
+  status?: string;
+  topic?: string;
+}): Promise<ResearchOpportunity[]> {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params || {})) {
+    if (value === undefined || value === null || value === "") continue;
+    query.set(key, String(value));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const res = await apiFetch(`/api/v1/research-intel/opportunities${suffix}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function runResearchIngest(payload?: {
+  source_ids?: string[];
+  include_disabled?: boolean;
+  only_due?: boolean;
+  write_artifacts?: boolean;
+  mode?: "auto" | "seeded" | "fixture" | "live";
+  max_documents_per_source?: number;
+}): Promise<ResearchRunDetail> {
+  const res = await apiFetch("/api/v1/research-intel/runs/ingest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(res, "Failed to trigger research ingest.");
+  }
+  const body: { run: ResearchRunDetail } = await res.json();
+  return body.run;
+}
+
+export async function runResearchDigest(payload?: {
+  publish?: boolean;
+  write_artifacts?: boolean;
+}): Promise<ResearchRunDetail> {
+  const res = await apiFetch("/api/v1/research-intel/runs/digest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(res, "Failed to trigger research digest.");
+  }
+  const body: { run: ResearchRunDetail } = await res.json();
+  return body.run;
+}
+
+export async function runResearchWatchtower(payload?: {
+  source_ids?: string[];
+  include_disabled?: boolean;
+  only_due?: boolean;
+  write_artifacts?: boolean;
+  mode?: "auto" | "seeded" | "fixture" | "live";
+  max_documents_per_source?: number;
+  publish_digest?: boolean;
+  digest_policy?: "new_documents" | "always" | "never";
+}): Promise<ResearchRunDetail> {
+  const res = await apiFetch("/api/v1/research-intel/runs/watchtower", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(res, "Failed to trigger research watchtower.");
+  }
+  const body: { run: ResearchRunDetail } = await res.json();
+  return body.run;
+}
+
+export async function runResearchOpportunityExperiment(
+  opportunityId: string,
+  payload?: {
+    write_artifacts?: boolean;
+    experiment_kind?:
+      | "benchmark_readiness"
+      | "benchmark_stress_test"
+      | "rule_explainability"
+      | "rule_stress_test";
+  },
+): Promise<ResearchRunDetail> {
+  const res = await apiFetch(`/api/v1/research-intel/opportunities/${opportunityId}/experiment`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(res, `Failed to run experiment for opportunity ${opportunityId}.`);
+  }
+  const body: { run: ResearchRunDetail } = await res.json();
+  return body.run;
+}
+
+export async function promoteResearchOpportunity(
+  opportunityId: string,
+  target: "github_issue" | "docs_draft" | "benchmark_task",
+): Promise<{
+  ok: boolean;
+  opportunity_id: string;
+  status: string;
+  promotion_target: string;
+  artifact_path?: string | null;
+}> {
+  const res = await apiFetch(`/api/v1/research-intel/opportunities/${opportunityId}/promote`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target }),
+  });
+  if (!res.ok) {
+    throw await buildApiRequestError(res, "Failed to promote research opportunity.");
+  }
+  return res.json();
+}
+
+export async function getResearchBrief(caseId: string): Promise<ResearchCaseBrief | null> {
+  const res = await apiFetch(`/api/v1/research-intel/cases/${caseId}/brief`);
   if (!res.ok) return null;
   return res.json();
 }

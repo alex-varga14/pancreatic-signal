@@ -1,0 +1,544 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+
+ResearchOpportunityType = Literal[
+    "rule_gap",
+    "benchmark_gap",
+    "trial_catalog_gap",
+    "case_brief",
+    "community_project",
+    "external_tooling",
+]
+
+ResearchPromotionTarget = Literal["github_issue", "docs_draft", "benchmark_task"]
+ResearchIngestMode = Literal["auto", "seeded", "fixture", "live"]
+ResearchWatchtowerDigestPolicy = Literal["new_documents", "always", "never"]
+ResearchScheduleState = Literal["due", "scheduled", "unscheduled", "disabled"]
+ResearchExperimentOutcome = Literal["keep", "discard"]
+ResearchExperimentKind = Literal[
+    "benchmark_readiness",
+    "benchmark_stress_test",
+    "rule_explainability",
+    "rule_stress_test",
+]
+ResearchOpportunityArtifactKind = Literal[
+    "rule_spec",
+    "benchmark_spec",
+    "trial_catalog_spec",
+    "case_brief_spec",
+    "community_project_spec",
+    "external_tooling_spec",
+]
+ResearchContributorPacketKind = Literal[
+    "issue_packet",
+    "benchmark_packet",
+    "dataset_packet",
+    "rule_packet",
+    "trial_packet",
+    "case_brief_packet",
+    "tooling_packet",
+]
+ResearchContributorBundleKind = Literal[
+    "benchmark_submission_bundle",
+    "dataset_submission_bundle",
+    "issue_handoff_bundle",
+    "rule_handoff_bundle",
+    "trial_handoff_bundle",
+    "case_brief_handoff_bundle",
+    "tooling_handoff_bundle",
+]
+
+
+class ResearchSource(BaseModel):
+    source_id: str
+    label: str
+    source_kind: str
+    trust_level: str
+    access_class: str
+    base_url: str | None = None
+    description: str | None = None
+    polling_config: dict[str, object] = Field(default_factory=dict)
+    enabled: bool = True
+    connector_id: str | None = None
+    default_mode: ResearchIngestMode | None = None
+    live_ready: bool = False
+    priority: str | None = None
+    schedule_summary: str | None = None
+    schedule_state: ResearchScheduleState = "unscheduled"
+    interval_hours: int | None = None
+    effective_interval_hours: int | None = None
+    next_run_at: datetime | None = None
+    overdue_by_hours: float | None = None
+    consecutive_failures: int = 0
+    health_status: str = "idle"
+    last_run_at: datetime | None = None
+    last_success_at: datetime | None = None
+    last_error_at: datetime | None = None
+    last_error_detail: str | None = None
+    last_document_count: int | None = None
+
+
+class ResearchRunItem(BaseModel):
+    item_index: int
+    stage: str
+    status: str
+    source_identifier: str | None = None
+    document_id: str | None = None
+    error_bucket: str | None = None
+    error_detail: str | None = None
+    created_at: datetime
+
+
+class ResearchRunSummary(BaseModel):
+    run_id: int
+    run_type: str
+    status: str
+    actor_user_id: str
+    source_scope: list[str] = Field(default_factory=list)
+    processed: int
+    created: int
+    updated: int
+    failed: int
+    failure_counts: dict[str, int] = Field(default_factory=dict)
+    artifact_paths: list[str] = Field(default_factory=list)
+    metadata: dict[str, object] = Field(default_factory=dict)
+    started_at: datetime
+    completed_at: datetime
+
+
+class ResearchRunDetail(ResearchRunSummary):
+    items: list[ResearchRunItem] = Field(default_factory=list)
+
+
+class ResearchRunTriggerInput(BaseModel):
+    source_ids: list[str] | None = None
+    include_disabled: bool = False
+    only_due: bool = False
+    write_artifacts: bool = True
+    mode: ResearchIngestMode = "auto"
+    max_documents_per_source: int | None = Field(default=None, ge=1, le=50)
+
+
+class ResearchDigestTriggerInput(BaseModel):
+    publish: bool = True
+    write_artifacts: bool = True
+
+
+class ResearchWatchtowerTriggerInput(BaseModel):
+    source_ids: list[str] | None = None
+    include_disabled: bool = False
+    only_due: bool = True
+    write_artifacts: bool = True
+    mode: ResearchIngestMode = "auto"
+    max_documents_per_source: int | None = Field(default=None, ge=1, le=50)
+    publish_digest: bool = True
+    digest_policy: ResearchWatchtowerDigestPolicy = "new_documents"
+
+
+class ResearchScheduleSnapshot(BaseModel):
+    generated_at: datetime
+    total_sources: int
+    due_count: int
+    overdue_count: int
+    scheduled_count: int
+    disabled_count: int
+    live_ready_count: int
+    fixture_only_count: int
+    sources: list[ResearchSource] = Field(default_factory=list)
+
+
+class ResearchRunTriggerResult(BaseModel):
+    ok: bool
+    run: ResearchRunDetail
+
+
+class ResearchExperimentInput(BaseModel):
+    write_artifacts: bool = True
+    experiment_kind: ResearchExperimentKind | None = None
+
+
+class ResearchEvidence(BaseModel):
+    evidence_text: str
+    char_start: int
+    char_end: int
+    claim_text: str
+    claim_type: str
+    entity_tags: list[str] = Field(default_factory=list)
+    citation_label: str | None = None
+    confidence: float | None = None
+
+
+class ResearchGraphEntity(BaseModel):
+    node_id: str
+    label: str
+    node_type: str
+    description: str | None = None
+    family_id: str | None = None
+    family_label: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    topic_ids: list[str] = Field(default_factory=list)
+    match_terms: list[str] = Field(default_factory=list)
+    match_strategy: str | None = None
+    related_match_count: int = 0
+    related_node_ids: list[str] = Field(default_factory=list)
+    confidence: float | None = None
+
+
+class ResearchDocument(BaseModel):
+    document_id: str
+    source_id: str
+    source_label: str
+    source_kind: str
+    document_type: str
+    title: str
+    abstract_text: str
+    url: str | None = None
+    canonical_url: str | None = None
+    doi: str | None = None
+    pmid: str | None = None
+    nct_id: str | None = None
+    citation_key: str
+    published_at: datetime | None = None
+    authors: list[str] = Field(default_factory=list)
+    organizations: list[str] = Field(default_factory=list)
+    topic_ids: list[str] = Field(default_factory=list)
+    topic_labels: list[str] = Field(default_factory=list)
+    entity_tags: list[str] = Field(default_factory=list)
+    relevance_scores: dict[str, float] = Field(default_factory=dict)
+    novelty_score: float | None = None
+    ingest_mode: str | None = None
+    provenance: dict[str, object] = Field(default_factory=dict)
+    graph_entities: list[ResearchGraphEntity] = Field(default_factory=list)
+    evidence: list[ResearchEvidence] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+
+class ResearchTopic(BaseModel):
+    topic_id: str
+    label: str
+    description: str | None = None
+    keywords: list[str] = Field(default_factory=list)
+    related_rationale_codes: list[str] = Field(default_factory=list)
+    related_trial_tags: list[str] = Field(default_factory=list)
+    opportunity_types: list[ResearchOpportunityType] = Field(default_factory=list)
+    topic_heat: float
+    document_count: int
+    last_document_at: datetime | None = None
+    status: str
+
+
+class ResearchDigestDocumentRef(BaseModel):
+    document_id: str
+    title: str
+    citation_key: str
+    url: str | None = None
+    topic_labels: list[str] = Field(default_factory=list)
+
+
+class ResearchGraphEdge(BaseModel):
+    source: str
+    target: str
+    relation: str
+    weight: float | None = None
+
+
+class ResearchGraphNode(BaseModel):
+    node_id: str
+    label: str
+    node_type: str
+    description: str | None = None
+    family_id: str | None = None
+    family_label: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    topic_ids: list[str] = Field(default_factory=list)
+    aliases: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+    related_node_ids: list[str] = Field(default_factory=list)
+    document_count: int
+    heat: float
+    recent_document_ids: list[str] = Field(default_factory=list)
+
+
+class ResearchGraphSnapshot(BaseModel):
+    generated_at: datetime
+    active_node_ids: list[str] = Field(default_factory=list)
+    nodes: list[ResearchGraphNode] = Field(default_factory=list)
+    edges: list[ResearchGraphEdge] = Field(default_factory=list)
+
+
+class ResearchCouncilStage1Opinion(BaseModel):
+    persona: str
+    focus: str
+    summary: str
+    citations: list[str] = Field(default_factory=list)
+    proposed_opportunity_types: list[ResearchOpportunityType] = Field(default_factory=list)
+    primary_topics: list[str] = Field(default_factory=list)
+    confidence_label: str = "medium"
+    key_claims: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    evidence_gaps: list[str] = Field(default_factory=list)
+
+
+class ResearchCouncilPeerCritique(BaseModel):
+    reviewer_persona: str
+    target_persona: str
+    alignment: str
+    strengths: list[str] = Field(default_factory=list)
+    concerns: list[str] = Field(default_factory=list)
+    requested_evidence: list[str] = Field(default_factory=list)
+
+
+class ResearchCouncilStage2Ranking(BaseModel):
+    persona: str
+    ranked_topics: list[str] = Field(default_factory=list)
+    ranked_opportunity_types: list[ResearchOpportunityType] = Field(default_factory=list)
+    critique: str
+    challenge_target_persona: str | None = None
+    peer_critiques: list[ResearchCouncilPeerCritique] = Field(default_factory=list)
+    preferred_actions: list[str] = Field(default_factory=list)
+    confidence_adjustment: str = "hold"
+
+
+class ResearchCouncilStage3Synthesis(BaseModel):
+    chairman_summary: str
+    overall_confidence: str = "medium"
+    consensus_points: list[str] = Field(default_factory=list)
+    disagreement_points: list[str] = Field(default_factory=list)
+    evidence_gaps: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    recommended_actions: list[str] = Field(default_factory=list)
+    next_experiments: list[str] = Field(default_factory=list)
+    promotion_guardrails: list[str] = Field(default_factory=list)
+
+
+class ResearchCouncilPayload(BaseModel):
+    stage_1: list[ResearchCouncilStage1Opinion] = Field(default_factory=list)
+    stage_2: list[ResearchCouncilStage2Ranking] = Field(default_factory=list)
+    stage_3: ResearchCouncilStage3Synthesis
+
+
+class ResearchDigestTrend(BaseModel):
+    previous_digest_id: str | None = None
+    previous_generated_at: datetime | None = None
+    confidence_trend: str = "new"
+    disagreement_delta: float | None = None
+    citation_delta: int | None = None
+    new_topic_labels: list[str] = Field(default_factory=list)
+    persistent_topic_labels: list[str] = Field(default_factory=list)
+    dropped_topic_labels: list[str] = Field(default_factory=list)
+
+
+class ResearchDigestRecurringItem(BaseModel):
+    text: str
+    occurrence_count: int = 1
+    digest_ids: list[str] = Field(default_factory=list)
+    last_seen_at: datetime | None = None
+
+
+class ResearchDigestHistoryItem(BaseModel):
+    digest_id: str
+    generated_at: datetime
+    overall_confidence: str = "medium"
+    disagreement_score: float = 0.0
+    citation_count: int = 0
+    topic_labels: list[str] = Field(default_factory=list)
+
+
+class ResearchDigestCalibrationSnapshot(BaseModel):
+    lookback_digest_count: int = 0
+    lookback_window_days: int = 90
+    confidence_distribution: dict[str, int] = Field(default_factory=dict)
+    average_disagreement_score: float | None = None
+    average_citation_count: float | None = None
+    confidence_consistency_score: float | None = None
+    disagreement_volatility_score: float | None = None
+    status: str = "emerging"
+    dominant_topic_labels: list[str] = Field(default_factory=list)
+    recurring_themes: list[ResearchDigestRecurringItem] = Field(default_factory=list)
+    long_horizon_open_questions: list[ResearchDigestRecurringItem] = Field(default_factory=list)
+    long_horizon_disagreement_points: list[ResearchDigestRecurringItem] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class ResearchDigestHistorySnapshot(BaseModel):
+    trend: ResearchDigestTrend = Field(default_factory=ResearchDigestTrend)
+    recent_digests: list[ResearchDigestHistoryItem] = Field(default_factory=list)
+    recurring_open_questions: list[ResearchDigestRecurringItem] = Field(default_factory=list)
+    recurring_disagreement_points: list[ResearchDigestRecurringItem] = Field(default_factory=list)
+    resolved_open_questions: list[str] = Field(default_factory=list)
+    resolved_disagreement_points: list[str] = Field(default_factory=list)
+    calibration: ResearchDigestCalibrationSnapshot = Field(default_factory=ResearchDigestCalibrationSnapshot)
+
+
+class ResearchDigestListItem(BaseModel):
+    digest_id: str
+    title: str
+    status: str
+    publication_scope: str
+    generated_at: datetime
+    topic_ids: list[str] = Field(default_factory=list)
+    topic_labels: list[str] = Field(default_factory=list)
+    disagreement_score: float
+    citation_count: int
+    trend: ResearchDigestTrend = Field(default_factory=ResearchDigestTrend)
+    calibration_status: str = "emerging"
+    calibration_theme_labels: list[str] = Field(default_factory=list)
+
+
+class ResearchDigestDetail(ResearchDigestListItem):
+    window_start: datetime | None = None
+    window_end: datetime | None = None
+    summary_markdown: str
+    key_takeaways: list[str] = Field(default_factory=list)
+    supporting_documents: list[ResearchDigestDocumentRef] = Field(default_factory=list)
+    council: ResearchCouncilPayload
+    history: ResearchDigestHistorySnapshot = Field(default_factory=ResearchDigestHistorySnapshot)
+
+
+class ResearchOpportunityEvidence(BaseModel):
+    document_id: str
+    citation_key: str
+    title: str
+    source_kind: str | None = None
+    topic_labels: list[str] = Field(default_factory=list)
+    why_it_matters: str = ""
+
+
+class ResearchOpportunityArtifactSpec(BaseModel):
+    artifact_kind: ResearchOpportunityArtifactKind = "community_project_spec"
+    title: str = ""
+    summary: str = ""
+    suggested_path: str | None = None
+    target_hint: ResearchPromotionTarget | None = None
+
+
+class ResearchContributorPacket(BaseModel):
+    packet_kind: ResearchContributorPacketKind = "issue_packet"
+    title: str = ""
+    summary: str = ""
+    suggested_owner: str = ""
+    repo_targets: list[str] = Field(default_factory=list)
+    issue_labels: list[str] = Field(default_factory=list)
+    checklist: list[str] = Field(default_factory=list)
+    output_artifacts: list[str] = Field(default_factory=list)
+    validation_steps: list[str] = Field(default_factory=list)
+    handoff_notes: list[str] = Field(default_factory=list)
+    bundle: "ResearchContributorBundleSpec | None" = None
+
+
+class ResearchContributorBundleSpec(BaseModel):
+    bundle_kind: ResearchContributorBundleKind = "issue_handoff_bundle"
+    slug: str = ""
+    manifest_path: str | None = None
+    readme_path: str | None = None
+    template_paths: list[str] = Field(default_factory=list)
+    starter_command: str | None = None
+    validation_command: str | None = None
+    intake_fields: list[str] = Field(default_factory=list)
+
+
+class ResearchOpportunityExperimentResult(BaseModel):
+    supported: bool = False
+    experiment_kind: ResearchExperimentKind | None = None
+    ratchet_outcome: ResearchExperimentOutcome = "discard"
+    metric_name: str = ""
+    baseline_value: float | None = None
+    candidate_value: float | None = None
+    delta: float | None = None
+    threshold: float | None = None
+    min_delta: float | None = None
+    evidence_coverage_score: float | None = None
+    experiment_summary: str = ""
+    stress_dimensions: list[str] = Field(default_factory=list)
+    scored_dimensions: dict[str, float] = Field(default_factory=dict)
+    notes: list[str] = Field(default_factory=list)
+    artifact_paths: list[str] = Field(default_factory=list)
+    run_id: int | None = None
+    completed_at: datetime | None = None
+
+
+class ResearchOpportunityActionPayload(BaseModel):
+    human_gate: bool = True
+    digest_id: str | None = None
+    objective: str = ""
+    why_now: str = ""
+    discovery_question: str = ""
+    artifact_spec: ResearchOpportunityArtifactSpec = Field(default_factory=ResearchOpportunityArtifactSpec)
+    evidence_bundle: list[ResearchOpportunityEvidence] = Field(default_factory=list)
+    proposed_steps: list[str] = Field(default_factory=list)
+    acceptance_gates: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    evidence_gaps: list[str] = Field(default_factory=list)
+    next_experiments: list[str] = Field(default_factory=list)
+    measurable_outcomes: list[str] = Field(default_factory=list)
+    promotion_guardrails: list[str] = Field(default_factory=list)
+    contributor_packets: list[ResearchContributorPacket] = Field(default_factory=list)
+    suggested_target: ResearchPromotionTarget = "docs_draft"
+    council_confidence: str = "medium"
+    council_personas: list[str] = Field(default_factory=list)
+    theme_snapshot: list[str] = Field(default_factory=list)
+    promoted_by_user_id: str | None = None
+    last_promotion_target: ResearchPromotionTarget | None = None
+    promotion_artifact_path: str | None = None
+    last_experiment: ResearchOpportunityExperimentResult | None = None
+
+
+class ResearchOpportunity(BaseModel):
+    opportunity_id: str
+    opportunity_type: ResearchOpportunityType
+    title: str
+    summary: str
+    status: str
+    confidence_score: float
+    topic_ids: list[str] = Field(default_factory=list)
+    topic_labels: list[str] = Field(default_factory=list)
+    supporting_document_ids: list[str] = Field(default_factory=list)
+    related_rationale_codes: list[str] = Field(default_factory=list)
+    related_trial_ids: list[str] = Field(default_factory=list)
+    action_payload: ResearchOpportunityActionPayload = Field(default_factory=ResearchOpportunityActionPayload)
+    promotion_target: str | None = None
+    promoted_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ResearchPromotionInput(BaseModel):
+    target: ResearchPromotionTarget = "docs_draft"
+
+
+class ResearchPromotionResult(BaseModel):
+    ok: bool
+    opportunity_id: str
+    status: str
+    promotion_target: ResearchPromotionTarget
+    artifact_path: str | None = None
+
+
+class ResearchCaseBriefTopic(BaseModel):
+    topic_id: str
+    label: str
+    rationale: str
+
+
+class ResearchCaseBriefDocument(BaseModel):
+    document_id: str
+    title: str
+    citation_key: str
+    url: str | None = None
+    relevance_reason: str
+
+
+class ResearchCaseBrief(BaseModel):
+    case_id: str
+    summary: str
+    matched_topics: list[ResearchCaseBriefTopic] = Field(default_factory=list)
+    supporting_documents: list[ResearchCaseBriefDocument] = Field(default_factory=list)
+    suggested_benchmark_gaps: list[str] = Field(default_factory=list)
+    suggested_rule_updates: list[str] = Field(default_factory=list)
+    suggested_trial_updates: list[str] = Field(default_factory=list)

@@ -47,27 +47,32 @@ export default async function HomePage() {
     <main className={styles.page}>
       <div className={styles.shell}>
         <section className={styles.hero}>
-          <p className={styles.eyebrow}>Research-use workflow software</p>
-          <h1 className={styles.title}>Catch pancreatic red flags before they disappear in free text.</h1>
+          <p className={styles.eyebrow}>Open Pancreatic Oncology Discovery System</p>
+          <h1 className={styles.title}>Turn pancreatic oncology signals into cited, actionable work.</h1>
           <p className={styles.subtitle}>
-            Pancreatic Signal is an open-source triage stack for suspicious pancreatic radiology reports. It ingests report
-            text, shows exact evidence spans and rationale codes, and routes flagged cases into a human-reviewed queue
-            instead of pretending to be an autonomous diagnosis engine.
+            Pancreatic Signal is an open-source research-intelligence platform for pancreatic oncology. It organizes
+            literature, trials, guidance, and workflow gaps into cited digests, graph-backed topics, and human-gated
+            opportunities, then connects that discovery loop to applied surfaces like explainable report triage, benchmark
+            growth, and case briefs.
           </p>
 
           <div className={styles.chipRow}>
-            <span className={styles.chip}>Explain every flag</span>
-            <span className={styles.chip}>Benchmark before you brag</span>
+            <span className={styles.chip}>Cited discovery engine</span>
+            <span className={styles.chip}>Human-gated opportunity lab</span>
+            <span className={styles.chip}>Explainable triage surface</span>
+            <span className={styles.chip}>Benchmark and casebook proof</span>
             <span className={styles.chip}>CSV, JSONL, FHIR, and HL7</span>
-            <span className={styles.chip}>Navigator-ready worklist</span>
           </div>
 
           <div className={styles.ctaRow}>
-            <Link href="/proof" className={styles.primaryLink}>
+            <Link href="/research-intel" className={styles.primaryLink}>
+              Open Research Intelligence
+            </Link>
+            <Link href="/proof" className={styles.secondaryLink}>
               Open Benchmark Proof
             </Link>
             <Link href="/cases" className={styles.secondaryLink}>
-              Open Worklist
+              Open Triage Surface
             </Link>
             <Link href="/imports" className={styles.secondaryLink}>
               Open Import Workspace
@@ -79,7 +84,7 @@ export default async function HomePage() {
 
           {comparison && sweep && datasetSummary ? (
             <div className={styles.heroProof}>
-              <p className={styles.heroProofLabel}>Current Published Proof</p>
+              <p className={styles.heroProofLabel}>Current Applied-Surface Proof</p>
               <p className={styles.heroProofMetric}>
                 Demo snapshot: rules recall <strong>{formatPercent(comparison.rules.recall)}</strong>, hybrid recall{" "}
                 <strong>{formatPercent(comparison.hybrid.recall)}</strong>, with a hybrid recall lift of{" "}
@@ -178,34 +183,35 @@ export default async function HomePage() {
           <div className={styles.sectionHeader}>
             <div>
               <p className={styles.eyebrow}>Why It Sticks</p>
-              <h2 className={styles.sectionTitle}>Useful to engineers, researchers, and navigators on day one.</h2>
+              <h2 className={styles.sectionTitle}>A discovery engine that still ships useful workflow surfaces.</h2>
               <p className={styles.sectionText}>
-                The adoption wedge here is not “AI for medicine.” It is an explainable, benchmarkable workflow layer that
-                teams can inspect, critique, adapt, and pilot without private tribal knowledge.
+                The wedge is not a vague “medical AI” claim. It is a public pancreatic oncology discovery loop that yields
+                inspectable artifacts, measurable next steps, and downstream tools that stay grounded in evidence and human
+                review.
               </p>
             </div>
           </div>
 
           <div className={`${styles.grid} ${styles.gridThree}`}>
             <article className={styles.card}>
-              <h3 className={styles.cardTitle}>Transparent by default</h3>
+              <h3 className={styles.cardTitle}>Discovery artifacts, not just summaries</h3>
               <p className={styles.cardText}>
-                Every flagged case keeps evidence spans, rationale codes, reviewer actions, and audit visibility instead of
-                collapsing into a black-box score.
+                Research runs become cited documents, graph activity, council deliberation, opportunity specs, and safe
+                experiment artifacts that others can audit and build on.
               </p>
             </article>
             <article className={styles.card}>
-              <h3 className={styles.cardTitle}>Built around real workflow friction</h3>
+              <h3 className={styles.cardTitle}>Applied surfaces stay explainable</h3>
               <p className={styles.cardText}>
-                The product focuses on the gap between report wording and timely follow-up, which is where many pancreatic
-                misses become operational problems.
+                Triage, case briefs, and trial upkeep remain downstream applications of the discovery engine, with evidence
+                spans, rationale codes, and human review kept visible.
               </p>
             </article>
             <article className={styles.card}>
-              <h3 className={styles.cardTitle}>Ready for benchmark debate</h3>
+              <h3 className={styles.cardTitle}>Open backlog with measurable next steps</h3>
               <p className={styles.cardText}>
-                The repo includes reproducible demo evaluation, threshold sweeps, published benchmark snapshots, and a place
-                to improve edge cases in the open.
+                Opportunities carry cited evidence, open questions, measurable outcomes, and keep-or-discard experiment
+                gates so contributors know what to test or build next.
               </p>
             </article>
           </div>
@@ -213,23 +219,25 @@ export default async function HomePage() {
 
         <section className={styles.section}>
           <div className={styles.codePanel}>
-            <p className={styles.codeLabel}>Fastest First Win</p>
-            <h2 className={styles.codeTitle}>Prove the repo works before you touch a line of code.</h2>
+            <p className={styles.codeLabel}>Fastest First Run</p>
+            <h2 className={styles.codeTitle}>Boot the discovery loop before you touch a line of code.</h2>
             <p className={styles.codeText}>
-              Outside collaborators should be able to validate the stack, generate benchmark artifacts, and inspect the live
-              reviewer surfaces without a private walkthrough.
+              Outside collaborators should be able to validate the stack, generate cited research artifacts, inspect the
+              benchmark proof, and explore the applied workflow surfaces without a private walkthrough.
             </p>
             <pre className={styles.codeBlock}>
 {`make validate-strict
+make research-intel-refresh
 make benchmark-demo
 make benchmark-external-sample
 make refresh-external-sample-proof
 docker compose up --build`}
             </pre>
             <p className={styles.codeText}>
-              The ad hoc benchmark snapshots land in <span className={styles.inlineCode}>artifacts/benchmarks</span>. The
-              published proof used by this site lives at <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span> and the
-              external registry <span className={styles.inlineCode}>{PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH}</span>.
+              Discovery artifacts land in <span className={styles.inlineCode}>artifacts/research-intel</span>, while
+              benchmark artifacts land in <span className={styles.inlineCode}>artifacts/benchmarks</span>. The published
+              proof used by this site lives at <span className={styles.inlineCode}>{PUBLISHED_DEMO_PROOF_PATH}</span> and
+              the external registry <span className={styles.inlineCode}>{PUBLISHED_EXTERNAL_BENCHMARK_REGISTRY_PATH}</span>.
             </p>
           </div>
         </section>
@@ -238,11 +246,22 @@ docker compose up --build`}
           <div className={styles.sectionHeader}>
             <div>
               <p className={styles.eyebrow}>Explore</p>
-              <h2 className={styles.sectionTitle}>Start with the surface that matches your role.</h2>
+              <h2 className={styles.sectionTitle}>Start with the surface that matches your question.</h2>
             </div>
           </div>
 
-          <div className={`${styles.grid} ${styles.gridThree}`}>
+          <div className={`${styles.grid} ${styles.gridFour}`}>
+            <Link href="/research-intel" className={styles.card}>
+              <h3 className={styles.routeCardTitle}>
+                Research intelligence
+                <span className={styles.inlineCode}>/research-intel</span>
+              </h3>
+              <p className={styles.cardText}>
+                Explore the pancreatic oncology watchtower: document stream, topic heat, graph activity, digests, and the
+                discovery backlog that shapes what the project does next.
+              </p>
+              <p className={styles.routeMeta}>Best first stop for discovery work</p>
+            </Link>
             <Link href="/proof" className={styles.card}>
               <h3 className={styles.routeCardTitle}>
                 Benchmark proof
@@ -256,12 +275,12 @@ docker compose up --build`}
             </Link>
             <Link href="/cases" className={styles.card}>
               <h3 className={styles.routeCardTitle}>
-                Reviewer worklist
+                Explainable triage surface
                 <span className={styles.inlineCode}>/cases</span>
               </h3>
               <p className={styles.cardText}>
-                Inspect priority sorting, rationale codes, hybrid review signals, and the case detail workflow the product is
-                built around.
+                Inspect evidence spans, rationale codes, hybrid review signals, and the case-detail workflow used as one
+                downstream application of the discovery engine.
               </p>
               <p className={styles.routeMeta}>Best for product and workflow review</p>
             </Link>
@@ -283,9 +302,9 @@ docker compose up --build`}
           <div className={styles.warningCard}>
             <h3 className={styles.warningTitle}>Guardrails that should stay visible</h3>
             <p className={styles.warningText}>
-              Pancreatic Signal is research-use workflow software. It should stay human-review dependent, explicit about
-              uncertainty, honest about limitations, and resistant to “autonomous diagnosis” framing even when the benchmark
-              story gets stronger.
+              Pancreatic Signal is research-use discovery software. It should stay citation-backed, human-gated, explicit
+              about uncertainty, honest about limitations, and resistant to “autonomous diagnosis” framing even as the
+              scientific-discovery story gets stronger.
             </p>
           </div>
         </section>

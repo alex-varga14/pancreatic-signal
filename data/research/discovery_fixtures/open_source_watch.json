@@ -1,0 +1,28 @@
+{
+  "fetched_at": "2026-04-03T09:05:00Z",
+  "source_url": "https://github.com/",
+  "documents": [
+    {
+      "source_id": "open_source_watch",
+      "source_identifier": "oss-pancreas-dataset-release",
+      "document_type": "news",
+      "title": "Open pancreatic MRI benchmark pack released with segmentation labels and workflow notes",
+      "abstract_text": "A new open-source benchmark pack pairs pancreatic MRI segmentation labels with workflow notes, benchmark documentation, and GitHub issue templates intended to accelerate reproducible pancreatic tooling.",
+      "url": "https://github.com/example/pancreas-benchmark-release",
+      "authors": ["Open Pancreas Collective"],
+      "organizations": ["Open Pancreas Collective"],
+      "published_at": "2026-03-20T16:00:00Z"
+    },
+    {
+      "source_id": "open_source_watch",
+      "source_identifier": "workflow-watch-radiology-navigator-demo",
+      "document_type": "news",
+      "title": "Navigator-focused radiology workflow stack surfaces explainable pancreatic follow-up opportunities",
+      "abstract_text": "A new workflow stack report describes navigator dashboards, human review, and escalation workflow design for pancreatic radiology findings, arguing that open-source contributors should prioritize explainable case briefs and benchmark growth over opaque automation.",
+      "url": "https://github.com/example/pancreatic-workflow-stack",
+      "authors": ["Community Workflow Lab"],
+      "organizations": ["Community Workflow Lab"],
+      "published_at": "2026-03-17T08:15:00Z"
+    }
+  ]
+}

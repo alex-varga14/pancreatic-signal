@@ -12,6 +12,8 @@ The benchmark pack exists so collaborators can publish comparable results withou
 - top-k review assumptions
 - error bucket naming
 
+Research-intel opportunity packets now also emit collaborator bundle manifests under `artifacts/research-intel/collaborator-bundles/`. Those bundles point contributors back to the public templates and commands in this document so benchmark or dataset follow-through can start from repo artifacts rather than private chat context.
+
 ## What to submit
 
 At minimum, prepare:

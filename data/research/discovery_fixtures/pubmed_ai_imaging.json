@@ -1,0 +1,20 @@
+{
+  "fetched_at": "2026-04-03T09:07:00Z",
+  "query": "\"pancreatic cancer\" AND ((radiomics) OR (imaging AI) OR MRI OR CT) sort_date:y",
+  "source_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=%22pancreatic%20cancer%22%20AND%20((radiomics)%20OR%20(imaging%20AI)%20OR%20MRI%20OR%20CT)%20sort_date:y&format=json&pageSize=5",
+  "documents": [
+    {
+      "source_id": "pubmed_ai_imaging",
+      "source_identifier": "pmid-41000021",
+      "document_type": "paper",
+      "title": "Multi-site CT and MRI radiomics benchmark sharpens pancreatic lesion triage and reviewer challenge packs",
+      "abstract_text": "A multi-site CT and MRI radiomics benchmark improved lesion triage analysis while exposing wording variance and pancreatitis confounders in reviewer challenge packs. The paper argues that imaging AI work should ship with reproducible benchmarks and interpretable workflow notes.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41000021/",
+      "pmid": "41000021",
+      "doi": "10.1001/pancreas.2026.021",
+      "authors": ["C. Miller", "S. Iqbal"],
+      "organizations": ["Open Pancreas Imaging Network"],
+      "published_at": "2026-03-28T13:20:00Z"
+    }
+  ]
+}
