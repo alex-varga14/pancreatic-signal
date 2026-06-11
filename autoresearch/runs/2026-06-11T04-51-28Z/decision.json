@@ -1,0 +1,19 @@
+{
+  "baseline_path": "autoresearch/baseline/pancreatic_signal_rules.json",
+  "baseline_value": 0.8333,
+  "candidate_path": "data/ontologies/pancreatic_signal_rules.json",
+  "delta": 0.0,
+  "determinism": {
+    "checked": true,
+    "first_pass_signature_size": 10,
+    "ok": true,
+    "second_pass_signature_size": 10
+  },
+  "primary_metric": "f1_at_top_k_demo_rules",
+  "primary_value": 0.8333,
+  "reasons": [
+    "primary_metric: candidate did not strictly beat baseline F1"
+  ],
+  "run_dir": "autoresearch/runs/2026-06-11T04-51-28Z",
+  "status": "discarded_no_improvement"
+}
