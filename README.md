@@ -4,6 +4,18 @@ Open-source pancreatic oncology discovery software with a cited research-intelli
 
 > Research-use workflow software. Not for autonomous diagnosis, treatment recommendation, or unsupervised clinical deployment.
 
+## At A Glance
+
+| Reviewer worklist | Case detail with evidence highlights |
+| --- | --- |
+| ![Reviewer worklist with deterministic and hybrid scores](docs/media/worklist.png) | ![Case detail showing highlighted evidence spans and rationale](docs/media/case-detail.png) |
+
+| Benchmark proof page | Research-intelligence workspace |
+| --- | --- |
+| ![Reproducible benchmark proof page](docs/media/proof.png) | ![Pancreatic oncology discovery workspace](docs/media/research-intel.png) |
+
+All data shown is synthetic demo data. To reproduce these surfaces locally, see the Quick Start below; screenshots can be refreshed with `apps/web/scripts/capture-screenshots.cjs` against a seeded local stack.
+
 ## Current Status
 
 Pancreatic Signal is no longer a scaffold. As of 2026-04-03, this repository includes:
