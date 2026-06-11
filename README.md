@@ -322,6 +322,7 @@ Manual dispatch now also supports `smoke_scope=fhir-success-only` and `smoke_sco
 - Evaluation and deployment: [docs/EVALUATION.md](docs/EVALUATION.md), [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - Release posture: [CHANGELOG.md](CHANGELOG.md), [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md), [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md), [docs/RELEASE_NOTES_TEMPLATE.md](docs/RELEASE_NOTES_TEMPLATE.md)
 - Safety and project posture: [docs/SAFETY_AND_COMPLIANCE.md](docs/SAFETY_AND_COMPLIANCE.md), [docs/OPEN_SOURCE_STRATEGY.md](docs/OPEN_SOURCE_STRATEGY.md)
+- Audience one-pagers: [docs/outreach/FOR_RESEARCHERS.md](docs/outreach/FOR_RESEARCHERS.md), [docs/outreach/FOR_EDUCATORS.md](docs/outreach/FOR_EDUCATORS.md), [docs/outreach/FOR_INFORMATICS_PROFESSIONALS.md](docs/outreach/FOR_INFORMATICS_PROFESSIONALS.md)
 - Agent handoff context: [docs/CODEX_HANDOFF.md](docs/CODEX_HANDOFF.md)
 
 ## Contributing And Security
