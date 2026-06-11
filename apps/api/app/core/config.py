@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "pancreatic-signal-api"
-    app_version: str = "0.1.0"
+    app_version: str = "0.10.0"
     app_env: str = "development"
     database_url: str = "sqlite:///./pancreatic_signal.db"
     cors_origins: str = "http://localhost:3000"

@@ -6,8 +6,16 @@ This repository is still pre-release, but the goal is to keep the path to a rese
 
 ## Unreleased
 
+## 0.10.0 - 2026-06-11
+
+### Fixed
+
+- Pilot Smoke CI: the web Docker image build failed with an npm `ERESOLVE` conflict because `@playwright/test 1.48.2` was added to `package.json` without regenerating `package-lock.json`, so every scheduled hosted smoke run since 2026-04-25 failed at the overlay boot step. `@playwright/test` is now `1.60.0`, the lockfile is regenerated in sync, and the web Dockerfile uses `npm ci` so lockfile drift fails loudly at build time instead of silently re-resolving.
+- GitHub Actions in all workflows bumped to Node 24-ready majors (`checkout@v6`, `setup-python@v6`, `setup-node@v6`, `upload-artifact@v7`, `cache@v5`) ahead of the 2026-06-16 forced Node 24 migration.
+
 ### Added
 
+- Open-source readiness scaffolding: `CITATION.cff`, issue templates (bug, feature, use-case interest), PR template, dependabot config, product screenshots in the README, audience one-pagers under `docs/outreach/`, and a go-public checklist in `docs/GO_PUBLIC_CHECKLIST.md`. `SECURITY.md` and `CODE_OF_CONDUCT.md` now point at GitHub private vulnerability reporting instead of an unnamed private channel.
 - Pancreatic Signal v2 audit fixes:
   - Sentence-bounded negation in [`apps/api/app/services/triage_engine.py`](apps/api/app/services/triage_engine.py) (replaces ad-hoc 60-char regex windows so negation cannot leak across sentences)
   - Persisted structured `FindingRecord` rows from the triage engine in addition to the flattened evidence summary

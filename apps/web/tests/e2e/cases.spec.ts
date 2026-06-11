@@ -26,7 +26,9 @@ test.describe("/cases/[caseId]", () => {
     await page.goto("/cases/C-E2E-1");
 
     await expect(page.getByText("C-E2E-1", { exact: false })).toBeVisible();
-    await expect(page.getByText(/abrupt cutoff of the pancreatic duct/i)).toBeVisible();
+    // Target the evidence-highlight span specifically; the surrounding report
+    // paragraph also contains this phrase, which trips strict mode otherwise.
+    await expect(page.getByText("abrupt cutoff of the pancreatic duct", { exact: true })).toBeVisible();
 
     const reviewForm = page
       .locator("form")

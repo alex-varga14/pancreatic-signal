@@ -17,9 +17,8 @@ Please avoid opening a public issue for a sensitive security problem.
 
 Preferred path:
 
-1. Use the repository host's private security or advisory reporting feature if it is available.
-2. If no private reporting path is available, contact the maintainers through a private channel before public disclosure.
-3. If you only have public issue access, open a minimal issue requesting a private contact path and do not include exploit details, secrets, payloads, or patient-like data.
+1. Use GitHub's private vulnerability reporting: [Report a vulnerability](https://github.com/alex-varga14/pancreatic-signal/security/advisories/new) (repository Security tab → "Report a vulnerability").
+2. If that path is unavailable to you, open a minimal public issue that only requests a private contact path — do not include exploit details, secrets, payloads, or patient-like data.
 
 ## What To Include
 

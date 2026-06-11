@@ -1,0 +1,31 @@
+{
+  "added_family_codes": [],
+  "family_changes": [],
+  "negations_added": [],
+  "negations_removed": [],
+  "removed_family_codes": [],
+  "scoring_after": {
+    "max_score": 1.0,
+    "method": "additive",
+    "round_digits": 4
+  },
+  "scoring_before": {
+    "max_score": 1.0,
+    "method": "additive",
+    "round_digits": 4
+  },
+  "thresholds_after": {
+    "critical": 0.8,
+    "high": 0.55,
+    "medium": 0.3
+  },
+  "thresholds_before": {
+    "critical": 0.8,
+    "high": 0.55,
+    "medium": 0.3
+  },
+  "uncertainty_added": [],
+  "uncertainty_removed": [],
+  "version_after": "0.1.0",
+  "version_before": "0.1.0"
+}

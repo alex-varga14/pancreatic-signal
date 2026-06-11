@@ -4,6 +4,18 @@ Open-source pancreatic oncology discovery software with a cited research-intelli
 
 > Research-use workflow software. Not for autonomous diagnosis, treatment recommendation, or unsupervised clinical deployment.
 
+## At A Glance
+
+| Reviewer worklist | Case detail with evidence highlights |
+| --- | --- |
+| ![Reviewer worklist with deterministic and hybrid scores](docs/media/worklist.png) | ![Case detail showing highlighted evidence spans and rationale](docs/media/case-detail.png) |
+
+| Benchmark proof page | Research-intelligence workspace |
+| --- | --- |
+| ![Reproducible benchmark proof page](docs/media/proof.png) | ![Pancreatic oncology discovery workspace](docs/media/research-intel.png) |
+
+All data shown is synthetic demo data. To reproduce these surfaces locally, see the Quick Start below; screenshots can be refreshed with `apps/web/scripts/capture-screenshots.cjs` against a seeded local stack.
+
 ## Current Status
 
 Pancreatic Signal is no longer a scaffold. As of 2026-04-03, this repository includes:
@@ -310,6 +322,7 @@ Manual dispatch now also supports `smoke_scope=fhir-success-only` and `smoke_sco
 - Evaluation and deployment: [docs/EVALUATION.md](docs/EVALUATION.md), [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - Release posture: [CHANGELOG.md](CHANGELOG.md), [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md), [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md), [docs/RELEASE_NOTES_TEMPLATE.md](docs/RELEASE_NOTES_TEMPLATE.md)
 - Safety and project posture: [docs/SAFETY_AND_COMPLIANCE.md](docs/SAFETY_AND_COMPLIANCE.md), [docs/OPEN_SOURCE_STRATEGY.md](docs/OPEN_SOURCE_STRATEGY.md)
+- Audience one-pagers: [docs/outreach/FOR_RESEARCHERS.md](docs/outreach/FOR_RESEARCHERS.md), [docs/outreach/FOR_EDUCATORS.md](docs/outreach/FOR_EDUCATORS.md), [docs/outreach/FOR_INFORMATICS_PROFESSIONALS.md](docs/outreach/FOR_INFORMATICS_PROFESSIONALS.md)
 - Agent handoff context: [docs/CODEX_HANDOFF.md](docs/CODEX_HANDOFF.md)
 
 ## Contributing And Security

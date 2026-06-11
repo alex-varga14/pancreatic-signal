@@ -1,0 +1,49 @@
+name: Bug report
+description: Something broke or behaved incorrectly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for the report. Please do not include PHI, real patient data, or
+        secrets anywhere in this issue. Use synthetic or fully de-identified
+        examples only. For security-sensitive problems, use the private
+        reporting path described in SECURITY.md instead of a public issue.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: Steps to reproduce, expected behavior, actual behavior.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Triage engine / scoring
+        - Imports (CSV / JSON / JSONL)
+        - Imports (FHIR)
+        - Imports (HL7 ORU)
+        - Reviewer worklist / case detail
+        - Research intelligence / watchtower
+        - Benchmarks / evaluation
+        - Autoresearch lab
+        - Web UI
+        - Deployment / Docker / pilot overlays
+        - Docs
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python/Node versions, how you ran the app (local dev, docker compose, pilot overlay).
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or output
+      description: Paste sanitized logs or error output. Double-check there is no PHI or secret material.
+      render: shell
