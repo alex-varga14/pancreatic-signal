@@ -12,7 +12,7 @@ def test_health() -> None:
     payload = response.json()
     assert payload["status"] == "ok"
     assert payload["service"] == "pancreatic-signal-api"
-    assert payload["version"] == "0.1.0"
+    assert payload["version"] == "0.10.0"
     assert payload["environment"]
     assert payload["uptime_seconds"] >= 0
 
@@ -41,7 +41,7 @@ def test_ready_health_returns_503_when_dependency_fails(monkeypatch) -> None:
         return ReadinessResponse(
             status="error",
             service="pancreatic-signal-api",
-            version="0.1.0",
+            version="0.10.0",
             environment="test",
             uptime_seconds=0.0,
             checks={
