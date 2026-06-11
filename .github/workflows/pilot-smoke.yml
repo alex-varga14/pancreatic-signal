@@ -150,11 +150,11 @@ jobs:
 
       - name: Check out repository
         if: steps.matrix_gate.outputs.should_run == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
         if: steps.matrix_gate.outputs.should_run == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -188,7 +188,7 @@ jobs:
 
       - name: Upload pilot smoke log
         if: always() && steps.matrix_gate.outputs.should_run == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pilot-smoke-${{ matrix.artifact_name }}
           path: pilot-smoke.log
@@ -224,7 +224,7 @@ jobs:
 
       - name: Upload pilot smoke summary artifacts
         if: always() && steps.matrix_gate.outputs.should_run == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pilot-smoke-summary-${{ matrix.artifact_name }}
           path: |

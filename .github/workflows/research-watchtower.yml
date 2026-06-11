@@ -57,10 +57,10 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -68,7 +68,7 @@ jobs:
 
       - name: Restore watchtower state cache
         id: restore_watchtower_cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: pancreatic_signal.db
           key: research-watchtower-db-${{ github.ref_name }}-${{ github.run_id }}
@@ -98,7 +98,7 @@ jobs:
 
       - name: Upload watchtower summary
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: research-watchtower-summary
           path: |
@@ -108,7 +108,7 @@ jobs:
 
       - name: Upload watchtower generated artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: research-watchtower-artifacts
           path: |
@@ -134,7 +134,7 @@ jobs:
 
       - name: Save watchtower state cache
         if: always() && hashFiles('pancreatic_signal.db') != ''
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: pancreatic_signal.db
           key: research-watchtower-db-${{ github.ref_name }}-${{ github.run_id }}
