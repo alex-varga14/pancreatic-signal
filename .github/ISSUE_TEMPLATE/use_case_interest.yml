@@ -1,0 +1,47 @@
+name: Use-case interest
+description: "You teach, research, or work in clinical informatics and want to use Pancreatic Signal — tell us what you need"
+labels: ["use-case"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        This template is for educators, researchers, and professionals
+        evaluating whether Pancreatic Signal fits their work. No technical
+        detail required — describing your situation in plain language is
+        exactly what we want. Please do not include PHI or patient data.
+  - type: dropdown
+    id: role
+    attributes:
+      label: Which best describes you?
+      options:
+        - Educator / instructor
+        - Researcher
+        - Clinical informatics / interoperability professional
+        - Patient navigator / care coordinator
+        - Student
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: What would you want to use it for?
+      description: >-
+        Examples: teaching explainable clinical NLP, benchmarking triage rules
+        on a retrospective dataset, testing FHIR/HL7 import flows, monitoring
+        pancreatic oncology literature.
+    validations:
+      required: true
+  - type: textarea
+    id: blockers
+    attributes:
+      label: What is missing or unclear?
+      description: Features you'd need, docs that are missing, setup friction — anything that stands between you and using it.
+  - type: dropdown
+    id: followup
+    attributes:
+      label: Would you be open to a short follow-up conversation?
+      options:
+        - "Yes, via this issue thread"
+        - "Yes, privately (we'll arrange a channel)"
+        - "No, just logging interest"

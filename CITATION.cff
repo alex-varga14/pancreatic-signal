@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use Pancreatic Signal in research, teaching, or evaluation work, please cite it as below."
+title: "Pancreatic Signal"
+type: software
+authors:
+  - family-names: "Varga"
+    given-names: "Alex"
+repository-code: "https://github.com/alex-varga14/pancreatic-signal"
+license: Apache-2.0
+version: 0.2.0
+date-released: 2026-06-10
+abstract: >-
+  Open-source pancreatic oncology discovery software with a cited
+  research-intelligence core and explainable workflow surfaces such as
+  radiology report triage, retrospective benchmarking, and case briefs.
+  Research-use workflow software; not for autonomous diagnosis, treatment
+  recommendation, or unsupervised clinical deployment.
+keywords:
+  - pancreatic-cancer
+  - radiology
+  - clinical-nlp
+  - explainable-ai
+  - fhir
+  - hl7
+  - oncology
+  - research-software
+  - benchmarking

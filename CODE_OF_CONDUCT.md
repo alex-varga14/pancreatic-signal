@@ -30,7 +30,7 @@ Please help create a community that is:
 
 Maintainers may edit, remove, or reject contributions and discussions that violate these expectations.
 
-If you need moderator attention and no private contact path is obvious, open a minimal issue requesting maintainer follow-up without posting sensitive details.
+If you need moderator attention privately, use GitHub's [private vulnerability reporting form](https://github.com/alex-varga14/pancreatic-signal/security/advisories/new) for anything security-adjacent, or open a minimal issue requesting maintainer follow-up without posting sensitive details and a private channel will be arranged.
 
 ## Scope
 
