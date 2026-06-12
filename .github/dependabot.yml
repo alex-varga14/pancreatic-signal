@@ -16,6 +16,11 @@ updates:
       js-deps:
         patterns:
           - "*"
+    ignore:
+      # Majors (Next/React/TS/ESLint) are migration projects, not refreshes;
+      # they are tracked as dedicated issues instead of grouped auto-PRs.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
