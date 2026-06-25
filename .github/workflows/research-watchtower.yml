@@ -68,7 +68,7 @@ jobs:
 
       - name: Restore watchtower state cache
         id: restore_watchtower_cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: pancreatic_signal.db
           key: research-watchtower-db-${{ github.ref_name }}-${{ github.run_id }}
@@ -134,7 +134,7 @@ jobs:
 
       - name: Save watchtower state cache
         if: always() && hashFiles('pancreatic_signal.db') != ''
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: pancreatic_signal.db
           key: research-watchtower-db-${{ github.ref_name }}-${{ github.run_id }}
